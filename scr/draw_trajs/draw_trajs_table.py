@@ -19,14 +19,18 @@ columns = ['id', 'time', 'lat', 'long', 'alt']
 df = pd.read_csv('data/traj_data_sample.csv', header=0)
 traj_ids = set(df['id'])
 
-def calculate_speeds_df(df):
-    time = 'time'
-    move_over_time = (np.roll(df, -1, axis=0) - df)[:-1]
-    hor_speed = np.sqrt(move_over_time.lat ** 2 + 
-                        move_over_time.long ** 2) / move_over_time[time]
-    df['hor_speed'] = np.append(0.0, round(hor_speed, 4))
+def calculate_horizontal_speeds_df(df):
+    hor_speeds = []
+    for ac_id in traj_ids:
+        ac_id_data = df.loc[df['id'] == ac_id]
+
+        move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
+        hor_speed = np.sqrt(move_over_time.lat ** 2 + move_over_time.long ** 2) / move_over_time['time']
+        hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
+
+    df['hor_speeds'] = hor_speeds
     return df
-df = calculate_speeds_df(df)
+df = calculate_horizontal_speeds_df(df)
 
 
 ############################################################
