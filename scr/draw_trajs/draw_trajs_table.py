@@ -28,7 +28,7 @@ def calculate_horizontal_speeds_df(df):
         hor_speed = np.sqrt(move_over_time.lat ** 2 + move_over_time.long ** 2) / move_over_time['time']
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
 
-    df['hor_speeds'] = hor_speeds
+    df['hor_speed'] = hor_speeds
     return df
 df = calculate_horizontal_speeds_df(df)
 
@@ -36,16 +36,22 @@ df = calculate_horizontal_speeds_df(df)
 ############################################################
 ############################################################
 app.layout = html.Div([
+    # memory store reverts to the default on every page refresh
     dcc.Store(id='memory-output'),
     
-    dcc.Markdown(("""Trajectory ID list""")),
+    # trajectory ID dropdown menu
     html.Div([
-        dcc.Dropdown(id='memory-ids', 
+        dcc.Markdown(("""Trajectory ID list""")),
+        dcc.Dropdown(id='trajectory-ids', 
                      options=[{'value': traj_id, 'label': 'AC '+str(traj_id)} for traj_id in traj_ids], 
-                     multi=True, value=[1, 2])
+                     multi=True, 
+                     value=[1, 2])
     ]),
     
+    # style
     html.Br(), html.Br(),
+
+    # main tabs for navigating webpage
     html.Div([
         dcc.Tabs(id="tabs",
                  children=[
@@ -53,10 +59,13 @@ app.layout = html.Div([
                      dcc.Tab(label='3d_Graph', value='tab-2'),
                      dcc.Tab(label='Map', value='tab-3')
                  ]),
-        html.Div(id='tabs-content')
+        html.Div(id='tabs-content', children = None)
     ]),
     
+    # style
     html.Br(), html.Br(),
+
+    # trajectory data table
     html.Div([
         dash_table.DataTable(
             id = 'editable-table',
@@ -68,6 +77,7 @@ app.layout = html.Div([
         html.Button('Add Row', id='editing-rows-button', n_clicks=0),
     ], className='row'),
     
+    # style
     html.Br(), html.Br()
 ])    
 
@@ -76,24 +86,33 @@ app.layout = html.Div([
 ############################################################
 @app.callback(Output('memory-output', 'data'),
               Output('editable-table', 'data'),
-              Input('memory-ids', 'value'))
+              Input('trajectory-ids', 'value'))
 def filter_ids(traj_ids_selected):
     if not traj_ids_selected:
-        return df.to_dict('records')
+
+        # FIXME: shouldn't this return nothing? I think our
+        #        graphs should be empty if nothing is selected
+        # return df.to_dict('records')
+        return [], []
+    
+    # get data for the trajectory IDs that are currently selected
     df_filtered = df.query('id in @traj_ids_selected')
+
+    # update memory and table
     return df_filtered.to_dict('records'), df_filtered.to_dict('records')
 
 
-@app.callback(
-    Output('editable-table', 'data'),
-    [Input('editing-rows-button', 'n_clicks')],
-    State('editable-table', 'data'))
-def add_row(n_clicks, data):
-    if data is None:
-        raise PreventUpdate
-    if n_clicks > 0:
-        data.append({c: '' for c in df.columns})
-    return data
+# @app.callback(
+#     Output('editable-table', 'data'),
+#     [Input('editing-rows-button', 'n_clicks')],
+#     State('editable-table', 'data'))
+# def add_row(n_clicks, data):
+#     if data is None:
+#         raise PreventUpdate
+#     if n_clicks > 0:
+#         # add an empty row
+#         data.append({c: '' for c in df.columns})
+#     return data
 
 
 @app.callback(Output('editable-graph-xy', 'figure'),
@@ -105,7 +124,7 @@ def on_data_set_graph_xy(data):
     for row in data:
         if row.get('lat') != '' and row.get('long') != '':        
             a = aggregation[float(row.get('id'))]
-            a['name'], a['color'] = 'AC '+str(row['id']), row['id']
+            a['name'], a['color'] = 'AC '+ str(row['id']), row['id']
             a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'size': 5}
             
             a['x'].append(float(row.get('lat')))
@@ -181,6 +200,12 @@ def on_data_set_graph_xyz(data):
               Input('tabs', 'value'),
               Input('editable-table', 'data'))
 def render_content(tab, data):
+
+    # FIXME: Right now, if a tab has not been open, the graph
+    # objects on the closed tabs do not exist. So, if new info
+    # is added to the table, the webpage cannot update all of
+    # the graphs (throws an error).
+
     if tab == 'tab-1':
         return html.Div(children=[
             html.Div([
@@ -252,18 +277,18 @@ def render_content(tab, data):
                        )
     
 
-@app.callback(Output('editable-table', 'data'),
-              Output("layer", "children"),
-              [Input("map", "click_lat_lng")],
-              State('editable-table', 'data'))
-def map_click(click_lat_lng, data):
-    if click_lat_lng is None:
-        raise PreventUpdate
-    data.append({'id': 2, 
-                 'lat': np.round(click_lat_lng,2)[0], 'long': np.round(click_lat_lng,2)[1], 
-                 'alt': '', 'hor_speed': ''})
-    return data, [dl.Marker(position=click_lat_lng, 
-                     children=dl.Tooltip("({:.2f}, {:.2f})".format(*click_lat_lng)))]
+# @app.callback(Output('editable-table', 'data'),
+#               Output("layer", "children"),
+#               [Input("map", "click_lat_lng")],
+#               State('editable-table', 'data'))
+# def map_click(click_lat_lng, data):
+#     if click_lat_lng is None:
+#         raise PreventUpdate
+#     data.append({'id': 2, 
+#                  'lat': np.round(click_lat_lng,2)[0], 'long': np.round(click_lat_lng,2)[1], 
+#                  'alt': '', 'hor_speed': ''})
+#     return data, [dl.Marker(position=click_lat_lng, 
+#                      children=dl.Tooltip("({:.2f}, {:.2f})".format(*click_lat_lng)))]
 
 
 if __name__ == '__main__':
