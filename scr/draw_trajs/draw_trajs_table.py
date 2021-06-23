@@ -184,37 +184,6 @@ def update_data_table(traj_ids_selected, n_clicks, data):
         # trajectories have been updated or loaded in
         return filter_ids(traj_ids_selected)
 
-# @app.callback(Output('memory-output', 'data'),
-#               Output('editable-table', 'data'),
-#               Input('trajectory-ids', 'value'))
-# def filter_ids(traj_ids_selected):
-#     if not traj_ids_selected:
-
-#         # FIXME: shouldn't this return nothing? I think our
-#         #        graphs should be empty if nothing is selected
-#         # return df.to_dict('records')
-#         return [], []
-    
-#     # get data for the trajectory IDs that are currently selected
-#     df_filtered = df.query('id in @traj_ids_selected')
-
-#     # update memory and table
-#     return df_filtered.to_dict('records'), df_filtered.to_dict('records')
-
-
-# @app.callback(
-#     Output('editable-table', 'data'),
-#     [Input('editing-rows-button', 'n_clicks')],
-#     State('editable-table', 'data'))
-# def add_row(n_clicks, data):
-#     if data is None:
-#         raise PreventUpdate
-#     if n_clicks > 0:
-#         # add an empty row
-#         data.append({c: '' for c in df.columns})
-#     return data
-
-
 @app.callback(Output('editable-graph-xy', 'figure'),
               Input('editable-table', 'data'))
 def on_data_set_graph_xy(data):
@@ -334,15 +303,9 @@ def on_data_set_map(data):
 @app.callback([Output('tab-1-graphs', 'style'), 
               Output('tab-2-graphs', 'style'), 
               Output('tab-3-graphs', 'style')],            
-              Input('tabs', 'value'),
-              Input('editable-table', 'data'))
-def render_content(active_tab, data):
-
-    # FIXME: Right now, if a tab has not been open, the graph
-    # objects on the closed tabs do not exist. So, if new info
-    # is added to the table, the webpage cannot update all of
-    # the graphs (throws an error).
-    
+              Input('tabs', 'value'))
+              #Input('editable-table', 'data'))
+def render_content(active_tab):
     # easy on-off toggle for rendering content
     on = {'display': 'block'}
     off = {'display': 'none'}
@@ -361,4 +324,4 @@ def render_content(active_tab, data):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8513)
+    app.run_server(debug=True, port=8514)
