@@ -30,7 +30,13 @@ def calculate_horizontal_speeds_df(df):
 
     df['hor_speed'] = hor_speeds
     return df
+
 df = calculate_horizontal_speeds_df(df)
+
+map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
+map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
+map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color='#000000', weight=5, opacity=0.9))),
+            dict(offset='100%', repeat='0%', marker=map_marker)]
 
 
 ############################################################
@@ -61,6 +67,57 @@ app.layout = html.Div([
                  ]),
         html.Div(id='tabs-content', children = None)
     ]),
+
+    # initialize and display tab-1 graphs
+    html.Div(id = "tab-1-graphs", children=[
+            html.Div([
+                html.Div([
+                    dcc.Graph(id='editable-graph-xy',
+                              figure={}
+                             )], 
+                    className='six columns', 
+                    style={'display': 'inline-block'}
+                ),
+                html.Div([
+                    dcc.Graph(id='editable-graph-tz',
+                              figure={}
+                             )],
+                    className='six columns', 
+                    style={'display': 'inline-block'}
+                )
+            ], className='row'),
+            
+            html.Div([
+                html.Div([
+                    dcc.Graph(id='editable-graph-tspeed',
+                             figure={}
+                             )], 
+                    className='six columns', 
+                    style={'display': 'inline-block'}
+                )
+            ], className='row')
+        ],
+        style={'display': 'block'}),
+    
+    # initialize tab-2 graphs
+    html.Div(id = 'tab-2-graphs', children = [
+            dcc.Graph(id='editable-graph-xyz',
+                      figure={}
+                     )],
+            style={'width': '1500px', 'height': '750px',
+                   'margin': {'l':0, 'r':0, 'b':0, 't':0, 'pad':0}, 
+                   'autosize': False, 'display': "block"}
+        ),
+    
+    # initialize tab-3 graphs
+    html.Div(id = 'tab-3-graphs', children = [
+            dl.Map(children=[dl.TileLayer(), dl.LayerGroup(id='layer-container', children=[])],
+                    id='map',
+                    zoom=5.25, 
+                    center=(38, -73),
+                    style={'width': '1500px', 'height': '750px', 'margin': "auto", "display": "block"}
+                    )],
+            style={"display": "block"}),
     
     # style
     html.Br(), html.Br(),
@@ -193,102 +250,63 @@ def on_data_set_graph_xyz(data):
                 'margin': {'l':0, 'r':0, 'b':0, 't':0}
             }}
 
+@app.callback(Output('layer-container', 'children'),
+              Input('editable-table', 'data'))         
+def on_data_set_map(data):
+    if data is None:
+        raise PreventUpdate
+    
+    aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
+    for row in data:
+        if row.get('lat') != '' and row.get('long') != '':        
+            a = aggregation[float(row.get('id'))]
+            a['name'], a['color'] = 'AC '+ str(row['id']), row['id']
+
+            a['lat'].append(float(row.get('lat')))
+            a['long'].append(float(row.get('long')))
+    data_group = [x for x in aggregation.values()]
+        
+    markers_list = []
+    for data_id in data_group:
+        lat_lng_dict = [[data_id['lat'][i], data_id['long'][i]] for i in range(len(data_id['lat']))]
+        markers_list.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
+    
+    return markers_list
+
+    
+
+
 
 ############################################################
 ############################################################
-@app.callback(Output('tabs-content', 'children'),
+# @app.callback(Output('tabs-content', 'children'),            
+#               Input('tabs', 'value'),
+#               Input('editable-table', 'data'))
+@app.callback([Output('tab-1-graphs', 'style'), Output('tab-2-graphs', 'style'), Output('tab-3-graphs', 'style')],            
               Input('tabs', 'value'),
               Input('editable-table', 'data'))
-def render_content(tab, data):
+def render_content(active_tab, data):
 
     # FIXME: Right now, if a tab has not been open, the graph
     # objects on the closed tabs do not exist. So, if new info
     # is added to the table, the webpage cannot update all of
     # the graphs (throws an error).
-
-    if tab == 'tab-1':
-        return html.Div(children=[
-            html.Div([
-                html.Div([
-                    dcc.Graph(id='editable-graph-xy',
-                              figure={}
-                             )], 
-                    className='six columns', 
-                    style={'display': 'inline-block'}
-                ),
-                html.Div([
-                    dcc.Graph(id='editable-graph-tz',
-                              figure={}
-                             )],
-                    className='six columns', 
-                    style={'display': 'inline-block'}
-                )
-            ], className='row'),
-            
-            html.Div([
-                html.Div([
-                    dcc.Graph(id='editable-graph-tspeed',
-                             figure={}
-                             )], 
-                    className='six columns', 
-                    style={'display': 'inline-block'}
-                )
-            ], className='row')
-        ])
-
-    elif tab == 'tab-2':
-        return html.Div([
-            dcc.Graph(id='editable-graph-xyz',
-                      figure={}
-                     )],
-            style={'width': '1500px', 'height': '750px',
-                   'margin': {'l':0, 'r':0, 'b':0, 't':0, 'pad':0}, 
-                   'autosize': False, 'display': "block"}
-        )
     
-    elif tab == 'tab-3':
-        iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
-        marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=iconUrl, iconAnchor=[16, 16])))
-        patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color='#000000', weight=5, opacity=0.9))),
-                    dict(offset='100%', repeat='0%', marker=marker)]
-        
-        aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
-        for row in data:
-            if row.get('lat') != '' and row.get('long') != '':        
-                a = aggregation[float(row.get('id'))]
-                a['name'], a['color'] = 'AC '+str(row['id']), row['id']
-
-                a['lat'].append(float(row.get('lat')))
-                a['long'].append(float(row.get('long')))
-        data_group = [x for x in aggregation.values()]
-            
-        markers_list = []
-        for data_id in data_group:
-            lat_lng_dict = [[data_id['lat'][i], data_id['long'][i]] for i in range(len(data_id['lat']))]
-            markers_list.append(dl.PolylineDecorator(positions=lat_lng_dict, 
-                                                        patterns=patterns))
-
-        return html.Div(dl.Map([dl.TileLayer(), 
-                               dl.LayerGroup(markers_list)
-                               ], 
-                               id="map", zoom=5.25, center=(38, -73),
-                               style={'width': '1500px', 'height': '750px', 'margin': "auto", "display": "block"}
-                              )
-                       )
+    # easy on-off toggle for rendering content
+    on = {'display': 'block'}
+    off = {'display': 'none'}
     
+    if active_tab == 'tab-1':
+        return on, off, off
+    elif active_tab == 'tab-2':
+        return off, on, off
+    elif active_tab == 'tab-3':
+        return off, off, on
 
-# @app.callback(Output('editable-table', 'data'),
-#               Output("layer", "children"),
-#               [Input("map", "click_lat_lng")],
-#               State('editable-table', 'data'))
-# def map_click(click_lat_lng, data):
-#     if click_lat_lng is None:
-#         raise PreventUpdate
-#     data.append({'id': 2, 
-#                  'lat': np.round(click_lat_lng,2)[0], 'long': np.round(click_lat_lng,2)[1], 
-#                  'alt': '', 'hor_speed': ''})
-#     return data, [dl.Marker(position=click_lat_lng, 
-#                      children=dl.Tooltip("({:.2f}, {:.2f})".format(*click_lat_lng)))]
+    if not active_tab:
+        return "No tab actively selected"
+    else:
+        return "invalid tab"
 
 
 if __name__ == '__main__':
