@@ -49,7 +49,7 @@ app.layout = html.Div([
     html.Div([
         dcc.Markdown(("""Trajectory ID list""")),
         dcc.Dropdown(id='trajectory-ids', 
-                     options=[{'value': traj_id, 'label': 'AC '+str(traj_id)} for traj_id in traj_ids], 
+                     options=[{'value': traj_id, 'label': 'AC '+ str(traj_id)} for traj_id in traj_ids], 
                      multi=True, 
                      value=[1, 2])
     ]),
@@ -117,7 +117,8 @@ app.layout = html.Div([
                     center=(38, -73),
                     style={'width': '1500px', 'height': '750px', 'margin': "auto", "display": "block"}
                     )],
-            style={"display": "block"}),
+            style={"display": "block"}
+        ),
     
     # style
     html.Br(), html.Br(),
@@ -131,32 +132,74 @@ app.layout = html.Div([
             editable = True,
             row_deletable = True
         ),
-        html.Button('Add Row', id='editing-rows-button', n_clicks=0),
+        html.Button('Add Row', id='add-rows-button', n_clicks=0),
     ], className='row'),
     
     # style
     html.Br(), html.Br()
-])    
+])  
 
+def filter_ids(traj_ids_selected):
+    if not traj_ids_selected:
+        return []
+    
+    # get data for the trajectory IDs that are currently selected
+    df_filtered = df.query('id in @traj_ids_selected')
+    return df_filtered.to_dict('records')
 
 ############################################################
 ############################################################
 @app.callback(Output('memory-output', 'data'),
-              Output('editable-table', 'data'),
               Input('trajectory-ids', 'value'))
-def filter_ids(traj_ids_selected):
-    if not traj_ids_selected:
+def update_memory(traj_ids_selected):
+    return filter_ids(traj_ids_selected)
 
-        # FIXME: shouldn't this return nothing? I think our
-        #        graphs should be empty if nothing is selected
-        # return df.to_dict('records')
-        return [], []
+
+@app.callback(Output('editable-table', 'data'),
+             [Input('trajectory-ids', 'value'),
+             Input('add-rows-button', 'n_clicks')],
+             State('editable-table', 'data'))
+def update_data_table(traj_ids_selected, n_clicks, data):
+
+    # allows us to identify which input triggered this callback
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    # useful information ?
+    # callback_states=dash.callback_context.states.values()
+    # callback_inputs=dash.callback_context.inputs.values()
+
+    # print('callback_states: ', callback_states, '\n')
+    # print('callback_inputs: ', callback_inputs, '\n')
+
+    if ctx == 'add-rows-button':
+        print("clicked add button")
+        if data is None:
+            raise PreventUpdate
+        if n_clicks > 0:
+            # add an empty row
+            data.append({c: '' for c in df.columns})
+        return data
+
+    else:
+        # trajectories have been updated or loaded in
+        return filter_ids(traj_ids_selected)
+
+# @app.callback(Output('memory-output', 'data'),
+#               Output('editable-table', 'data'),
+#               Input('trajectory-ids', 'value'))
+# def filter_ids(traj_ids_selected):
+#     if not traj_ids_selected:
+
+#         # FIXME: shouldn't this return nothing? I think our
+#         #        graphs should be empty if nothing is selected
+#         # return df.to_dict('records')
+#         return [], []
     
-    # get data for the trajectory IDs that are currently selected
-    df_filtered = df.query('id in @traj_ids_selected')
+#     # get data for the trajectory IDs that are currently selected
+#     df_filtered = df.query('id in @traj_ids_selected')
 
-    # update memory and table
-    return df_filtered.to_dict('records'), df_filtered.to_dict('records')
+#     # update memory and table
+#     return df_filtered.to_dict('records'), df_filtered.to_dict('records')
 
 
 # @app.callback(
@@ -273,16 +316,24 @@ def on_data_set_map(data):
     
     return markers_list
 
-    
-
-
+# @app.callback(Output('editable-table', 'data'),
+#               Output("layer", "children"),
+#               [Input("map", "click_lat_lng")],
+#               State('editable-table', 'data'))
+# def map_click(click_lat_lng, data):
+#     if click_lat_lng is None:
+#         raise PreventUpdate
+#     data.append({'id': 2, 
+#                  'lat': np.round(click_lat_lng,2)[0], 'long': np.round(click_lat_lng,2)[1], 
+#                  'alt': '', 'hor_speed': ''})
+#     return data, [dl.Marker(position=click_lat_lng, 
+#                      children=dl.Tooltip("({:.2f}, {:.2f})".format(*click_lat_lng)))]
 
 ############################################################
 ############################################################
-# @app.callback(Output('tabs-content', 'children'),            
-#               Input('tabs', 'value'),
-#               Input('editable-table', 'data'))
-@app.callback([Output('tab-1-graphs', 'style'), Output('tab-2-graphs', 'style'), Output('tab-3-graphs', 'style')],            
+@app.callback([Output('tab-1-graphs', 'style'), 
+              Output('tab-2-graphs', 'style'), 
+              Output('tab-3-graphs', 'style')],            
               Input('tabs', 'value'),
               Input('editable-table', 'data'))
 def render_content(active_tab, data):
@@ -310,4 +361,4 @@ def render_content(active_tab, data):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8511)
+    app.run_server(debug=True, port=8513)
