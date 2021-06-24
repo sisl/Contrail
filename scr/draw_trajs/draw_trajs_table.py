@@ -55,7 +55,24 @@ app.layout = html.Div([
     ]),
     
     # style
-    html.Br(), html.Br(),
+    html.Br(), 
+
+    html.Div(id='buttons', children = [
+        html.Button('Load Model', id='load-button', n_clicks=0),
+        html.Button('Save Model', id='save-button', n_clicks=0, 
+                    style={"margin-left": "15px"}),
+        
+        html.Button('Create New Model', id='create-new-button', n_clicks=0, 
+                style={"margin-left": "15px"}),
+                 
+        html.Button('Exit Edit Mode', id='exit-edit-button', n_clicks=0, 
+                style={"margin-left": "15px", 'display':'none'})
+        ]
+    ),
+    
+    
+    html.Br(),
+    html.Br(),
 
     # main tabs for navigating webpage
     html.Div([
@@ -64,7 +81,8 @@ app.layout = html.Div([
                      dcc.Tab(label='Graphs', value='tab-1'),
                      dcc.Tab(label='3d_Graph', value='tab-2'),
                      dcc.Tab(label='Map', value='tab-3')
-                 ]),
+                 ],
+                 value='tab-1'),
         html.Div(id='tabs-content', children = None)
     ]),
 
@@ -97,7 +115,8 @@ app.layout = html.Div([
                 )
             ], className='row')
         ],
-        style={'display': 'block'}),
+        style={'display': 'block'}
+    ),
     
     # initialize tab-2 graphs
     html.Div(id = 'tab-2-graphs', children = [
@@ -111,7 +130,9 @@ app.layout = html.Div([
     
     # initialize tab-3 graphs
     html.Div(id = 'tab-3-graphs', children = [
-            dl.Map(children=[dl.TileLayer(), dl.LayerGroup(id='layer-container', children=[])],
+            dl.Map(children=[dl.TileLayer(), 
+                             dl.LayerGroup(id='polyline-layer', children=[]),
+                             dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
                     id='map',
                     zoom=5.25, 
                     center=(38, -73),
@@ -157,32 +178,50 @@ def update_memory(traj_ids_selected):
 
 @app.callback(Output('editable-table', 'data'),
              [Input('trajectory-ids', 'value'),
-             Input('add-rows-button', 'n_clicks')],
-             State('editable-table', 'data'))
-def update_data_table(traj_ids_selected, n_clicks, data):
+             Input('add-rows-button', 'n_clicks'),
+             Input('exit-edit-button', 'n_clicks')],
+             [State('editable-table', 'data'),
+             State('marker-layer', 'children')])
+def update_data_table(traj_ids_selected, add_rows_n_clicks, exit_n_clicks, data, current_markers):
 
     # allows us to identify which input triggered this callback
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    # useful information ?
-    # callback_states=dash.callback_context.states.values()
-    # callback_inputs=dash.callback_context.inputs.values()
-
-    # print('callback_states: ', callback_states, '\n')
-    # print('callback_inputs: ', callback_inputs, '\n')
-
     if ctx == 'add-rows-button':
-        print("clicked add button")
         if data is None:
             raise PreventUpdate
-        if n_clicks > 0:
+        if add_rows_n_clicks > 0:
             # add an empty row
             data.append({c: '' for c in df.columns})
         return data
 
-    else:
+    elif ctx == 'trajectory-ids':
         # trajectories have been updated or loaded in
         return filter_ids(traj_ids_selected)
+
+    elif ctx == 'exit-edit-button' and exit_n_clicks > 0:
+        if current_markers is []:
+            return []
+
+        time = 1
+        alt = 700
+        hor_speed = 0
+        new_data = []
+        for marker in current_markers:
+            marker_dict = {'id': 1, 'time': time, 'lat': 0, 'long': 0, 'alt':700, 'hor_speed':0}
+            
+            pos = marker['props']['position']
+            marker_dict['lat'] = pos[0]
+            marker_dict['long'] = pos[1]
+
+            new_data.append(marker_dict)
+            time += 1
+        
+        return new_data
+
+    
+    return data
+
 
 @app.callback(Output('editable-graph-xy', 'figure'),
               Input('editable-table', 'data'))
@@ -222,7 +261,7 @@ def on_data_set_graph_tz(data):
 
 @app.callback(Output('editable-graph-tspeed', 'figure'),
               Input('editable-table', 'data'))
-def on_data_set_graph_tz(data):
+def on_data_set_graph_tspeed(data):
     if data is None:
         raise PreventUpdate
     aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -262,41 +301,125 @@ def on_data_set_graph_xyz(data):
                 'margin': {'l':0, 'r':0, 'b':0, 't':0}
             }}
 
-@app.callback(Output('layer-container', 'children'),
-              Input('editable-table', 'data'))         
-def on_data_set_map(data):
-    if data is None:
+
+@app.callback(Output('polyline-layer', 'children'),
+              Input('editable-table', 'data'),
+            #   Input("map", "click_lat_lng")],
+              [State('polyline-layer', 'children'),
+              State('create-new-button', 'n_clicks')])         
+def update_map(data, current_markers, n_clicks):
+    if data is None and click_lat_lng is None:
         raise PreventUpdate
-    
-    aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
-    for row in data:
-        if row.get('lat') != '' and row.get('long') != '':        
-            a = aggregation[float(row.get('id'))]
-            a['name'], a['color'] = 'AC '+ str(row['id']), row['id']
 
-            a['lat'].append(float(row.get('lat')))
-            a['long'].append(float(row.get('long')))
-    data_group = [x for x in aggregation.values()]
-        
-    markers_list = []
-    for data_id in data_group:
-        lat_lng_dict = [[data_id['lat'][i], data_id['long'][i]] for i in range(len(data_id['lat']))]
-        markers_list.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
-    
-    return markers_list
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-# @app.callback(Output('editable-table', 'data'),
-#               Output("layer", "children"),
-#               [Input("map", "click_lat_lng")],
-#               State('editable-table', 'data'))
-# def map_click(click_lat_lng, data):
-#     if click_lat_lng is None:
-#         raise PreventUpdate
-#     data.append({'id': 2, 
-#                  'lat': np.round(click_lat_lng,2)[0], 'long': np.round(click_lat_lng,2)[1], 
-#                  'alt': '', 'hor_speed': ''})
-#     return data, [dl.Marker(position=click_lat_lng, 
-#                      children=dl.Tooltip("({:.2f}, {:.2f})".format(*click_lat_lng)))]
+    if ctx == 'editable-table' and n_clicks == 0:
+        markers_list = []
+
+        if data == []:
+            # if no data, save computation time
+            return markers_list
+
+        aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
+        for row in data:
+            if row.get('lat') != '' and row.get('long') != '':        
+                a = aggregation[float(row.get('id'))]
+                a['name'], a['color'] = 'AC '+ str(row['id']), row['id']
+
+                a['lat'].append(float(row.get('lat')))
+                a['long'].append(float(row.get('long')))
+        data_group = [x for x in aggregation.values()]
+            
+        for data_id in data_group:
+            lat_lng_dict = [[data_id['lat'][i], data_id['long'][i]] for i in range(len(data_id['lat']))]
+            markers_list.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
+
+        return markers_list
+
+    elif n_clicks > 0: 
+        # in creative mode
+        # wipe all previous data
+        return []
+    
+    # elif ctx == 'map' and n_clicks > 0:
+    #     # THIS IS WHERE WE ADD LAT/LNG MARKERS!
+    #     current_markers.append(dl.Marker(position=click_lat_lng, children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), draggable=True))
+    #     return current_markers
+
+    # FIXME: This does not seem like the most efficient way to do this
+    # check back in on this decision later!
+    
+    return [dl.PolylineDecorator(positions=info['props']['positions'], patterns=map_patterns) for info in current_markers]
+
+
+@app.callback(Output('marker-layer', 'children'),
+                [Input("map", "click_lat_lng"),
+                Input('exit-edit-button','n_clicks')],
+                [State('create-new-button', 'n_clicks'),
+                    State('marker-layer', 'children'),
+                    State('editable-table', 'data')])
+def create_markers(click_lat_lng, exit_n_clicks, create_n_clicks, current_markers, data):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    if ctx == 'map' and create_n_clicks > 0:
+        current_markers.append(dl.Marker(position=click_lat_lng, children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), draggable=True))
+    # elif data != []:
+    #     print('data here')
+    #     return []
+
+    return current_markers
+
+
+@app.callback([Output('tabs', 'value'), 
+                Output('trajectory-ids', 'value')],
+                Input('create-new-button', 'n_clicks'),
+                State('trajectory-ids', 'value'))
+def create_new_model(n_clicks, traj_ids):
+    print(n_clicks)
+    if n_clicks > 0:
+        return 'tab-3', []
+
+    # FIXME: I want to add a popup screen that explains the steps
+    # for how the user can create the nominal path.
+    # 1. click map for lat/long points along a trajectory
+    # 2. click 'finish' button
+    # 3. takes user back to tab1 to edit default alt and speed info in data table
+    
+    return 'tab-1', traj_ids
+
+@app.callback([Output('exit-edit-button', 'style'), 
+                Output('create-new-button', 'n_clicks'),
+                Output('exit-edit-button', 'n_clicks')],
+                [Input('create-new-button', 'n_clicks'), Input('exit-edit-button', 'n_clicks')],
+                State('exit-edit-button', 'style'))
+def toggle_exit_edit_button(create_n_clicks, exit_n_clicks, style):
+    reset_create_clicks = create_n_clicks
+    reset_exit_clicks = exit_n_clicks
+
+    if create_n_clicks > 0:
+        if exit_n_clicks == 0:
+            style['display'] = 'inline-block'
+            #reset_create_clicks = 0
+        else:
+            style['display'] = 'none'
+            reset_create_clicks = 0
+            
+
+    return style, reset_create_clicks, reset_exit_clicks
+
+# @app.callback(Output('marker-layer', 'attribution'),
+#                 [Input('create-new-button', 'n_clicks'), 
+#                 Input('exit-edit-button', 'n_clicks')])
+# def set_marker_attribution(create_n_clicks, exit_n_clicks):
+#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+#     if ctx == 'create-new-button' and create_n_clicks > 0:
+#         return 'on'
+#     elif ctx == 'exit-edit-button' and exit_n_clicks > 0:
+#         return 'off'
+
+#     return 'off'
+
+
 
 ############################################################
 ############################################################
@@ -304,7 +427,6 @@ def on_data_set_map(data):
               Output('tab-2-graphs', 'style'), 
               Output('tab-3-graphs', 'style')],            
               Input('tabs', 'value'))
-              #Input('editable-table', 'data'))
 def render_content(active_tab):
     # easy on-off toggle for rendering content
     on = {'display': 'block'}
@@ -324,4 +446,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8514)
+    app.run_server(debug=True, port=8517)
