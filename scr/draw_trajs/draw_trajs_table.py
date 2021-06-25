@@ -179,46 +179,35 @@ def update_memory(traj_ids_selected):
 @app.callback(Output('editable-table', 'data'),
              [Input('trajectory-ids', 'value'),
              Input('add-rows-button', 'n_clicks'),
-             Input('exit-edit-button', 'n_clicks')],
-             [State('editable-table', 'data'),
-             State('marker-layer', 'children')])
-def update_data_table(traj_ids_selected, add_rows_n_clicks, exit_n_clicks, data, current_markers):
-
+             Input('create-new-button', 'n_clicks'),
+             Input('marker-layer', 'children')],
+             State('editable-table', 'data'))
+def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, current_markers, data):#, current_markers):
+    if data is None:
+        raise PreventUpdate
     # allows us to identify which input triggered this callback
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'add-rows-button':
-        if data is None:
-            raise PreventUpdate
+    if ctx == 'create-new-button' and create_n_clicks > 0:
+        # wipe all data
+        return []
+
+    elif ctx == 'add-rows-button' and create_n_clicks == 0:
         if add_rows_n_clicks > 0:
             # add an empty row
             data.append({c: '' for c in df.columns})
-        return data
 
     elif ctx == 'trajectory-ids':
         # trajectories have been updated or loaded in
         return filter_ids(traj_ids_selected)
 
-    elif ctx == 'exit-edit-button' and exit_n_clicks > 0:
-        if current_markers is []:
-            return []
-
-        time = 1
-        alt = 700
-        hor_speed = 0
-        new_data = []
-        for marker in current_markers:
-            marker_dict = {'id': 1, 'time': time, 'lat': 0, 'long': 0, 'alt':700, 'hor_speed':0}
-            
-            pos = marker['props']['position']
-            marker_dict['lat'] = pos[0]
-            marker_dict['long'] = pos[1]
-
-            new_data.append(marker_dict)
-            time += 1
-        
-        return new_data
-
+    elif ctx == 'marker-layer' and create_n_clicks > 0:
+        # in creative mode and user has created another marker 
+        # we add each marker to the data as it is created 
+        # so we only have to grab last marker in the list
+        pos = current_markers[-1]['props']['position']
+        marker_dict = {'id': 1, 'time': len(data)+1, 'lat': pos[0], 'long': pos[1], 'alt':700, 'hor_speed':0}
+        data.append(marker_dict)
     
     return data
 
@@ -304,19 +293,18 @@ def on_data_set_graph_xyz(data):
 
 @app.callback(Output('polyline-layer', 'children'),
               Input('editable-table', 'data'),
-            #   Input("map", "click_lat_lng")],
-              [State('polyline-layer', 'children'),
-              State('create-new-button', 'n_clicks')])         
-def update_map(data, current_markers, n_clicks):
-    if data is None and click_lat_lng is None:
+              State('polyline-layer', 'children'))         
+def update_map(data, current_polylines):
+    if data is None:
         raise PreventUpdate
 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'editable-table' and n_clicks == 0:
+    if ctx == 'editable-table':
+        # data has changed - must update map polylines
         markers_list = []
-
-        if data == []:
+        
+        if len(data) == 0:
             # if no data, save computation time
             return markers_list
 
@@ -336,89 +324,62 @@ def update_map(data, current_markers, n_clicks):
 
         return markers_list
 
-    elif n_clicks > 0: 
-        # in creative mode
-        # wipe all previous data
-        return []
-    
-    # elif ctx == 'map' and n_clicks > 0:
-    #     # THIS IS WHERE WE ADD LAT/LNG MARKERS!
-    #     current_markers.append(dl.Marker(position=click_lat_lng, children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), draggable=True))
-    #     return current_markers
+    # I had some issues previously with returning the current_polylines... not sure why it is working now
+    # so I am keeping this other return statement I wrote to recreate the existing lines
+    #return [dl.PolylineDecorator(positions=info['props']['positions'], patterns=map_patterns) for info in current_polylines]
 
-    # FIXME: This does not seem like the most efficient way to do this
-    # check back in on this decision later!
-    
-    return [dl.PolylineDecorator(positions=info['props']['positions'], patterns=map_patterns) for info in current_markers]
+    return current_polylines
+
 
 
 @app.callback(Output('marker-layer', 'children'),
                 [Input("map", "click_lat_lng"),
-                Input('exit-edit-button','n_clicks')],
-                [State('create-new-button', 'n_clicks'),
-                    State('marker-layer', 'children'),
-                    State('editable-table', 'data')])
-def create_markers(click_lat_lng, exit_n_clicks, create_n_clicks, current_markers, data):
+                Input('create-new-button', 'n_clicks')],
+                State('marker-layer', 'children'))
+def create_markers(click_lat_lng, create_n_clicks, current_markers):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'map' and create_n_clicks > 0:
-        current_markers.append(dl.Marker(position=click_lat_lng, children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), draggable=True))
-    # elif data != []:
-    #     print('data here')
-    #     return []
+        current_markers.append(dl.Marker(position=click_lat_lng,\
+                                 children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), 
+                                 draggable=True))
+    if ctx == 'create-new-button' and create_n_clicks > 0 and len(current_markers) > 0:
+        # clear past markers only when create-new-button is clicked again
+        return []
 
     return current_markers
 
 
 @app.callback([Output('tabs', 'value'), 
-                Output('trajectory-ids', 'value')],
+                Output('trajectory-ids', 'value'),
+                Output('trajectory-ids', 'disabled')],
                 Input('create-new-button', 'n_clicks'),
                 State('trajectory-ids', 'value'))
 def create_new_model(n_clicks, traj_ids):
-    print(n_clicks)
     if n_clicks > 0:
-        return 'tab-3', []
+        return 'tab-3', [], True
 
-    # FIXME: I want to add a popup screen that explains the steps
-    # for how the user can create the nominal path.
-    # 1. click map for lat/long points along a trajectory
-    # 2. click 'finish' button
-    # 3. takes user back to tab1 to edit default alt and speed info in data table
-    
-    return 'tab-1', traj_ids
+    return 'tab-1', traj_ids, False
 
 @app.callback([Output('exit-edit-button', 'style'), 
                 Output('create-new-button', 'n_clicks'),
                 Output('exit-edit-button', 'n_clicks')],
-                [Input('create-new-button', 'n_clicks'), Input('exit-edit-button', 'n_clicks')],
+                [Input('create-new-button', 'n_clicks'), 
+                Input('exit-edit-button', 'n_clicks')],
                 State('exit-edit-button', 'style'))
 def toggle_exit_edit_button(create_n_clicks, exit_n_clicks, style):
     reset_create_clicks = create_n_clicks
     reset_exit_clicks = exit_n_clicks
 
     if create_n_clicks > 0:
-        if exit_n_clicks == 0:
-            style['display'] = 'inline-block'
-            #reset_create_clicks = 0
-        else:
+        if exit_n_clicks > 0:
             style['display'] = 'none'
             reset_create_clicks = 0
-            
+            reset_exit_clicks = 0
+        else:
+            style['display'] = 'inline-block'
 
     return style, reset_create_clicks, reset_exit_clicks
-
-# @app.callback(Output('marker-layer', 'attribution'),
-#                 [Input('create-new-button', 'n_clicks'), 
-#                 Input('exit-edit-button', 'n_clicks')])
-# def set_marker_attribution(create_n_clicks, exit_n_clicks):
-#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-#     if ctx == 'create-new-button' and create_n_clicks > 0:
-#         return 'on'
-#     elif ctx == 'exit-edit-button' and exit_n_clicks > 0:
-#         return 'off'
-
-#     return 'off'
-
 
 
 ############################################################
@@ -446,4 +407,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8517)
+    app.run_server(debug=True, port=8519)
