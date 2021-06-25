@@ -1,5 +1,5 @@
 import dash
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 
 import dash_table
@@ -10,6 +10,8 @@ import dash_leaflet as dl
 import pandas as pd
 import numpy as np
 import collections
+
+import json
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -202,6 +204,7 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
         return filter_ids(traj_ids_selected)
 
     elif ctx == 'marker-layer' and create_n_clicks > 0:
+        print("UPDATING MARKER-LAYER CHILDREN YUP")
         # in creative mode and user has created another marker 
         # we add each marker to the data as it is created 
         # so we only have to grab last marker in the list
@@ -340,7 +343,7 @@ def create_markers(click_lat_lng, create_n_clicks, current_markers):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'map' and create_n_clicks > 0:
-        current_markers.append(dl.Marker(position=click_lat_lng,\
+        current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), position=click_lat_lng,\
                                  children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), 
                                  draggable=True))
     if ctx == 'create-new-button' and create_n_clicks > 0 and len(current_markers) > 0:
@@ -349,6 +352,21 @@ def create_markers(click_lat_lng, create_n_clicks, current_markers):
 
     return current_markers
 
+@app.callback(Output(dict(tag="marker", index=ALL), 'children'),
+              [Input(dict(tag="marker", index=ALL), 'position')])
+def update_marker(new_positions):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    if len(ctx) > 0:
+        print('marker_',json.loads(ctx)['index'], ' was moved')
+ 
+        new_tools = []
+        for pos in new_positions:
+            #new_tools.append(dl.Tooltip("({:.3f}, {:.3f})".format([pos])))
+            new_tools.append([dl.Tooltip("({lat}, {long})".format(lat=pos[0], long=pos[1]))])
+        return new_tools
+    else:
+        raise PreventUpdate
+    
 
 @app.callback([Output('tabs', 'value'), 
                 Output('trajectory-ids', 'value'),
@@ -407,4 +425,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8519)
+    app.run_server(debug=True, port=8522)
