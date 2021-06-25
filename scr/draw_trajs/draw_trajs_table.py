@@ -334,10 +334,11 @@ def update_map(data, current_polylines):
     return current_polylines
 
 
-
 @app.callback(Output('marker-layer', 'children'),
+                #Output(dict(tag="marker", index=ALL), 'children')],
                 [Input("map", "click_lat_lng"),
                 Input('create-new-button', 'n_clicks')],
+                #Input(dict(tag="marker", index=ALL), 'position')],
                 State('marker-layer', 'children'))
 def create_markers(click_lat_lng, create_n_clicks, current_markers):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
@@ -346,11 +347,23 @@ def create_markers(click_lat_lng, create_n_clicks, current_markers):
         current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), position=click_lat_lng,\
                                  children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), 
                                  draggable=True))
-    if ctx == 'create-new-button' and create_n_clicks > 0 and len(current_markers) > 0:
+    elif ctx == 'create-new-button' and create_n_clicks > 0 and len(current_markers) > 0:
         # clear past markers only when create-new-button is clicked again
         return []
 
+    # elif len(ctx) > 0:
+    #     print('marker_',json.loads(ctx)['index'], ' was moved')
+ 
+    #     new_tools = []
+    #     for pos in new_positions:
+    #         #new_tools.append(dl.Tooltip("({:.3f}, {:.3f})".format([pos])))
+    #         new_tools.append([dl.Tooltip("({lat}, {long})".format(lat=pos[0], long=pos[1]))])
+    #     return new_tools
+    # else:
+    #     raise PreventUpdate
+
     return current_markers
+
 
 @app.callback(Output(dict(tag="marker", index=ALL), 'children'),
               [Input(dict(tag="marker", index=ALL), 'position')])
@@ -425,4 +438,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8522)
+    app.run_server(debug=True, port=8509)
