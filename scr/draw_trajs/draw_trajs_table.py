@@ -13,8 +13,6 @@ import collections
 
 import json
 
-#testing
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -205,13 +203,23 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
         return filter_ids(traj_ids_selected)
 
     elif ctx == 'marker-layer' and create_n_clicks > 0:
-        print("UPDATING MARKER-LAYER CHILDREN YUP")
-        # in creative mode and user has created another marker 
-        # we add each marker to the data as it is created 
-        # so we only have to grab last marker in the list
-        pos = current_markers[-1]['props']['position']
-        marker_dict = {'id': 1, 'time': len(data)+1, 'lat': pos[0], 'long': pos[1], 'alt':700, 'hor_speed':0}
-        data.append(marker_dict)
+        
+        if len(data) != len(current_markers):
+            # in creative mode and user has created another marker 
+            # we add each marker to the data as it is created 
+            # so we only have to grab last marker in the list
+            pos = current_markers[-1]['props']['position']
+            marker_dict = {'id': 1, 'time': len(data)+1, 'lat': pos[0], 'long': pos[1], 'alt':700, 'hor_speed':0}
+            data.append(marker_dict)
+        else:
+            # an already existing marker was dragged
+            # and therefore its position in data table needs to get updated
+            #print(data)
+            #print(current_markers)
+            for i, data_point in enumerate(data):
+                data_point['lat'] = current_markers[i]['props']['position'][0]
+                data_point['long'] = current_markers[i]['props']['position'][1]
+            #print('gotta update existing marker pos in data table\n')
     
     return data
 
@@ -338,32 +346,61 @@ def update_map(data, current_polylines):
 @app.callback(Output('marker-layer', 'children'),
                 #Output(dict(tag="marker", index=ALL), 'children')],
                 [Input("map", "click_lat_lng"),
-                Input('create-new-button', 'n_clicks')],
-                #Input(dict(tag="marker", index=ALL), 'position')],
+                Input('create-new-button', 'n_clicks'),
+                Input(dict(tag="marker", index=ALL), 'position')],
                 State('marker-layer', 'children'))
-def create_markers(click_lat_lng, create_n_clicks, current_markers):
-    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+def create_markers(click_lat_lng, create_n_clicks, new_positions, current_markers):
+    ctx = dash.callback_context
+    if not ctx.triggered or not ctx.triggered[0]['value']:
+        #print('yay great idea')
+        return dash.no_update
+    
+    ctx = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'map' and create_n_clicks > 0:
-        current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), position=click_lat_lng,\
-                                 children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), 
-                                 draggable=True))
-    elif ctx == 'create-new-button' and create_n_clicks > 0 and len(current_markers) > 0:
+    if ctx == 'map':
+        if create_n_clicks > 0:
+            current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), 
+                                    position=click_lat_lng,
+                                    children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), 
+                                    draggable=True))
+    elif ctx == 'create-new-button':
+        if create_n_clicks > 0 and len(current_markers) > 0:
         # clear past markers only when create-new-button is clicked again
-        return []
-
-    # elif len(ctx) > 0:
-    #     print('marker_',json.loads(ctx)['index'], ' was moved')
- 
-    #     new_tools = []
-    #     for pos in new_positions:
-    #         #new_tools.append(dl.Tooltip("({:.3f}, {:.3f})".format([pos])))
-    #         new_tools.append([dl.Tooltip("({lat}, {long})".format(lat=pos[0], long=pos[1]))])
-    #     return new_tools
-    # else:
-    #     raise PreventUpdate
+            return []
+    else:
+        index = json.loads(ctx)['index']
+        # print('trigger: ', index)
+        # # print(type(current_markers[index]))
+        # # print(current_markers[index])
+        # print(new_positions)
+        current_markers[index]['props']['position'] = new_positions[index]
 
     return current_markers
+
+@app.callback(Output(dict(tag="marker", index=ALL), 'draggable'),
+              Input('create-new-button', 'n_clicks'),
+              [State(dict(tag="marker", index=ALL), 'draggable')])
+def toggle_marker_draggable(create_n_clicks, draggable):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    # if ctx is None:
+    #     print("CONTEXT: ", ctx)
+    #     raise PreventUpdate
+    if ctx == 'create-new-button' and create_n_clicks > 0:
+        return [True] * len(draggable)
+    elif ctx == 'create-new-button' and create_n_clicks == 0:
+        return [False] * len(draggable)
+        
+ 
+    return dash.no_update
+
+
+    # if create_n_clicks > 0:
+    #     print('confirming draggability')
+    #     print(create_n_clicks)
+    #     [True for x in current_markers]
+    # else:
+    #     print('confirming not draggable')
+    #     [False for x in current_markers]
 
 
 @app.callback(Output(dict(tag="marker", index=ALL), 'children'),
@@ -371,7 +408,7 @@ def create_markers(click_lat_lng, create_n_clicks, current_markers):
 def update_marker(new_positions):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     if len(ctx) > 0:
-        print('marker_',json.loads(ctx)['index'], ' was moved')
+        #print('marker_',json.loads(ctx)['index'], ' was moved')
  
         new_tools = []
         for pos in new_positions:
@@ -393,9 +430,29 @@ def create_new_model(n_clicks, traj_ids):
 
     return 'tab-1', traj_ids, False
 
-@app.callback([Output('exit-edit-button', 'style'), 
-                Output('create-new-button', 'n_clicks'),
-                Output('exit-edit-button', 'n_clicks')],
+# @app.callback([Output('create-new-button', 'n_clicks'),
+#                 Output('exit-edit-button', 'style')],
+#                 Input('exit-edit-button', 'n_clicks'),
+#                 State('exit-edit-button', 'style'))
+# def update_create_new_button(exit_n_clicks, style):
+
+#     if exit_n_clicks > 0:
+#         style['display'] = 'none'
+#         return 0, style
+
+# @app.callback(Output('exit-edit-button', 'n_clicks'),
+#                 Input('create-new-button', 'n_clicks'))
+# def update_exit_edit_button(create_n_clicks):
+
+
+    # else:
+    #     style['display'] = 'inline-block'
+
+
+
+@app.callback([Output('create-new-button', 'n_clicks'),
+                Output('exit-edit-button', 'n_clicks'),
+                Output('exit-edit-button', 'style')],
                 [Input('create-new-button', 'n_clicks'), 
                 Input('exit-edit-button', 'n_clicks')],
                 State('exit-edit-button', 'style'))
@@ -411,7 +468,7 @@ def toggle_exit_edit_button(create_n_clicks, exit_n_clicks, style):
         else:
             style['display'] = 'inline-block'
 
-    return style, reset_create_clicks, reset_exit_clicks
+    return reset_create_clicks, reset_exit_clicks, style
 
 
 ############################################################
@@ -439,4 +496,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8509)
+    app.run_server(debug=True, port=8565)
