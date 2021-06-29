@@ -100,9 +100,9 @@ app.layout = html.Div([
     html.Div([
         dcc.Tabs(id="tabs",
                  children=[
-                     dcc.Tab(label='Graphs', value='tab-1'),
-                     dcc.Tab(label='3d_Graph', value='tab-2'),
-                     dcc.Tab(label='Map', value='tab-3')
+                     dcc.Tab(id='tab1', label='Graphs', value='tab-1'),
+                     dcc.Tab(id='tab2', label='3d_Graph', value='tab-2'),
+                     dcc.Tab(id='tab3', label='Map', value='tab-3')
                  ],
                  value='tab-1'),
         html.Div(id='tabs-content', children = None)
@@ -158,6 +158,7 @@ app.layout = html.Div([
                     id='map',
                     zoom=5.25, 
                     center=(38, -73),
+                    doubleClickZoom=False,
                     style={'width': '1500px', 'height': '750px', 'margin': "auto", "display": "block"}
                     )],
             style={"display": "block"}
@@ -204,6 +205,7 @@ def update_memory(traj_ids_selected):
 def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, current_markers, data, ac_index):#, current_markers):
     if data is None:
         raise PreventUpdate
+
     # allows us to identify which input triggered this callback
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
@@ -222,7 +224,6 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
 
     elif ctx == 'marker-layer' and create_n_clicks > 0:
         if not ac_index:
-            print('need an id')
             return dash.no_update
         
         if len(data) != len(current_markers):
@@ -242,8 +243,15 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
             for i, data_point in enumerate(data):
                 data_point['lat'] = current_markers[i]['props']['position'][0]
                 data_point['long'] = current_markers[i]['props']['position'][1]
-    
+
+    #elif ctx == '':
+
     return data
+
+# @app.callback(Ouput(),
+#                 Input('editable-table', 'data'))
+# def update_df():
+
 
 
 @app.callback(Output('editable-graph-xy', 'figure'),
@@ -366,28 +374,45 @@ def update_map(data, current_polylines):
 
 
 @app.callback(Output('marker-layer', 'children'),
-                #Output(dict(tag="marker", index=ALL), 'children')],
-                [Input("map", "click_lat_lng"),
+                [Input("map", "dbl_click_lat_lng"),
                 Input('create-new-button', 'n_clicks'),
+                Input('exit-edit-button', 'n_clicks'),
+                #Input('trajectory-ids', 'value'),
                 Input(dict(tag="marker", index=ALL), 'position')],
                 [State('marker-layer', 'children'),
                 State('ac-index', 'value')])
-def create_markers(click_lat_lng, create_n_clicks, new_positions, current_markers, ac_value):
+def create_markers(dbl_click_lat_lng, create_n_clicks, exit_n_clicks, new_positions, current_markers, ac_value):
     ctx = dash.callback_context
+    
     if not ctx.triggered or not ctx.triggered[0]['value']:
         return dash.no_update
     
     ctx = ctx.triggered[0]['prop_id'].split('.')[0]
+    #print("CONTEXT: ", ctx)
+
     if ctx == 'map':
         if create_n_clicks > 0 and ac_value:
             current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), 
-                                    position=click_lat_lng,
-                                    children=dl.Tooltip("({:.3f}, {:.3f})".format(*click_lat_lng)), 
+                                    position=dbl_click_lat_lng,
+                                    children=dl.Tooltip("({:.3f}, {:.3f})".format(*dbl_click_lat_lng)), 
                                     draggable=True))
     elif ctx == 'create-new-button':
+        #print('create clicks: ', create_n_clicks)
+        #print('len ', len(current_markers))
         if create_n_clicks > 0 and len(current_markers) > 0:
         # clear past markers only when create-new-button is clicked again
             return []
+    elif ctx == 'exit-edit-button':
+        next
+        # # clear markers when exit creative mode
+        # if exit_n_clicks > 0:
+        #     return []
+
+    # elif ctx == 'trajectory-ids':
+    #     print('ac_value: ', ac_value)
+    #     print('traj id: ', traj_id_selected)
+    #     return []
+    
     else:
         # a marker was dragged such that it's position changed
         index = json.loads(ctx)['index']
@@ -442,6 +467,12 @@ def creative_mode_switch_tabs(n_clicks):
 def creative_mode_clear_trajectory_ids(create_n_clicks, exit_n_clicks, ac_value):
     if create_n_clicks > 0:
         return []
+    
+    if exit_n_clicks > 0:
+        if not ac_value:
+            print("Need to give nominal path an index")
+        else:
+            return [ac_value]
 
     return dash.no_update
 
@@ -460,17 +491,36 @@ def creative_mode_add_trajectory(n_clicks, ac_value, options, data):
         if new_option not in options:
             options.append({'value': ac_value, 'label': 'AC '+ str(ac_value)})
             add_data_to_df(data)
+        else:
+            print('AC Id already taken. Select a new one.')
 
     return options
 
 @app.callback(Output('trajectory-ids', 'disabled'),
-                Input('create-new-button', 'n_clicks'),
-                State('trajectory-ids', 'value'))
-def creative_mode_disable_trajectory_id_dropdown(n_clicks, traj_ids):
-    if n_clicks > 0:
+                [Input('create-new-button', 'n_clicks'),
+                Input('exit-edit-button', 'n_clicks')])
+def creative_mode_disable_trajectory_id_dropdown(create_n_clicks, exit_n_clicks):
+    if create_n_clicks > 0:
         return True
+    
+    if exit_n_clicks > 0:
+        return False
 
-    return False
+    return dash.no_update
+
+
+@app.callback([Output('tab1','disabled'),
+                Output('tab2', 'disabled')],
+                [Input('create-new-button', 'n_clicks'),
+                Input('exit-edit-button', 'n_clicks')])
+def creative_mode_disable_tabs(create_n_clicks, exit_n_clicks):
+    if create_n_clicks > 0:
+        return True, True
+    elif exit_n_clicks > 0:
+        return False, False
+
+    return dash.no_update
+
 
 
 @app.callback([Output('create-new-button', 'n_clicks'),
@@ -500,6 +550,14 @@ def toggle_creative_mode(create_n_clicks, exit_n_clicks, exit_style, ac_style):
         
     return reset_create_clicks, reset_exit_clicks, exit_style, ac_style
 
+@app.callback(Output('ac-index', 'value'),
+                Input('exit-edit-button', 'n_clicks'),
+                State('trajectory-ids', 'options'))
+def exit_creative_mode_reset_ac_index(exit_n_clicks, options):
+    if exit_n_clicks > 0:
+        return None
+    
+    return dash.no_update
 
 ############################################################
 ############################################################
@@ -526,4 +584,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8567)
+    app.run_server(debug=True, port=8530)
