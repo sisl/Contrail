@@ -13,6 +13,8 @@ import collections
 
 import json
 
+import re
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -63,6 +65,8 @@ def filter_ids(traj_ids_selected):
 app.layout = html.Div([
     # memory store reverts to the default on every page refresh
     dcc.Store(id='memory-output'),
+
+    dcc.Store(id='session', data={}),
     
     # trajectory ID dropdown menu
     html.Div([
@@ -88,12 +92,30 @@ app.layout = html.Div([
                 style={"margin-left": "15px", 'display':'none'}),
 
         dcc.Input(id="ac-index", type="number", placeholder="AC Index", 
-                debounce=True, min=0,
+                debounce=False, min=0,
                 style={"margin-left": "15px", 'display':'none'})
+
+        
         ]
     ),
     
-    html.Br(),
+    html.Br(), html.Br(),
+
+    html.Div(id='reference-point-div', children = [
+        dcc.Input(id='ref-point-input', type='text', placeholder='lat/lng/alt: 0.0/0.0/0.0',
+                debounce=True,
+                pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
+                style={'display':'inline-block'}),
+        html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
+                style={"margin-left": "15px", 'display':'inline-block'}),
+        html.Button('Clear', id='clear-ref-button', n_clicks=0,
+                style={"margin-left": "15px", 'display':'inline-block'}),
+        html.Div(id='ref-point-output', children=[],
+                style={"margin-left": "5px"})
+        
+        ]
+    ),
+
     html.Br(),
 
     # main tabs for navigating webpage
@@ -541,7 +563,7 @@ def toggle_creative_mode(create_n_clicks, exit_n_clicks, exit_style, ac_style):
         if ctx == 'create-new-button':
             reset_exit_clicks = 0 
             exit_style['display'] = 'inline-block'
-            ac_style['display'] = 'inline-block'   
+            ac_style['display'] = 'inline-block'  
         
         if ctx == 'exit-edit-button' and exit_n_clicks > 0:
             exit_style['display'] = 'none'
@@ -558,6 +580,49 @@ def exit_creative_mode_reset_ac_index(exit_n_clicks, options):
         return None
     
     return dash.no_update
+
+
+@app.callback(Output('ref-point-input', 'value'),
+                [Input('set-ref-button', 'n_clicks'),
+                Input('clear-ref-button', 'n_clicks')],
+                State('ref-point-output', 'children'))
+def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
+    if clear_n_clicks > 0:
+        return ''
+    return dash.no_update
+
+@app.callback([Output('ref-point-output', 'children'),
+                Output('session', 'data')],
+                [Input('set-ref-button', 'n_clicks'),
+                Input('clear-ref-button', 'n_clicks')],
+                [State('ref-point-input', 'value'),
+                State('ref-point-input', 'pattern')])
+def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern):
+    patt = re.compile(pattern)
+    data = {}
+
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    if ctx == 'set-ref-button':
+        
+        if set_n_clicks > 0 and len(ref_point_value) > 0:
+            p = patt.match(ref_point_value)
+            if p:
+                data['ref-lat'], data['ref-long'], data['ref-alt'] = p.groups()
+                return 'reference point: ' + ref_point_value, data
+            else:
+                return '!!invalid format!!', data
+
+    elif ctx == 'clear-ref-button':
+        
+        if clear_n_clicks > 0:
+            return 'reference point: ', data
+    
+
+
+    return 'reference point: ', data
+
+
 
 ############################################################
 ############################################################
@@ -584,4 +649,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8530)
+    app.run_server(debug=True, port=8534)
