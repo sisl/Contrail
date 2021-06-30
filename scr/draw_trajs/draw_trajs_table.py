@@ -18,7 +18,7 @@ import re
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-columns = ['id', 'time', 'lat', 'long', 'alt']
+columns = ['id', 'time', 'xEast', 'yNorth', 'zUp']
 global df
 df = pd.read_csv('data/traj_data_sample_ENU.csv', header=0)
 traj_ids = set(df['id'])
@@ -29,7 +29,7 @@ def calculate_horizontal_speeds_df(dataf):
         ac_id_data = df.loc[df['id'] == ac_id]
 
         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
-        hor_speed = np.sqrt(move_over_time.lat ** 2 + move_over_time.long ** 2) / move_over_time['time']
+        hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time']
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
 
     dataf['hor_speed'] = hor_speeds
@@ -255,7 +255,7 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
                                                 ref_data['ref_long'], 
                                                 ref_data['ref_alt'],
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
-            marker_dict = {'id': ac_index, 'time': len(data)+1, 'lat': xEast, 'long': yNorth, 'alt': zUp, 'hor_speed':0}
+            marker_dict = {'id': ac_index, 'time': len(data)+1, 'xEast': xEast, 'yNorth': yNorth, 'zUp': zUp, 'hor_speed':0}
             data.append(marker_dict)
         else:
             # an already existing marker was dragged
@@ -269,9 +269,9 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
                 xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
                                                 ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
-                data_point['lat'] = xEast
-                data_point['long'] = yNorth
-                data_point['alt'] = zUp
+                data_point['xEast'] = xEast
+                data_point['yNorth'] = yNorth
+                data_point['zUp'] = zUp
 
     return data
 
@@ -288,10 +288,10 @@ def on_data_set_graph_xy(data):
             a['name'], a['color'] = 'AC '+ str(row['id']), row['id']
             a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'size': 5}
             
-            a['x'].append(float(row.get('lat')))
-            a['y'].append(float(row.get('long')))
+            a['x'].append(float(row.get('xEast')))
+            a['y'].append(float(row.get('yNorth')))
     return {'data': [x for x in aggregation.values()],
-            'layout': {'title': 'latitude vs. longitude'}}
+            'layout': {'title': 'xEast vs yNorth'}}
 
  
 @app.callback(Output('editable-graph-tz', 'figure'),
@@ -307,9 +307,9 @@ def on_data_set_graph_tz(data):
             a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'size': 5}
 
             a['x'].append(float(row['time']))
-            a['y'].append(float(row['alt']))
+            a['y'].append(float(row['zUp']))
     return {'data': [x for x in aggregation.values()],
-            'layout': {'title': 'time vs. altitude'}}
+            'layout': {'title': 'time vs. zUp'}}
 
 
 @app.callback(Output('editable-graph-tspeed', 'figure'),
@@ -342,14 +342,14 @@ def on_data_set_graph_xyz(data):
             a['name'], a['color'] = 'AC '+str(row['id']), row['id']
             a['type'], a['mode'], a['marker'] = 'scatter3d', 'lines+markers', {'size': 5}
 
-            a['x'].append(float(row['lat']))
-            a['y'].append(float(row['long']))
-            a['z'].append(float(row['alt']))
+            a['x'].append(float(row['xEast']))
+            a['y'].append(float(row['yNorth']))
+            a['z'].append(float(row['zUp']))
     return {'data': [x for x in aggregation.values()],
             'layout': {
-                'scene': {'xaxis': {'title': 'lat'},
-                         'yaxis': {'title': 'lon'},
-                         'zaxis': {'title': 'alt'}},
+                'scene': {'xaxis': {'title': 'xEast'},
+                         'yaxis': {'title': 'yNorth'},
+                         'zaxis': {'title': 'zUp'}},
                 'width': '1200px', 'height': '1200px',
                 'margin': {'l':0, 'r':0, 'b':0, 't':0}
             }}
@@ -379,8 +379,8 @@ def update_map(data, current_polylines, ref_data):
                 a = aggregation[float(row.get('id'))]
                 a['name'], a['color'] = 'AC '+ str(row['id']), row['id']
 
-                a['lat'].append(float(row.get('lat')))
-                a['long'].append(float(row.get('long')))
+                a['lat'].append(float(row.get('xEast')))
+                a['long'].append(float(row.get('yNorth')))
         data_group = [x for x in aggregation.values()]
             
         ref_lat = ref_data['ref_lat']
@@ -659,4 +659,4 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8538)
+    app.run_server(debug=True, port=8569)
