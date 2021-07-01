@@ -176,8 +176,8 @@ app.layout = html.Div([
                              dl.LayerGroup(id='polyline-layer', children=[]),
                              dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
                     id='map',
-                    zoom=5.25, 
-                    center=(38, -73),
+                    zoom=5.8, 
+                    center=(40, -74),
                     doubleClickZoom=False,
                     style={'width': '1500px', 'height': '750px', 'margin': "auto", "display": "block"}
                     )],
@@ -242,7 +242,7 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
         return filter_ids(traj_ids_selected)
 
     elif ctx == 'marker-layer' and create_n_clicks > 0:
-        if not ac_index:
+        if not ac_index or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             return dash.no_update
         
         if len(data) != len(current_markers):
@@ -253,7 +253,7 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
             xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
                                                 ref_data['ref_lat'], 
                                                 ref_data['ref_long'], 
-                                                ref_data['ref_alt'],
+                                                ref_data['ref_long'],
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
             marker_dict = {'id': ac_index, 'time': len(data)+1, 'xEast': xEast, 'yNorth': yNorth, 'zUp': zUp, 'hor_speed':0}
             data.append(marker_dict)
@@ -265,6 +265,7 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
             # because right now I touch all data points instead of the one that
             # is explicitly changed.
             for i, data_point in enumerate(data):
+                
                 pos = current_markers[i]['props']['position']
                 xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
                                                 ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
@@ -291,7 +292,12 @@ def on_data_set_graph_xy(data):
             a['x'].append(float(row.get('xEast')))
             a['y'].append(float(row.get('yNorth')))
     return {'data': [x for x in aggregation.values()],
-            'layout': {'title': 'xEast vs yNorth'}}
+            'layout': {
+                    'title': 'xEast vs yNorth',
+                    'xaxis':{'title':'xEast (m)'},
+                    'yaxis':{'title':'yNorth (m)'}
+                    }
+            }
 
  
 @app.callback(Output('editable-graph-tz', 'figure'),
@@ -309,7 +315,12 @@ def on_data_set_graph_tz(data):
             a['x'].append(float(row['time']))
             a['y'].append(float(row['zUp']))
     return {'data': [x for x in aggregation.values()],
-            'layout': {'title': 'time vs. zUp'}}
+            'layout': {
+                    'title': 'Time vs zUp',
+                    'xaxis':{'title':'Time (????)'},
+                    'yaxis':{'title':'zUp (m)'}
+                    }
+            }
 
 
 @app.callback(Output('editable-graph-tspeed', 'figure'),
@@ -327,7 +338,12 @@ def on_data_set_graph_tspeed(data):
             a['x'].append(float(row['time']))
             a['y'].append(float(row['hor_speed']))
     return {'data': [x for x in aggregation.values()],
-            'layout': {'title': 'horizontal speed'}}
+            'layout': {
+                    'title': 'Time vs Horizontal Speed',
+                    'xaxis':{'title':'Time (???)'},
+                    'yaxis':{'title':'Speed (m/s)'}
+                    }
+            }
 
 
 @app.callback(Output('editable-graph-xyz', 'figure'),
@@ -347,9 +363,9 @@ def on_data_set_graph_xyz(data):
             a['z'].append(float(row['zUp']))
     return {'data': [x for x in aggregation.values()],
             'layout': {
-                'scene': {'xaxis': {'title': 'xEast'},
-                         'yaxis': {'title': 'yNorth'},
-                         'zaxis': {'title': 'zUp'}},
+                'scene': {'xaxis': {'title': 'xEast (m)'},
+                         'yaxis': {'title': 'yNorth (m)'},
+                         'zaxis': {'title': 'zUp (m)'}},
                 'width': '1200px', 'height': '1200px',
                 'margin': {'l':0, 'r':0, 'b':0, 't':0}
             }}
@@ -365,12 +381,13 @@ def update_map(data, current_polylines, ref_data):
 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'editable-table':
+    if ctx == 'editable-table' or ctx == 'session':
         # data has changed - must update map polylines
         new_polylines = []
         
         if len(data) == 0:
             # if no data, save computation time
+            # or if the ref point was cleared
             return new_polylines
 
         aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -381,6 +398,7 @@ def update_map(data, current_polylines, ref_data):
 
                 a['lat'].append(float(row.get('xEast')))
                 a['long'].append(float(row.get('yNorth')))
+                a['alt'].append(float(row.get('zUp')))
         data_group = [x for x in aggregation.values()]
             
         ref_lat = ref_data['ref_lat']
@@ -393,7 +411,7 @@ def update_map(data, current_polylines, ref_data):
             for i in range(len(data_id['lat'])):
                 lat, lng, alt = pm.enu2geodetic(data_id['lat'][i], 
                                                 data_id['long'][i], 
-                                                ref_alt, ref_lat, 
+                                                data_id['alt'][i], ref_lat, 
                                                 ref_long, ref_alt, 
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
                 lat_lng_dict.append([lat, lng])
@@ -402,33 +420,43 @@ def update_map(data, current_polylines, ref_data):
 
         return new_polylines
 
-    # I had some issues previously with returning the current_polylines... not sure why it is working now
-    # so I am keeping this other return statement I wrote to recreate the existing lines
-    #return [dl.PolylineDecorator(positions=info['props']['positions'], patterns=map_patterns) for info in current_polylines]
-
     return current_polylines
+
+
+@app.callback([Output('map', 'center'),
+                Output('map', 'zoom')],
+                Input('session', 'data'))
+def center_map_around_ref_input(ref_data):
+
+    if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+        # ref point was cleared - so reset to center of US and zoom out
+        return (39,-98), 4
+        
+    return (ref_data['ref_lat'], ref_data['ref_long']), 5.8
 
 
 @app.callback(Output('marker-layer', 'children'),
                 [Input("map", "dbl_click_lat_lng"),
                 Input('create-new-button', 'n_clicks'),
-                Input('exit-edit-button', 'n_clicks'),
-                #Input('trajectory-ids', 'value'),
-                Input(dict(tag="marker", index=ALL), 'position')],
+                Input('trajectory-ids', 'value'),
+                Input(dict(tag="marker", index=ALL), 'children')],
                 [State('marker-layer', 'children'),
                 State('ac-index', 'value'),
                 State('session', 'data')])
-def create_markers(dbl_click_lat_lng, create_n_clicks, exit_n_clicks, new_positions, current_markers, ac_value, ref_data):
+def create_markers(dbl_click_lat_lng, create_n_clicks, traj_ids, current_marker_tools, current_markers, ac_value, ref_data):
     ctx = dash.callback_context
-    
+       
     if not ctx.triggered or not ctx.triggered[0]['value']:
         return dash.no_update
     
     ctx = ctx.triggered[0]['prop_id'].split('.')[0]
-    #print("CONTEXT: ", ctx)
+    # print("CONTEXT: ", ctx)
 
     if ctx == 'map':
         if create_n_clicks > 0 and ac_value:
+            if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+                return dash.no_update
+
             xEast, yNorth, zUp = pm.geodetic2enu(dbl_click_lat_lng[0], dbl_click_lat_lng[1], ref_data['ref_alt'], 
                                                 ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
@@ -440,21 +468,16 @@ def create_markers(dbl_click_lat_lng, create_n_clicks, exit_n_clicks, new_positi
 
     elif ctx == 'create-new-button':
         if create_n_clicks > 0 and len(current_markers) > 0:
-        # clear past markers only when create-new-button is clicked again
+            # clear past markers only when create-new-button is clicked again
             return []
 
-    elif ctx == 'exit-edit-button':
-        next
-        # # clear markers when exit creative mode
-        # if exit_n_clicks > 0:
-        #     return []
-
-    else:
-        # a marker was dragged such that it's position changed
-        index = json.loads(ctx)['index']
-        current_markers[index]['props']['position'] = new_positions[index]
+    elif ctx == 'trajectory-ids':
+        # clear markers if more than one trajectory is active
+        if len(traj_ids) > 1:
+            return []
 
     return current_markers
+
 
 @app.callback(Output(dict(tag="marker", index=ALL), 'draggable'),
               Input('create-new-button', 'n_clicks'),
@@ -473,19 +496,25 @@ def toggle_marker_draggable(create_n_clicks, draggable):
 
 @app.callback(Output(dict(tag="marker", index=ALL), 'children'),
               [Input(dict(tag="marker", index=ALL), 'position')],
-              State('session', 'data'))
-def update_marker(new_positions, ref_data):
+              [State(dict(tag="marker", index=ALL), 'children'), 
+              State('session', 'data')])
+def update_marker(new_positions, current_marker_tools, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+ 
     if len(ctx) > 0:
-        new_tools = []
-        for pos in new_positions:
-            xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
-                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'])
-            new_tools.append([dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth]))])
-        return new_tools
+        if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+            return dash.no_update
+
+        index = json.loads(ctx)['index']
+        pos = new_positions[index]
+        xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
+                                            ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
+                                            ell=pm.Ellipsoid('wgs84'), deg=True)
+
+        current_marker_tools[index] = dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth]))
     
-    return dash.no_update
-    
+    return current_marker_tools
+
 
 @app.callback(Output('tabs', 'value'),
                 Input('create-new-button', 'n_clicks'))
@@ -493,22 +522,34 @@ def creative_mode_switch_tabs(n_clicks):
     if n_clicks > 0:
         return 'tab-3'
     return 'tab-1'
+    
 
 @app.callback(Output('trajectory-ids', 'value'),
                 [Input('create-new-button', 'n_clicks'),
-                Input('exit-edit-button', 'n_clicks')],
+                Input('exit-edit-button', 'n_clicks'),
+                Input('session', 'data')],
                  State('ac-index', 'value'))
-def creative_mode_clear_trajectory_ids(create_n_clicks, exit_n_clicks, ac_value):
-    if create_n_clicks > 0:
-        return []
+def creative_mode_clear_trajectory_ids(create_n_clicks, exit_n_clicks, ref_data, ac_value):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    if ctx == 'create-new-button':
+        if create_n_clicks > 0:
+            return []
     
-    if exit_n_clicks > 0:
-        if not ac_value:
-            print("Need to give nominal path an index")
-        else:
-            return [ac_value]
+    elif ctx == 'exit-n-clicks':
+        if exit_n_clicks > 0:
+            if not ac_value:
+                print("Need to give nominal path an index")
+            else:
+                return [ac_value]
+    
+    elif ctx == 'session':
+        if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+            # no trajectories should be selected if there isn't a ref point
+            return []
 
     return dash.no_update
+
 
 @app.callback(Output('trajectory-ids', 'options'),
                 Input('exit-edit-button', 'n_clicks'),
@@ -530,15 +571,29 @@ def creative_mode_add_trajectory(n_clicks, ac_value, options, data):
 
     return options
 
+
 @app.callback(Output('trajectory-ids', 'disabled'),
                 [Input('create-new-button', 'n_clicks'),
-                Input('exit-edit-button', 'n_clicks')])
-def creative_mode_disable_trajectory_id_dropdown(create_n_clicks, exit_n_clicks):
-    if create_n_clicks > 0:
-        return True
+                Input('exit-edit-button', 'n_clicks'),
+                Input('session', 'data')])
+def creative_mode_disable_trajectory_id_dropdown(create_n_clicks, exit_n_clicks, ref_data):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    if ctx == 'create-new-button':
+        if create_n_clicks > 0:
+            return True
     
-    if exit_n_clicks > 0:
-        return False
+    elif ctx == 'exit-edit-button':
+        if exit_n_clicks > 0:
+            return False
+
+    elif ctx == 'session':
+        if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+            # no trajectories should be selected if there isn't a ref point
+            return True
+        else:
+            return False
+
 
     return dash.no_update
 
@@ -554,7 +609,6 @@ def creative_mode_disable_tabs(create_n_clicks, exit_n_clicks):
         return False, False
 
     return dash.no_update
-
 
 
 @app.callback([Output('create-new-button', 'n_clicks'),
@@ -584,6 +638,7 @@ def toggle_creative_mode(create_n_clicks, exit_n_clicks, exit_style, ac_style):
         
     return reset_create_clicks, reset_exit_clicks, exit_style, ac_style
 
+
 @app.callback(Output('ac-index', 'value'),
                 Input('exit-edit-button', 'n_clicks'),
                 State('trajectory-ids', 'options'))
@@ -593,15 +648,6 @@ def exit_creative_mode_reset_ac_index(exit_n_clicks, options):
     
     return dash.no_update
 
-
-@app.callback(Output('ref-point-input', 'value'),
-                [Input('set-ref-button', 'n_clicks'),
-                Input('clear-ref-button', 'n_clicks')],
-                State('ref-point-output', 'children'))
-def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
-    if clear_n_clicks > 0:
-        return ''
-    return dash.no_update
 
 @app.callback([Output('ref-point-output', 'children'),
                 Output('session', 'data')],
@@ -613,14 +659,20 @@ def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
 def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, ref_data):
     patt = re.compile(pattern)
 
+    ref = 'reference point: ', ref_data['ref_lat'], "/", ref_data['ref_long'], '/', ref_data['ref_alt']
+
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'set-ref-button':
         
-        if set_n_clicks > 0 and len(ref_point_value) > 0:
+        if set_n_clicks > 0 and ref_point_value:
             p = patt.match(ref_point_value)
             if p:
-                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'] = p.groups()
+                vals = p.groups()
+                ref_data['ref_lat'] = float(vals[0])
+                ref_data['ref_long'] = float(vals[1])
+                ref_data['ref_alt'] = float(vals[2])
+
                 return 'reference point: ' + ref_point_value, ref_data
             else:
                 return '!!invalid format!!', ref_data
@@ -628,9 +680,50 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
     elif ctx == 'clear-ref-button':
         
         if clear_n_clicks > 0:
+            ref_data['ref_lat'] = None
+            ref_data['ref_long'] = None
+            ref_data['ref_alt'] = None
             return 'reference point: ', ref_data
     
-    return 'reference point: ', ref_data
+    return ref, ref_data
+
+
+@app.callback(Output('ref-point-input', 'value'),
+                [Input('set-ref-button', 'n_clicks'),
+                Input('clear-ref-button', 'n_clicks')],
+                State('ref-point-output', 'children'))
+def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
+    if clear_n_clicks > 0:
+        return ''
+    return dash.no_update
+
+
+@app.callback(Output('ref-point-input', 'disabled'),
+                [Input('create-new-button', 'n_clicks'),
+                Input('exit-edit-button', 'n_clicks')])
+def disable_ref_input(create_n_clicks, exit_n_clicks):
+    if create_n_clicks > 0:
+        return True
+    
+    if exit_n_clicks > 0:
+        return False
+
+    return dash.no_update
+
+
+@app.callback(Output('clear-ref-button', 'disabled'),
+                [Input('create-new-button', 'n_clicks'),
+                Input('exit-edit-button', 'n_clicks')])
+def disable_ref_input(create_n_clicks, exit_n_clicks):
+    if create_n_clicks > 0:
+        return True
+    
+    if exit_n_clicks > 0:
+        return False
+
+    return dash.no_update
+
+
 
 
 
@@ -659,4 +752,5 @@ def render_content(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8569)
+
+    app.run_server(debug=True, port=8335)
