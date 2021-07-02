@@ -386,8 +386,7 @@ def update_map(data, current_polylines, ref_data):
         new_polylines = []
         
         if len(data) == 0:
-            # if no data, save computation time
-            # or if the ref point was cleared
+            # no data, save computation time
             return new_polylines
 
         aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
