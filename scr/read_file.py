@@ -57,6 +57,7 @@
 #     waypoints.
 
 import numpy as np
+import pandas as pd
 
 def load_encounters(filename, initial_dim, update_dim, num_update_type):
     file = open(filename, 'rb')
@@ -84,8 +85,26 @@ def load_waypoints(filename):
     return load_encounters(filename, initial_dim, update_dim, num_update_type)
 
 
+def waypoints_to_df(encounters, num_encounters, num_ac):
+    encounters_array = np.array([])
+    for i in range(num_encounters):
+        for j in range(num_ac):
+            initial_pos = np.concatenate((np.array([i, j, 0]), encounters[j, i]["initial"]))
+            if encounters_array.shape[0] == 0:
+                encounters_array = np.append(encounters_array, initial_pos)
+            else:
+                encounters_array = np.vstack((encounters_array, initial_pos))
+            update_pos = np.column_stack((np.repeat([[i, j]], repeats=len(encounters[j, i]["update"]), axis=0), \
+                                          encounters[j, i]["update"]))
+            encounters_array = np.vstack((encounters_array, update_pos))
+            
+    columns = ['encounter_id', 'traj_id', 'time', 'xEast', 'yNorth', 'zUp']
+    encounters_df = pd.DataFrame(encounters_array, columns = columns)
+    return encounters_df
+
+
 if __name__ == "__main__":
-    filename = "test_waypoint_encounters.dat"
+    filename = "data/test_waypoint_encounters.dat"
     [encounters, num_ac, num_encounters] = load_waypoints(filename)
     
     print('Number of encounters:', num_encounters)
