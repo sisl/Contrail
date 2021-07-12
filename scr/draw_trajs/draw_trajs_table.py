@@ -5,6 +5,7 @@ from dash.exceptions import PreventUpdate
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 import dash_leaflet as dl
 
 import pandas as pd
@@ -15,7 +16,7 @@ import json
 import pymap3d as pm
 import re
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 columns = ['id', 'time', 'xEast', 'yNorth', 'zUp']
@@ -65,6 +66,8 @@ app.layout = html.Div([
     dcc.Store(id='session', data={'ref_lat': 40.63993,
                                   'ref_long': -73.77869,
                                   'ref_alt': 12.7}),
+
+    dcc.Store(id='generated-encounters', data={}),
     
     # trajectory ID dropdown menu
     html.Div([
@@ -72,14 +75,17 @@ app.layout = html.Div([
         dcc.Dropdown(id='trajectory-ids', 
                      options=[{'value': traj_id, 'label': 'AC '+ str(traj_id)} for traj_id in traj_ids], 
                      multi=True, 
-                     value=[1, 2])
-    ]),
+                     value=[1, 2]),
+        ],
+        style={"margin-left": "15px"}
+    ),
     
     # style
     html.Br(), 
 
     html.Div(id='buttons', children = [
-        html.Button('Load Model', id='load-button', n_clicks=0),
+        html.Button('Load Model', id='load-button', n_clicks=0,
+                    style={"margin-left": "15px"}),
         html.Button('Save Model', id='save-button', n_clicks=0, 
                     style={"margin-left": "15px"}),
         
@@ -99,22 +105,92 @@ app.layout = html.Div([
     
     html.Br(), html.Br(),
 
+    # reference point input, set and clear buttons
     html.Div(id='reference-point-div', children = [
         dcc.Input(id='ref-point-input', type='text', placeholder='lat/lng/alt: 0.0/0.0/0.0',
                 debounce=True,
                 pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
-                style={'display':'inline-block'}),
+                style={'display':'inline-block', "margin-left": "15px"}),
         html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
                 style={"margin-left": "15px", 'display':'inline-block'}),
         html.Button('Clear', id='clear-ref-button', n_clicks=0,
                 style={"margin-left": "15px", 'display':'inline-block'}),
         html.Div(id='ref-point-output', children=[],
-                style={"margin-left": "5px"})
-        
+                style={"margin-left": "20px"})
         ]
     ),
 
     html.Br(),
+
+    html.Div(id='generation', children=[
+        html.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0,
+                style={'display':'inline-block', "margin-left": "15px"}),
+        # html.Dialog(id='gen-dialog-box', children=[
+        #     html.Button('BUTTON', id='button', n_clicks=0,
+        #         style={'display':'inline-block'})
+        #     ],
+        #     hidden=False,
+        #     title='Generate an Encounter Set',
+        #     style={'display':'block',
+        #             'size': (1000,1000)},
+        #             )
+        
+    ]),
+
+    html.Div(id='gen-modal-div', children=[
+        dbc.Modal([
+                dbc.ModalHeader("Generate an Encounter Set"),
+
+                dbc.ModalBody("*****"),
+
+                dcc.Markdown(("""Select a Nominal Path"""), style={"margin-left": "20px"}),
+
+                dcc.Dropdown(id='nominal-path-id', 
+                    options=[{'value': traj_id, 'label': 'AC '+ str(traj_id)} for traj_id in traj_ids], 
+                    multi=True, 
+                    value=[],
+                    style={"margin-left": "10px", "width": "71%"}),
+
+                
+                html.Br(),
+
+                dcc.Markdown(("""Input Sigma Value"""), style={"margin-left": "20px"}),
+
+                dcc.Input(id='sigma-input', type='text', placeholder='default sigma = 1',
+                    debounce=True,
+                    pattern=u"^(\d+)$",
+                    style={"margin-left": "20px", "width": "50%"}),
+                
+                html.Br(),
+
+                dcc.Markdown(("""Number of Encounters to Generate"""), style={"margin-left": "20px"}),
+
+                dcc.Input(id='num-encounters-input', type='text', placeholder='',
+                    debounce=True,
+                    pattern=u"^(\d+)$",
+                    style={"margin-left": "20px", "width": "50%"}),
+                
+                html.Br(),
+
+                dbc.ModalFooter(children= [
+                    dbc.Button("CLOSE", id="close-button"),
+                    dbc.Button("GENERATE", id="generate-button", className="ml-auto")
+                    ]
+                ),
+            ],
+            id='gen-modal',
+            is_open=False,
+            size="lg",
+            backdrop=True,  # Modal to not be closed by clicking on backdrop
+            centered=True,  # Vertically center modal 
+            keyboard=True,  # Close modal when escape is pressed
+            fade=True,
+            style={"max-width": "none", "width": "50%"}
+            
+        )
+    ]),
+
+    html.Br(), html.Br(),
 
     # main tabs for navigating webpage
     html.Div([
@@ -213,11 +289,13 @@ def update_memory(traj_ids_selected):
     return filter_ids(traj_ids_selected)
 
 
+
 @app.callback(Output('editable-table', 'data'),
              [Input('trajectory-ids', 'value'),
              Input('add-rows-button', 'n_clicks'),
              Input('create-new-button', 'n_clicks'),
              Input('marker-layer', 'children')],
+             #Input(WHATEVER)],
              [State('editable-table', 'data'),
              State('ac-index', 'value'),
              State('session', 'data')])
@@ -228,9 +306,10 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
     # allows us to identify which input triggered this callback
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'create-new-button' and create_n_clicks > 0:
-        # wipe all data
-        return []
+    if ctx == 'create-new-button':
+        if create_n_clicks > 0:
+            # wipe all data, start fresh
+            return []
 
     elif ctx == 'add-rows-button' and create_n_clicks == 0:
         if add_rows_n_clicks > 0:
@@ -238,11 +317,15 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
             data.append({c: '' for c in df.columns})
 
     elif ctx == 'trajectory-ids':
-        # trajectories have been updated or loaded in
+        # user has selected a new trajectory id or
+        # deselected a trajectory id
         return filter_ids(traj_ids_selected)
 
     elif ctx == 'marker-layer' and create_n_clicks > 0:
+
         if not ac_index or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+            # the ac_index has not been chosen
+            # and the reference point has not been reset
             return dash.no_update
         
         if len(data) != len(current_markers):
@@ -261,18 +344,23 @@ def update_data_table(traj_ids_selected, add_rows_n_clicks, create_n_clicks, cur
             # an already existing marker was dragged
             # and therefore its position in data table needs to get updated
 
-            # FIXME: there must be a more efficient way to do this
-            # because right now I touch all data points instead of the one that
-            # is explicitly changed.
+            # FIXME: Should be able to isolate which position changed
+            # in order to make this more efficient
             for i, data_point in enumerate(data):
-                
+
                 pos = current_markers[i]['props']['position']
+
+                # data_point does not have altitutde value yet
+                # so use ref_alt as default
                 xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
                                                 ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
                 data_point['xEast'] = xEast
                 data_point['yNorth'] = yNorth
                 data_point['zUp'] = zUp
+
+    #elif ctx == 'WHATEVER':
+        #do what you need to do here
 
     return data
 
@@ -381,12 +469,12 @@ def update_map(data, current_polylines, ref_data):
 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'editable-table' or ctx == 'session':
-        # data has changed - must update map polylines
+    if ctx == 'editable-table':
+        # data table has changed - must update map polylines
         new_polylines = []
         
         if len(data) == 0:
-            # no data, save computation time
+            # if no data, save computation time
             return new_polylines
 
         aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -400,6 +488,8 @@ def update_map(data, current_polylines, ref_data):
                 a['alt'].append(float(row.get('zUp')))
         data_group = [x for x in aggregation.values()]
             
+        # pulling out the reference point data from the
+        # dcc.Store('session', 'data') object
         ref_lat = ref_data['ref_lat']
         ref_long = ref_data['ref_long']
         ref_alt = ref_data['ref_alt']
@@ -408,10 +498,12 @@ def update_map(data, current_polylines, ref_data):
 
             lat_lng_dict = []
             for i in range(len(data_id['lat'])):
+                # now the data point has an altitude value
+                # use it instead of ref_alt
                 lat, lng, alt = pm.enu2geodetic(data_id['lat'][i], 
                                                 data_id['long'][i], 
-                                                data_id['alt'][i], ref_lat, 
-                                                ref_long, ref_alt, 
+                                                data_id['alt'][i], 
+                                                ref_lat, ref_long, ref_alt, 
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
                 lat_lng_dict.append([lat, lng])
 
@@ -428,9 +520,10 @@ def update_map(data, current_polylines, ref_data):
 def center_map_around_ref_input(ref_data):
 
     if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
-        # ref point was cleared - so reset to center of US and zoom out
+        # ref point was cleared - so reset to center of map to the center of the US and zoom out
         return (39,-98), 4
-        
+    
+    # otherwise center the map on the reference point
     return (ref_data['ref_lat'], ref_data['ref_long']), 5.8
 
 
@@ -449,17 +542,28 @@ def create_markers(dbl_click_lat_lng, create_n_clicks, traj_ids, current_marker_
         return dash.no_update
     
     ctx = ctx.triggered[0]['prop_id'].split('.')[0]
-    # print("CONTEXT: ", ctx)
 
     if ctx == 'map':
+        # user double clicked the map
         if create_n_clicks > 0 and ac_value:
+            # in creative mode and an ac_value has been set
+
             if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+                # reference point has not been reset, cannot create markers until it is
                 return dash.no_update
 
-            xEast, yNorth, zUp = pm.geodetic2enu(dbl_click_lat_lng[0], dbl_click_lat_lng[1], ref_data['ref_alt'], 
-                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
+            xEast, yNorth, zUp = pm.geodetic2enu(dbl_click_lat_lng[0], 
+                                                dbl_click_lat_lng[1], 
+                                                ref_data['ref_alt'], 
+                                                ref_data['ref_lat'], 
+                                                ref_data['ref_long'], 
+                                                ref_data['ref_alt'],
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
 
+            # markers have a position that is always in lat/long 
+            # so that the map object can place then correctly
+            # but the tooltips (blue pointer on the map) displays that position
+            # in ENU coords to the user
             current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), 
                                     position=dbl_click_lat_lng,
                                     children=dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth])), 
@@ -485,8 +589,13 @@ def toggle_marker_draggable(create_n_clicks, draggable):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-new-button' and create_n_clicks > 0:
+        # in creative mode, the markers should be draggable
         return [True] * len(draggable)
     elif ctx == 'create-new-button' and create_n_clicks == 0:
+        # after exiting creative mode, the markers are no longer draggable
+
+        # FIXME: This is functionality choice that we could change
+        # if we wanted to. AKA always keep the markers draggable?
         return [False] * len(draggable)
         
     return dash.no_update
@@ -501,15 +610,26 @@ def update_marker(new_positions, current_marker_tools, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
  
     if len(ctx) > 0:
+        # a marker has been dragged
+
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+            # reference point has not been reset, cannot update markers until it is
             return dash.no_update
 
+        # the input will be the dictionary id of the marker that was dragged
+        # in the form {'tag':'marker','index':int}
         index = json.loads(ctx)['index']
         pos = new_positions[index]
-        xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
-                                            ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
+
+        xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], 
+                                            ref_data['ref_alt'], 
+                                            ref_data['ref_lat'], 
+                                            ref_data['ref_long'], 
+                                            ref_data['ref_alt'],
                                             ell=pm.Ellipsoid('wgs84'), deg=True)
 
+        # this is what gives the tooltips the ability to display and update the marker
+        # position after being dragged
         current_marker_tools[index] = dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth]))
     
     return current_marker_tools
@@ -518,6 +638,7 @@ def update_marker(new_positions, current_marker_tools, ref_data):
 @app.callback(Output('tabs', 'value'),
                 Input('create-new-button', 'n_clicks'))
 def creative_mode_switch_tabs(n_clicks):
+    # when click create new nominal path - takes user to tab-3
     if n_clicks > 0:
         return 'tab-3'
     return 'tab-1'
@@ -533,18 +654,24 @@ def creative_mode_clear_trajectory_ids(create_n_clicks, exit_n_clicks, ref_data,
 
     if ctx == 'create-new-button':
         if create_n_clicks > 0:
+            # clear selected ids when user clickes create new nominal path
             return []
     
-    elif ctx == 'exit-n-clicks':
+    elif ctx == 'exit-edit-button':
         if exit_n_clicks > 0:
             if not ac_value:
-                print("Need to give nominal path an index")
+                # if no ac_value was inputted, that means no markers were created
+                # because the user cannot create markers until an ac_valye is chosen
+                # so just clear the dropdown menu
+                return []
             else:
+                # otherwise, return the ac_value chosen by user
                 return [ac_value]
     
     elif ctx == 'session':
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             # no trajectories should be selected if there isn't a ref point
+            # test this by clicking the clear button
             return []
 
     return dash.no_update
@@ -558,14 +685,21 @@ def creative_mode_clear_trajectory_ids(create_n_clicks, exit_n_clicks, ref_data,
 def creative_mode_add_trajectory(n_clicks, ac_value, options, data):
     if not ac_value:
         return dash.no_update
+
     elif n_clicks > 0:
-        # create new dropdown menu option
+        # create new dropdown menu option for new nominal path
         new_option = {'value': ac_value, 'label': 'AC '+ str(ac_value)}
         
         if new_option not in options:
             options.append({'value': ac_value, 'label': 'AC '+ str(ac_value)})
+
+            # FIXME: THIS IS WHERE I APPEND THE DATA TO THE GLOBAL DF
+            # Instead, this data should be added to memory-output data
+            # and we should leave the global df behind
             add_data_to_df(data)
         else:
+            # user choice an AC ID that already exists
+            # not a valid ID choice
             print('AC Id already taken. Select a new one.')
 
     return options
@@ -580,10 +714,12 @@ def creative_mode_disable_trajectory_id_dropdown(create_n_clicks, exit_n_clicks,
 
     if ctx == 'create-new-button':
         if create_n_clicks > 0:
+            # if in creative mode, should not be able to select trajectory ids from the menu
             return True
     
     elif ctx == 'exit-edit-button':
         if exit_n_clicks > 0:
+            # if leave creative mode, should be able to select trajectory ids from menu
             return False
 
     elif ctx == 'session':
@@ -603,6 +739,8 @@ def creative_mode_disable_trajectory_id_dropdown(create_n_clicks, exit_n_clicks,
                 Input('exit-edit-button', 'n_clicks')])
 def creative_mode_disable_tabs(create_n_clicks, exit_n_clicks):
     if create_n_clicks > 0:
+        # in creative mode, cannot switch to tab1 or tab2
+        # until finished making the nominal path waypoints
         return True, True
     elif exit_n_clicks > 0:
         return False, False
@@ -625,12 +763,15 @@ def toggle_creative_mode(create_n_clicks, exit_n_clicks, exit_style, ac_style):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if create_n_clicks > 0:
+        # in creative mode
         if ctx == 'create-new-button':
+            # display the exit button and ac input
             reset_exit_clicks = 0 
             exit_style['display'] = 'inline-block'
             ac_style['display'] = 'inline-block'  
         
         if ctx == 'exit-edit-button' and exit_n_clicks > 0:
+            # exiting creative mode, so do not display exit button or ac input anymore
             exit_style['display'] = 'none'
             ac_style['display'] = 'none'
             reset_create_clicks = 0     
@@ -643,6 +784,7 @@ def toggle_creative_mode(create_n_clicks, exit_n_clicks, exit_style, ac_style):
                 State('trajectory-ids', 'options'))
 def exit_creative_mode_reset_ac_index(exit_n_clicks, options):
     if exit_n_clicks > 0:
+        # clear ac_value when user exits creative mode
         return None
     
     return dash.no_update
@@ -665,6 +807,11 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
     if ctx == 'set-ref-button':
         
         if set_n_clicks > 0 and ref_point_value:
+            # user clicked set reference point button after inputting a new ref point val
+
+            # the ac input has a Regex that makes sure the user inputs ref point in 
+            # the proper format: 0.0/0.0/0.0
+            # the values all must be floats
             p = patt.match(ref_point_value)
             if p:
                 vals = p.groups()
@@ -679,6 +826,7 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
     elif ctx == 'clear-ref-button':
         
         if clear_n_clicks > 0:
+            # reset the reference point
             ref_data['ref_lat'] = None
             ref_data['ref_long'] = None
             ref_data['ref_alt'] = None
@@ -693,6 +841,7 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
                 State('ref-point-output', 'children'))
 def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
     if clear_n_clicks > 0:
+        # reset value displayed in ref point input
         return ''
     return dash.no_update
 
@@ -702,6 +851,8 @@ def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
                 Input('exit-edit-button', 'n_clicks')])
 def disable_ref_input(create_n_clicks, exit_n_clicks):
     if create_n_clicks > 0:
+        # must set the reference point before the user enters creative mode
+        # so the input is disabled in creative mode
         return True
     
     if exit_n_clicks > 0:
@@ -713,8 +864,9 @@ def disable_ref_input(create_n_clicks, exit_n_clicks):
 @app.callback(Output('clear-ref-button', 'disabled'),
                 [Input('create-new-button', 'n_clicks'),
                 Input('exit-edit-button', 'n_clicks')])
-def disable_ref_input(create_n_clicks, exit_n_clicks):
+def disable_clear_ref_button(create_n_clicks, exit_n_clicks):
     if create_n_clicks > 0:
+        # user should not be able to clear the reference point while in creative mode
         return True
     
     if exit_n_clicks > 0:
@@ -723,7 +875,71 @@ def disable_ref_input(create_n_clicks, exit_n_clicks):
     return dash.no_update
 
 
+@app.callback(Output('gen-modal', 'is_open'),
+                [Input('gen-encounters-button', 'n_clicks'),
+                Input('close-button', 'n_clicks'),
+                Input('generate-button', 'n_clicks')])
+def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
+    if ctx == 'gen-encounters-button':
+        if gen_n_clicks > 0:
+            return True
+
+    elif ctx == 'close-button':
+        if close_n_clicks > 0:
+            return False
+
+    elif ctx == 'generate-button':
+        if generate_n_clicks > 0:
+            return False
+    
+    return dash.no_update
+
+
+@app.callback(Output('generated-encounters', 'data'),
+                Input('generate-button', 'n_clicks'),
+                [State('nominal-path-id', 'value'),
+                State('sigma-input', 'value'),
+                State('num-encounters-input', 'value'),
+                State('memory-output', 'data')])
+def generate_encounters(gen_n_clicks, nom_path_id, sigma, num_encounters, data):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    if ctx == 'generate-button':
+        if gen_n_clicks > 0:
+            print("THIS IS WHERE WE DO THE GENERATING :)")
+
+            # error checking
+            error = False
+            if not nom_path_id:
+                print("Must select a nominal path")
+                error = True
+            if not sigma:
+                print('Must input a sigma value')
+                error = True
+            if not num_encounters:
+                print('Must input number of encounters to generate')
+                error = True
+            if error:
+                return {}
+
+            nom_path_data = filter_ids(nom_path_id)
+            params = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in nom_path_data]
+            
+            cov = [ [sigma, 0, 0], 
+                    [0, sigma, 0], 
+                    [0, 0, sigma] ]
+
+            # for enc in num_encounters:
+            #     trajectory = []
+            #     for mean in params:
+            #         #print(type(np.random.multivariate_normal(mean, cov, 1)))
+            #         trajectory.append(np.random.multivariate_normal(mean, cov, 1)[0])
+            #     print("ENCOUNTER ", enc)
+            #     print(trajectory, '\n')
+
+    return dash.no_update
 
 
 ############################################################
@@ -752,4 +968,4 @@ def render_content(active_tab):
 
 if __name__ == '__main__':
 
-    app.run_server(debug=True, port=8335)
+    app.run_server(debug=True, port=8375)
