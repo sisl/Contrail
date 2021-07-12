@@ -16,6 +16,7 @@ import json
 import pymap3d as pm
 import re
 
+#am i craxy
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -908,7 +909,6 @@ def generate_encounters(gen_n_clicks, nom_path_id, sigma, num_encounters, data):
 
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
-            print("THIS IS WHERE WE DO THE GENERATING :)")
 
             # error checking
             error = False
@@ -926,18 +926,20 @@ def generate_encounters(gen_n_clicks, nom_path_id, sigma, num_encounters, data):
 
             nom_path_data = filter_ids(nom_path_id)
             params = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in nom_path_data]
+            num_steps = len(params)
+            num_encounters = int(num_encounters)
+            num_ac = 2
             
             cov = [ [sigma, 0, 0], 
                     [0, sigma, 0], 
                     [0, 0, sigma] ]
+            
+            waypoints_list = [np.random.multivariate_normal(mean,cov,num_encounters) for mean in params]
+            generated_data = [{'id': ac_id, 'time': i, 'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} for i,waypoints in enumerate(waypoints_list) for ac_id, waypoint in enumerate(waypoints)]
+            generated_data = sorted(generated_data, key=lambda k: k['id'])
+            #print(generated_data[-1])
+            return generated_data
 
-            # for enc in num_encounters:
-            #     trajectory = []
-            #     for mean in params:
-            #         #print(type(np.random.multivariate_normal(mean, cov, 1)))
-            #         trajectory.append(np.random.multivariate_normal(mean, cov, 1)[0])
-            #     print("ENCOUNTER ", enc)
-            #     print(trajectory, '\n')
 
     return dash.no_update
 
@@ -968,4 +970,4 @@ def render_content(active_tab):
 
 if __name__ == '__main__':
 
-    app.run_server(debug=True, port=8375)
+    app.run_server(debug=True, port=8335)
