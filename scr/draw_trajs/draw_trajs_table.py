@@ -146,7 +146,7 @@ app.layout = html.Div([
 
                 dcc.Markdown(("""Select a Nominal Path"""), style={"margin-left": "20px"}),
 
-                dcc.Dropdown(id='nominal-path-id', 
+                dcc.Dropdown(id='nominal-enc-id', 
                     options=[{'value': traj_id, 'label': 'AC '+ str(traj_id)} for traj_id in traj_ids], 
                     multi=True, 
                     value=[],
@@ -900,11 +900,11 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
 
 @app.callback(Output('generated-encounters', 'data'),
                 Input('generate-button', 'n_clicks'),
-                [State('nominal-path-id', 'value'),
+                [State('nominal-enc-id', 'value'),
                 State('sigma-input', 'value'),
                 State('num-encounters-input', 'value'),
                 State('memory-output', 'data')])
-def generate_encounters(gen_n_clicks, nom_path_id, sigma, num_encounters, data):
+def generate_encounters(gen_n_clicks, nom_enc_id, sigma, num_encounters, data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
@@ -912,7 +912,7 @@ def generate_encounters(gen_n_clicks, nom_path_id, sigma, num_encounters, data):
 
             # error checking
             error = False
-            if not nom_path_id:
+            if not nom_enc_id:
                 print("Must select a nominal path")
                 error = True
             if not sigma:
@@ -924,9 +924,16 @@ def generate_encounters(gen_n_clicks, nom_path_id, sigma, num_encounters, data):
             if error:
                 return {}
 
-            nom_path_data = filter_ids(nom_path_id)
-            params = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in nom_path_data]
-            num_steps = len(params)
+            nom_path_data = filter_ids(nom_enc_id)
+            
+            # df = pd.DataFrame(data)
+            # nom_enc_data = df[nom_enc_id]
+            # print(nom_enc_data)
+
+            ac_1_params = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in nom_path_data]
+            ac_2_params = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in nom_path_data]
+            
+            #num_steps = len(params)
             num_encounters = int(num_encounters)
             num_ac = 2
             
@@ -934,10 +941,16 @@ def generate_encounters(gen_n_clicks, nom_path_id, sigma, num_encounters, data):
                     [0, sigma, 0], 
                     [0, 0, sigma] ]
             
-            waypoints_list = [np.random.multivariate_normal(mean,cov,num_encounters) for mean in params]
-            generated_data = [{'id': ac_id, 'time': i, 'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} for i,waypoints in enumerate(waypoints_list) for ac_id, waypoint in enumerate(waypoints)]
-            generated_data = sorted(generated_data, key=lambda k: k['id'])
-            #print(generated_data[-1])
+            generated_data = []
+            for ac in range(num_ac):
+                # this should typically only happen twice
+                params = ac_1_params if ac == 0 else ac_2_params
+                waypoints_list = [np.random.multivariate_normal(mean,cov,num_encounters) for mean in params]
+                generated_data += [{'encounter_id': enc_id, 'ac_id': ac, 'time': i, 'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
+            
+            # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
+            # print("\nFINISHED\n")
+            print(generated_data[-1])
             return generated_data
 
 
@@ -970,4 +983,4 @@ def render_content(active_tab):
 
 if __name__ == '__main__':
 
-    app.run_server(debug=True, port=8335)
+    app.run_server(debug=True, port=8225)
