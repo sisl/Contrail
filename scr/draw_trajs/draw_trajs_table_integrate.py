@@ -377,15 +377,23 @@ def create_markers(dbl_click_lat_lng, create_n_clicks, encounter_options, ac_ids
     # print("CONTEXT: ", ctx)
 
     if ctx == 'map':
+        # user double clicked the map
         if create_n_clicks > 0:
+            # in create mode
             if encounter_value and ac_value:
+
                 if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+                    # reference point has not been reset, cannot create markers until it is
                     return dash.no_update
 
                 xEast, yNorth, zUp = pm.geodetic2enu(dbl_click_lat_lng[0], dbl_click_lat_lng[1], ref_data['ref_alt'], 
                                                     ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
                                                     ell=pm.Ellipsoid('wgs84'), deg=True)
 
+                # markers have a position that is always in lat/long 
+                # so that the map object can place then correctly
+                # but the tooltips (blue pointer on the map) displays that position
+                # in ENU coords to the user
                 current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), 
                                         position=dbl_click_lat_lng,
                                         children=dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth])), 
@@ -400,7 +408,7 @@ def create_markers(dbl_click_lat_lng, create_n_clicks, encounter_options, ac_ids
 
     elif ctx == 'encounter-ids' or ctx == 'ac-ids':
         # clear markers if more than one trajectory is active
-        print('len(encounter_options)', len(encounter_options))
+        # print('len(encounter_options)', len(encounter_options))
         if len(encounter_options) > 1 or len(ac_ids) > 1:
             return []
 
@@ -414,8 +422,10 @@ def toggle_marker_draggable(create_n_clicks, draggable):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-new-button' and create_n_clicks > 0:
+        # in create mode, the markers should be draggable
         return [True] * len(draggable)
     elif ctx == 'create-new-button' and create_n_clicks == 0:
+        # after exiting create mode, the markers are no longer draggable
         return [False] * len(draggable)
         
     return dash.no_update
@@ -430,9 +440,14 @@ def update_marker(new_positions, current_marker_tools, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
  
     if len(ctx) > 0:
+        # a marker has been dragged
+
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+            # reference point has not been reset, cannot update markers until it is
             return dash.no_update
 
+        # the input will be the dictionary id of the marker that was dragged
+        # in the form {'tag':'marker','index':int}
         index = json.loads(ctx)['index']
         pos = new_positions[index]
         xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
@@ -442,8 +457,6 @@ def update_marker(new_positions, current_marker_tools, ref_data):
         current_marker_tools[index] = dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth]))
     
     return current_marker_tools
-
-
 
 ##########################################################################################
 ##########################################################################################
@@ -477,11 +490,12 @@ def update_memory_data(upload_n_clicks, create_n_clicks, contents, filename):
 
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [{}]
-    if ctx == 'create-mode' and create_n_clicks > 0:
+    elif ctx == 'create-mode' and create_n_clicks > 0:
         return [{}]
     elif ctx == 'load-waypoints':
         df = parse_contents(contents, filename) 
         return df.to_dict('records')
+
     return dash.no_update
 
 
@@ -497,13 +511,13 @@ def update_memory_data(upload_n_clicks, create_n_clicks, contents, filename):
                Input('end-new-button', 'n_clicks')],
               [State('encounter-index', 'value'),
                State('encounter-ids', 'options')])
-def update_encounter_dropdown(memory_data, exit_n_clicks, encounter_value, options): #upload_n_clicks, create_n_clicks, 
+def update_encounter_dropdown(memory_data, end_new_n_clicks, encounter_value, options): #upload_n_clicks, create_n_clicks, 
 #     print('memory_data', memory_data)
 #     if memory_data is None or memory_data == [{}]:
 #         return dash.no_update
     
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    print('\n --update_encounter_ids-- \ntrigger_id', ctx)
+    print('\n --update_encounter_dropdown-- \ntrigger_id', ctx)
     
 #     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
 #         print('memory_data', memory_data)
@@ -522,19 +536,21 @@ def update_encounter_dropdown(memory_data, exit_n_clicks, encounter_value, optio
 #         if memory_data != [] and memory_data is not [{}]:
 #             return []
     
-    elif ctx == 'end-new-button' and exit_n_clicks > 0:
-        if encounter_value is not None:
-            print('encounter_value', encounter_value)
-            new_option = {'value': encounter_value, 'label': 'Encounter '+ str(encounter_value)}
-            if options is None:
-                options= [new_option]
-            elif new_option not in options:
-                options.append(new_option)
+    elif ctx == 'end-new-button':
+        if end_new_n_clicks > 0:
+
+            if encounter_value is not None:
+                new_option = {'value': encounter_value, 'label': 'Encounter '+ str(encounter_value)}
+                
+                if options is None:
+                    options = [new_option]
+                elif new_option not in options:
+                    options.append(new_option)
+                # else:
+                #     print('Encounter ID already taken. Select a new one.')
+                return options
             else:
-                print('Encounter ID already taken. Select a new one.')
-            return options
-        else:
-            print('Enter an encounter ID.')
+                print('Enter an encounter ID.')
             
     print('no updates')
     return dash.no_update
@@ -553,12 +569,13 @@ def update_encounter_dropdown(memory_data, exit_n_clicks, encounter_value, optio
                State('editable-table', 'columns'),
                State('encounter-index', 'value'),
                State('ac-index', 'value'),
+               State('exit-create-mode', 'n_clicks'),
                State('memory-data', 'data'),
                State('session', 'data')])
-def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, add_rows_n_clicks, create_n_clicks, current_markers, data, columns, encounter_value, ac_value, memory_data, ref_data):
+def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, add_rows_n_clicks, create_n_clicks, current_markers, data, columns, encounter_value, ac_value, exit_create_n_clicks, memory_data, ref_data):
     
-    # allows us to identify which input triggered this callback
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
     print('\n --update_data_table--')
     print('trigger_id', ctx)
 
@@ -581,9 +598,11 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         df_filtered = calculate_horizontal_speeds_df(df_filtered)
         return df_filtered.to_dict('records'), [{"name": i, "id": i} for i in df_filtered.columns]
 
-    elif ctx == 'create-mode' and create_n_clicks > 0:
-        # wipe all data
-        return [], [{"name": 'encounter_id', "id": 'encounter_id'}, {"name": 'ac_id', "id": 'ac_id'}, {"name": 'time', "id": 'time'}, {"name": 'xEast', "id": 'xEast'}, {"name": 'yNorth', "id": 'yNorth'}, {"name": 'zUp', "id": 'zUp'}, {"name": 'hor_speed', "id": 'hor_speed'}]
+    elif ctx == 'create-mode':
+        if create_n_clicks > 0 and exit_create_n_clicks > 0:
+            print("starting fresh")
+            # wipe all data
+            return [], [{"name": 'encounter_id', "id": 'encounter_id'}, {"name": 'ac_id', "id": 'ac_id'}, {"name": 'time', "id": 'time'}, {"name": 'xEast', "id": 'xEast'}, {"name": 'yNorth', "id": 'yNorth'}, {"name": 'zUp', "id": 'zUp'}, {"name": 'hor_speed', "id": 'hor_speed'}]
 
     else:
         print('else')
@@ -595,13 +614,16 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         
         elif ctx == 'marker-layer' and create_n_clicks > 0:
             if not encounter_value or not ac_value or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']:
-                return dash.no_update
+                return dash.no_update, dash.no_update
 
-            if len(data) != len(current_markers):
+            if data is None or (len(data) != len(current_markers)):
+                if data == None:
+                    data = []
                 # in creative mode and user has created another marker 
                 # we add each marker to the data as it is created 
                 # so we only have to grab last marker in the list
                 pos = current_markers[-1]['props']['position']
+                print(pos)
                 xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt'], 
                                                      ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt'],
                                                      ell=pm.Ellipsoid('wgs84'), deg=True)
@@ -624,8 +646,8 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
                     data_point['zUp'] = zUp
             return data, columns
         
-        print('no updates')
-        return dash.no_update
+    print('no updates')
+    return dash.no_update, dash.no_update
 
 
 ##########################################################################################
@@ -641,12 +663,12 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
                State('ac-ids', 'options'),
                State('editable-table', 'data'),
                State('memory-data', 'data')])
-def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, exit_n_clicks, ac_value, options, data, memory_data):
+def update_ac_dropdown_options(upload_n_clicks, create_n_clicks, encounter_id_selected, exit_n_clicks, ac_value, options, data, memory_data):
     if not encounter_id_selected and not ac_value:
         return dash.no_update
         
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    print('\n --update_ac_ids--')
+    print('\n --update_ac_dropdown_options--')
     print('trigger_id', ctx)
 
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
@@ -655,27 +677,29 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
     elif ctx == 'create-mode' and create_n_clicks > 0:
         return []
     
-    elif ctx == 'encounter-ids' and upload_n_clicks > 0 and exit_n_clicks == 0:
+    elif ctx == 'encounter-ids': # and upload_n_clicks > 0 and exit_n_clicks == 0:
         df = pd.DataFrame(memory_data)
         df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
         ac_ids = df_filtered['ac_id'].unique()
         dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in ac_ids]
         return dropdown_options
-#     elif ctx == 'encounter-ids' and exit_n_clicks > 0::
         
-    elif ctx == 'end-new-button' and exit_n_clicks > 0:
-        if ac_value is not None:
-            print('ac_value', ac_value)
-            new_option = {'value': ac_value, 'label': 'AC '+ str(ac_value)}
-            if options is None:
-                options= [new_option]
-            elif new_option not in options:
-                options.append(new_option)
+    elif ctx == 'end-new-button':
+        if exit_n_clicks > 0:
+
+            if ac_value is not None:
+                print('ac_value', ac_value)
+                new_option = {'value': ac_value, 'label': 'AC '+ str(ac_value)}
+                if options is None:
+                    options= [new_option]
+                elif new_option not in options:
+                    options.append(new_option)
+                else:
+                    print('AC ID already taken. Select a new one.')
+                return options
             else:
-                print('AC ID already taken. Select a new one.')
-            return options
-        else:
-            print('Enter an AC ID.')
+                print('Enter an AC ID.')
+
 
 
 
@@ -686,7 +710,7 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
 
 @app.callback(Output('tabs', 'value'),
               Input('create-new-button', 'n_clicks'))
-def creative_mode_switch_tabs(n_clicks):
+def create_mode_switch_tabs(n_clicks):
     if n_clicks > 0:
         return 'tab-3'
     return 'tab-1'
@@ -695,30 +719,58 @@ def creative_mode_switch_tabs(n_clicks):
 @app.callback([Output('encounter-ids', 'value'),
                Output('ac-ids', 'value')],
               [Input('encounter-ids', 'value'),
+               Input('create-mode', 'n_clicks'),
+               Input('exit-create-mode', 'n_clicks'),
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
                Input('session', 'data')],
               [State('encounter-index', 'value'),
                State('ac-index', 'value')])
-def update_dropdowns_value(encounter_id_selected, create_n_clicks, exit_n_clicks, ref_data, encounter_value, ac_value):
+def update_dropdowns_value(encounter_id_selected, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, ref_data, encounter_value, ac_value):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    print('\n --update_dropdowns_value--')
+    print('trigger_id', ctx)
 
     if ctx == 'encounter-ids':
         return encounter_id_selected, []
-    elif ctx == 'create-new-button' and create_n_clicks > 0:
-        return [], []
-    elif ctx == 'end-new-button' and exit_n_clicks > 0:
-        if not encounter_value or not ac_value:
-            print("Enter encounter/AC ID to create new nominal path")
-        else:
-            return [encounter_value], [ac_value]
+
+    elif ctx == 'create-mode':
+        print(create_n_clicks)
+        if create_n_clicks > 0:
+            # clear selected ac and enc indices when enter creative mode
+            return "", []
     
+    elif ctx == 'create-new-button':
+        if start_new_n_clicks > 0:
+            #print('encounter index value: ', encounter_value)
+            return dash.no_update, []
+
+    elif ctx == 'end-new-button':
+        if end_new_n_clicks > 0:
+            if not encounter_value or not ac_value:
+                # if no ac_value was inputted, that means no markers were created
+                # because the user cannot create markers until an ac_valye is chosen
+                # so just clear the dropdown menu
+                print("Enter encounter/AC ID to create new nominal path")
+                return "", []
+            else:
+                print('encounter_value: ', encounter_value, ' ac_value: ', ac_value)
+                # otherwise, return the encounter_value and ac_value chosen by user
+                return encounter_value, [ac_value]
+
     elif ctx == 'session':
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             # no trajectories should be selected if there isn't a ref point
             print('Enter a reference point.')
-            return [], []
-    return dash.no_update
+            return "", []
+
+
+    # shouldn't do this because the dropdowns will be disabled anyway !
+    # elif ctx == 'create-new-button' and create_n_clicks > 0:
+    #     return [], []
+
+    return dash.no_update, dash.no_update
 
 
 
@@ -727,19 +779,18 @@ def update_dropdowns_value(encounter_id_selected, create_n_clicks, exit_n_clicks
               [Input('create-mode', 'n_clicks'),
                Input('exit-create-mode', 'n_clicks'),
                
-               Input('create-new-button', 'n_clicks'),
-               Input('end-new-button', 'n_clicks'),
+            #    Input('create-new-button', 'n_clicks'),
+            #    Input('end-new-button', 'n_clicks'),
                Input('session', 'data')])
-def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, ref_data):
+def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if create_n_clicks > 0:
-        if ctx == 'create-mode' and start_new_n_clicks == 0:
-            return True, True
-        elif ctx == 'create-new-button' and start_new_n_clicks > 0:
+    if ctx == 'create-mode': # or ctx == 'create-new-bu':
+        if create_n_clicks > 0:
             return True, True
 
-        elif ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
+    elif ctx == 'exit-create-mode':
+        if exit_create_n_clicks > 0:
             return False, False
 
     elif ctx == 'session':
@@ -756,12 +807,13 @@ def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start
                 Output('tab2', 'disabled')],
                 [Input('create-new-button', 'n_clicks'),
                 Input('end-new-button', 'n_clicks')])
-def creative_mode_disable_tabs(create_n_clicks, exit_n_clicks):
+def start_new_nominal_path_disable_tabs(create_n_clicks, exit_n_clicks):
     if create_n_clicks > 0:
         return True, True
     elif exit_n_clicks > 0:
         return False, False
-    return dash.no_update
+
+    return dash.no_update, dash.no_update
 
 
 @app.callback([Output('create-mode', 'n_clicks'),
@@ -790,78 +842,53 @@ def toggle_create_mode(create_n_clicks, exit_create_n_clicks, start_new_n_clicks
     reset_create_clicks, reset_exit_create_clicks = create_n_clicks, exit_create_n_clicks
     reset_start_new_clicks, reset_end_new_clicks = start_new_n_clicks, end_new_n_clicks
 
+    on = 'inline-block'
+    off = 'none'
+
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if create_n_clicks > 0:
+        # in create mode 
         if ctx == 'create-mode':
-#             reset_exit_create_clicks = 0 
-            exit_create_style['display'], start_new_style['display'] = 'inline-block', 'inline-block'
+            # print("ctx = create-mode, n_clicks = ", create_n_clicks)
+            reset_exit_create_clicks = 0 
+            exit_create_style['display'], start_new_style['display'] = on, on
 
-        if ctx == 'create-new-button' and start_new_n_clicks > 0:
-            encounter_style['display'], ac_style['display'], end_new_style['display'] = 'inline-block', 'inline-block', 'inline-block'
+        elif ctx == 'create-new-button' and start_new_n_clicks > 0:
+            # print("ctx = create-new-button, n_clicks = ", start_new_n_clicks)
+            reset_end_new_clicks = 0
+            encounter_style['display'], ac_style['display'], end_new_style['display'] = on, on, on
             
-        if ctx == 'end-new-button' and end_new_n_clicks > 0:
-#             reset_start_new_clicks, reset_end_new_clicks = 0, 0
-            encounter_style['display'], ac_style['display'], end_new_style['display'] = 'none', 'none', 'none'
+        elif ctx == 'end-new-button' and end_new_n_clicks > 0:
+            # print("ctx = end-new-button, n_clicks = ", end_new_n_clicks)
+            reset_start_new_clicks = 0 #, reset_end_new_clicks = 0, 0
+            encounter_style['display'], ac_style['display'], end_new_style['display'] = off, off, off
             
             
-        if ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
-            reset_create_clicks, reset_exit_create_clicks = 0, 0
-            reset_start_new_clicks, reset_end_new_clicks = 0, 0
+        elif ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
+            # print("ctx = exit-create-mode, n_clicks = ", exit_create_n_clicks)
+            reset_start_new_clicks = 0
+            reset_end_new_clicks = 0
+            reset_create_clicks = 0#, reset_exit_create_clicks = 0, 0
+            #reset_start_new_clicks = 0#, reset_end_new_clicks = 0, 0
             
-            exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
-            encounter_style['display'], ac_style['display'] = 'none', 'none'  
+            exit_create_style['display'], start_new_style['display'], end_new_style['display'] = off, off, off
+            encounter_style['display'], ac_style['display'] = off, off
         
-    return reset_create_clicks, reset_exit_create_clicks, reset_start_new_clicks, reset_end_new_clicks, exit_create_style, start_new_style, end_new_style, encounter_style, ac_style
+    return reset_create_clicks, reset_exit_create_clicks, reset_start_new_clicks,\
+            reset_end_new_clicks, exit_create_style, start_new_style, end_new_style,\
+            encounter_style, ac_style
 
 
 
-# @app.callback([Output('create-mode', 'n_clicks'),
-#                Output('exit-create-mode', 'n_clicks'),
-#                Output('exit-create-mode', 'style'),
-#                Output('create-new-button', 'style'),
-#                Output('end-new-button', 'style'),
-#                Output('encounter-index', 'style'),
-#                Output('ac-index', 'style')
-#               ],
-#               [Input('create-mode', 'n_clicks'), 
-#                Input('exit-create-mode', 'n_clicks')
-#               ],
-#               [State('exit-create-mode', 'style'),
-#                State('create-new-button', 'style'),
-#                State('end-new-button', 'style'),
-#                State('encounter-index', 'style'),
-#                State('ac-index', 'style')])
-# def toggle_create_mode(create_n_clicks, exit_create_n_clicks, exit_create_style, start_new_style, end_new_style, encounter_style, ac_style):
-#     reset_create_clicks = create_n_clicks
-#     reset_exit_create_clicks = exit_create_n_clicks
-
-#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-#     if create_n_clicks > 0:
-#         if ctx == 'create-mode':
-#             reset_exit_create_clicks = 0 
-#             exit_create_style['display'], start_new_style['display'], end_new_style['display'] = 'inline-block', 'inline-block', 'inline-block'
-#             encounter_style['display'], ac_style['display'] = 'inline-block', 'inline-block'
-            
-#         if ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
-#             reset_create_clicks = 0 
-#             exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
-#             encounter_style['display'], ac_style['display'] = 'none', 'none'  
-        
-#     return reset_create_clicks, reset_exit_create_clicks, exit_create_style, start_new_style, end_new_style, encounter_style, ac_style
-
-
-
-
-@app.callback(Output('ac-index', 'value'),
-                Input('exit-create-mode', 'n_clicks'),
-                State('ac-ids', 'options'))
-def exit_creative_mode_reset_ac_index(exit_n_clicks, options):
+@app.callback([Output('encounter-index', 'value'),
+                Output('ac-index', 'value')],
+                Input('exit-create-mode', 'n_clicks'))
+def exit_create_mode_reset_enc_and_ac_index(exit_n_clicks):
     if exit_n_clicks > 0:
-        return None
+        return None, None
     
-    return dash.no_update
+    return dash.no_update, dash.no_update
 
 
 

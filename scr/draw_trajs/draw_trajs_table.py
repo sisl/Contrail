@@ -1,6 +1,6 @@
 import dash
 from dash.dependencies import Input, Output, State, ALL
-# from dash.exceptions import PreventUpdate
+from dash.exceptions import PreventUpdate
 
 import dash_table
 import dash_core_components as dcc
@@ -16,55 +16,52 @@ import json
 import pymap3d as pm
 import re
 
-from read_file import *
-import base64
-
-############################################################
-############################################################
-
-print('\n\n############ Start of code ############')
-
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-def calculate_horizontal_speeds_df(df):
-    dataf = df.copy()
+columns = ['id', 'time', 'xEast', 'yNorth', 'zUp']
+global df
+df = pd.read_csv('data/traj_data_sample_ENU.csv', header=0)
+traj_ids = set(df['id'])
+
+def calculate_horizontal_speeds_df(dataf):
     hor_speeds = []
-    for ac_id in set(df['ac_id']):
-        ac_id_data = df.loc[df['ac_id'] == ac_id]
+    for ac_id in traj_ids:
+        ac_id_data = df.loc[df['id'] == ac_id]
+
         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
         hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time']
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
-    dataf.loc[:, 'hor_speed'] = hor_speeds
+
+    dataf['hor_speed'] = hor_speeds
     return dataf
 
+df = calculate_horizontal_speeds_df(df)
 
 map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
 map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color='#000000', weight=5, opacity=0.9))),
             dict(offset='100%', repeat='0%', marker=map_marker)]
 
+def add_data_to_df(data):
+    global df
+    df = df.append(data, ignore_index=True)
 
-# def add_data_to_df(data):
-#     global df
-#     df = df.append(data, ignore_index=True)
 
-
-# def filter_ids(traj_ids_selected):
-#     if not traj_ids_selected:
-#         return []
+def filter_ids(traj_ids_selected):
+    if not traj_ids_selected:
+        return []
     
-#     # get data for the trajectory IDs that are currently selected
-#     df_filtered = df.query('id in @traj_ids_selected')
-#     return df_filtered.to_dict('records')
+    # get data for the trajectory IDs that are currently selected
+    df_filtered = df.query('id in @traj_ids_selected')
+    return df_filtered.to_dict('records')
 
 
 ############################################################
 ############################################################
 app.layout = html.Div([
     # memory store reverts to the default on every page refresh
-    dcc.Store(id='memory-data'),
+    dcc.Store(id='memory-output'),
 
     dcc.Store(id='session', data={'ref_lat': 40.63993,
                                   'ref_long': -73.77869,
@@ -72,90 +69,39 @@ app.layout = html.Div([
 
     dcc.Store(id='generated-encounters', data={}),
     
-    # # trajectory ID dropdown menu
-    # html.Div([
-    #     dcc.Markdown(("""Trajectory ID list""")),
-    #     dcc.Dropdown(id='trajectory-ids', 
-    #                  options=[{'value': traj_id, 'label': 'AC '+ str(traj_id)} for traj_id in traj_ids], 
-    #                  multi=True, 
-    #                  value=[1, 2]),
-    #     ],
-    #     style={"margin-left": "15px"}
-    # ),
+    # trajectory ID dropdown menu
+    html.Div([
+        dcc.Markdown(("""Trajectory ID list""")),
+        dcc.Dropdown(id='trajectory-ids', 
+                     options=[{'value': traj_id, 'label': 'AC '+ str(traj_id)} for traj_id in traj_ids], 
+                     multi=True, 
+                     value=[1, 2]),
+        ],
+        style={"margin-left": "15px"}
+    ),
     
     # style
     html.Br(), 
 
-    # html.Div(id='buttons', children = [
-    #     html.Button('Load Model', id='load-button', n_clicks=0,
-    #                 style={"margin-left": "15px"}),
-    #     html.Button('Save Model', id='save-button', n_clicks=0, 
-    #                 style={"margin-left": "15px"}),
+    html.Div(id='buttons', children = [
+        html.Button('Load Model', id='load-button', n_clicks=0,
+                    style={"margin-left": "15px"}),
+        html.Button('Save Model', id='save-button', n_clicks=0, 
+                    style={"margin-left": "15px"}),
         
-    #     html.Button('Create New Nominal Path', id='create-new-button', n_clicks=0,
-    #             style={"margin-left": "15px"}),
+        html.Button('Create New Nominal Path', id='create-new-button', n_clicks=0,
+                style={"margin-left": "15px"}),
                  
-    #     html.Button('Exit Nominal Path Creative Mode', id='exit-edit-button', n_clicks=0,
-    #             style={"margin-left": "15px", 'display':'none'}),
+        html.Button('Exit Nominal Path Creative Mode', id='exit-edit-button', n_clicks=0,
+                style={"margin-left": "15px", 'display':'none'}),
 
-    #     dcc.Input(id="ac-index", type="number", placeholder="AC Index", 
-    #             debounce=False, min=0,
-    #             style={"margin-left": "15px", 'display':'none'})
+        dcc.Input(id="ac-index", type="number", placeholder="AC Index", 
+                debounce=False, min=0,
+                style={"margin-left": "15px", 'display':'none'})
 
         
-    #     ]
-    # ),
-
-    # buttons to load/save waypoints
-    html.Div([
-        html.Div([
-            html.Label([
-                dcc.Upload(id='load-waypoints', children = 
-                           html.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0))
-            ])
-        ], style={"margin-bottom":"10px", 'display':'inline-block'}),
-
-        html.Div([
-            html.Label([
-                dcc.Upload(id='load-model', children = 
-                           html.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
-            ])
-        ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
-
-#         html.Div([
-#             html.Button('Save Waypoints', id='save-button', n_clicks=0)
-#         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline'}),
-        
-        html.Button('Create Mode', id='create-mode', n_clicks=0,
-                 style={"margin-left": "15px", "margin-bottom":"10px"}),
-        html.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0,
-                 style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'})
-    ],  className  = 'row'),
-
-        # buttons to create new path
-    html.Div([
-#         html.Button('Create New Nominal Path', id='create-new-button', n_clicks=0,
-#                  style={"margin-left": "15px"}), 
-        html.Button('Start New Nominal Path', id='create-new-button', n_clicks=0,
-                 style={"margin-bottom":"10px", 'display':'none'}), 
-        dcc.Input(id="encounter-index", type="number", placeholder="Enter encounter ID", debounce=False, min=1, 
-                 style={"margin-left": "15px", "margin-bottom":"10px", 'color':'blue', 'display':'none'}),
-        dcc.Input(id="ac-index", type="number", placeholder="Enter AC ID", debounce=False, min=1, 
-                 style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'}),
-        html.Button('Exit New Nominal Path', id='end-new-button', n_clicks=0,
-                 style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'})
-    ], className  = 'row'),
-
-    
-    # encounter/AC ID dropdown menu
-    html.Div([
-        html.Div([
-            dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID", multi=False)
-        ], style={"margin-bottom":"10px"}, className='two columns'),
-        html.Div([
-            dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True)
-        ], style={"margin-left": "15px", "margin-bottom":"10px"}, className='two columns'),
-    ], className  = 'row'),
+        ]
+    ),
     
     html.Br(), html.Br(),
 
@@ -259,54 +205,73 @@ app.layout = html.Div([
     ]),
 
     # initialize and display tab-1 graphs
-    html.Div(id = "tab-1-graphs", 
-             children=[
-                 html.Div([
-                     html.Div([dcc.Graph(id='editable-graph-xy', figure={})],
-                               className='six columns', 
-                               style={'display': 'inline-block'}),
-                     html.Div([dcc.Graph(id='editable-graph-tz', figure={})],
-                               className='six columns', 
-                               style={'display': 'inline-block'})
-                 ], className='row'),
-                 html.Div([
-                     html.Div([dcc.Graph(id='editable-graph-tspeed',figure={})], 
-                               className='six columns', 
-                               style={'display': 'none'}) #'inline-block'})
-                 ], className='row')
-    ], style={'display': 'block'}),
+    html.Div(id = "tab-1-graphs", children=[
+            html.Div([
+                html.Div([
+                    dcc.Graph(id='editable-graph-xy',
+                              figure={}
+                             )], 
+                    className='six columns', 
+                    style={'display': 'inline-block'}
+                ),
+                html.Div([
+                    dcc.Graph(id='editable-graph-tz',
+                              figure={}
+                             )],
+                    className='six columns', 
+                    style={'display': 'inline-block'}
+                )
+            ], className='row'),
+            
+            html.Div([
+                html.Div([
+                    dcc.Graph(id='editable-graph-tspeed',
+                             figure={}
+                             )], 
+                    className='six columns', 
+                    style={'display': 'inline-block'}
+                )
+            ], className='row')
+        ],
+        style={'display': 'block'}
+    ),
     
     # initialize tab-2 graphs
-    html.Div(id = 'tab-2-graphs', 
-             children = [dcc.Graph(id='editable-graph-xyz', figure={})],
-             style={'width': '1500px', 'height': '750px',
-                    'margin': {'l':0, 'r':0, 'b':0, 't':0, 'pad':0}, 
-                    'autosize': False, 'display': "block"}),
+    html.Div(id = 'tab-2-graphs', children = [
+            dcc.Graph(id='editable-graph-xyz',
+                      figure={}
+                     )],
+            style={'width': '1500px', 'height': '750px',
+                   'margin': {'l':0, 'r':0, 'b':0, 't':0, 'pad':0}, 
+                   'autosize': False, 'display': "block"}
+        ),
     
     # initialize tab-3 graphs
-    html.Div(id = 'tab-3-graphs', 
-             children = [
-                 dl.Map(id='map',
-                        children=[
-                            dl.TileLayer(), 
-                            dl.LayerGroup(id='polyline-layer', children=[]),
-                            dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
-                        zoom=5.8, 
-                        center=(40, -74),
-                        doubleClickZoom=False,
-                        style={'width': '1500px', 'height': '700px', 'margin': "auto", 
-                               'autosize': True, 'display': "block"})
-             ], style={'display': "block"}),
+    html.Div(id = 'tab-3-graphs', children = [
+            dl.Map(children=[dl.TileLayer(), 
+                             dl.LayerGroup(id='polyline-layer', children=[]),
+                             dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
+                    id='map',
+                    zoom=5.8, 
+                    center=(40, -74),
+                    doubleClickZoom=False,
+                    style={'width': '1500px', 'height': '750px', 'margin': "auto", "display": "block"}
+                    )],
+            style={"display": "block"}
+        ),
     
     # style
     html.Br(), html.Br(),
 
-    # waypoints data table
+    # trajectory data table
     html.Div([
         dash_table.DataTable(
             id = 'editable-table',
+            columns = [{'name': c, 'id': c} for c in df.columns],
+            data = df.to_dict('records'),
             editable = True,
-            row_deletable = True),
+            row_deletable = True
+        ),
         html.Button('Add Row', id='add-rows-button', n_clicks=0),
     ], className='row'),
     
@@ -318,7 +283,7 @@ app.layout = html.Div([
 
 ############################################################
 ############################################################
-@app.callback(Output('memory-data', 'data'),
+@app.callback(Output('memory-output', 'data'),
               Input('trajectory-ids', 'value'))
 def update_memory(traj_ids_selected):
     return filter_ids(traj_ids_selected)
@@ -729,7 +694,7 @@ def creative_mode_add_trajectory(n_clicks, ac_value, options, data):
             options.append({'value': ac_value, 'label': 'AC '+ str(ac_value)})
 
             # FIXME: THIS IS WHERE I APPEND THE DATA TO THE GLOBAL DF
-            # Instead, this data should be added to memory-data data
+            # Instead, this data should be added to memory-output data
             # and we should leave the global df behind
             add_data_to_df(data)
         else:
@@ -937,7 +902,7 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
                 [State('nominal-enc-id', 'value'),
                 State('sigma-input', 'value'),
                 State('num-encounters-input', 'value'),
-                State('memory-data', 'data')])
+                State('memory-output', 'data')])
 def generate_encounters(gen_n_clicks, nom_enc_id, sigma, num_encounters, data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
