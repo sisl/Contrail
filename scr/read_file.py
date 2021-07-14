@@ -98,7 +98,7 @@ def waypoints_to_df(encounters, num_encounters, num_ac):
                                           encounters[j, i]["update"]))
             encounters_array = np.vstack((encounters_array, update_pos))
             
-    columns = ['encounter_id', 'traj_id', 'time', 'xEast', 'yNorth', 'zUp']
+    columns = ['encounter_id', 'ac_id', 'time', 'xEast', 'yNorth', 'zUp']
     encounters_df = pd.DataFrame(encounters_array, columns = columns)
     return encounters_df
 
