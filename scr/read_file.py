@@ -90,12 +90,15 @@ def waypoints_to_df(encounters, num_encounters, num_ac):
     for i in range(num_encounters):
         for j in range(num_ac):
             initial_pos = np.concatenate((np.array([i, j, 0]), encounters[j, i]["initial"]))
+#             initial_pos = np.concatenate((np.array([i, j, 0]), np.around(encounters[j, i]["initial"], decimals=4)))
+       
             if encounters_array.shape[0] == 0:
                 encounters_array = np.append(encounters_array, initial_pos)
             else:
                 encounters_array = np.vstack((encounters_array, initial_pos))
             update_pos = np.column_stack((np.repeat([[i, j]], repeats=len(encounters[j, i]["update"]), axis=0), \
                                           encounters[j, i]["update"]))
+#                                           np.around(encounters[j, i]["update"], decimals=4)))
             encounters_array = np.vstack((encounters_array, update_pos))
             
     columns = ['encounter_id', 'ac_id', 'time', 'xEast', 'yNorth', 'zUp']
