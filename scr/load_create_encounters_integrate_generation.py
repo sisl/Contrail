@@ -214,20 +214,20 @@ app.layout = html.Div([
                      html.Div([dcc.Graph(id='editable-graph-xy-slider', 
                                figure={'layout': {'title': 'xEast vs yNorth'}})],
                                className='four columns', 
-                               style={'width': '500px', 'height': '550px', 'display': 'inline-block'}),
+                               style={'display': 'inline-block'}), #'width': '500px', 'height': '550px', 
                      html.Div([dcc.Graph(id='editable-graph-tz-slider', 
                                figure={'layout': {'title': 'Time vs zUp'}})],
                                className='four columns', 
-                               style={'width': '500px', 'height': '550px', 'display': 'inline-block'}), 
+                               style={'display': 'inline-block'}), #'width': '500px', 'height': '550px', 
                      html.Div([dcc.Graph(id='editable-graph-tspeed-slider',
                                figure={'layout': {'title': 'Time vs Horizontal Speed'}})], 
                                className='four columns', 
-                               style={'width': '500px', 'height': '550px', 'display': 'block'})
+                               style={'display': 'block'}) #'width': '500px', 'height': '550px', 
                  ], className='row'),
                  html.Div([
-                     html.Div(id='slider-drag-output', children='time: ',
+                     html.Div(id='slider-drag-output', children='Time: ',
                               style={'margin-left':'35px', 'margin-right': '15px', 'font-size': 15}),
-                     html.Div([dcc.Slider(id='slider', min=0, #max=?, marks=?
+                     html.Div([dcc.Slider(id='slider', #min=?, max=?, marks=?
                                           value=0, step=1, updatemode='drag')
                               ], style={'width': '800px'})
                  ], style={'margin-bottom':'10px'}, className='row'), #style={'justifyContent':'center'}, 
@@ -299,7 +299,7 @@ def update_graph_xy(data):
         if row.get('xEast') != '' and row.get('yNorth') != '':        
             a = aggregation[float(row.get('ac_id'))]
             a['name'] = 'AC '+ str(row['ac_id'])
-            a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'color': COLOR_LIST[row['ac_id']], 'size': 5}
+            a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'color': COLOR_LIST[int(row['ac_id'])], 'size': 5}
             a['x'].append(float(row.get('xEast')))
             a['y'].append(float(row.get('yNorth')))    
     return {'data': [x for x in aggregation.values()],
@@ -319,7 +319,7 @@ def update_graph_tz(data):
         if row.get('time') != '' and row.get('zUp') != '':        
             a = aggregation[float(row.get('ac_id'))]
             a['name'] = 'AC '+str(row['ac_id'])
-            a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'color': COLOR_LIST[row['ac_id']], 'size': 5}
+            a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'color': COLOR_LIST[int(row['ac_id'])], 'size': 5}
             a['x'].append(float(row['time']))
             a['y'].append(float(row['zUp']))
     return {'data': [x for x in aggregation.values()],
@@ -339,7 +339,7 @@ def update_graph_tspeed(data):
         if row.get('time') != '' and row.get('hor_speed') != '':        
             a = aggregation[float(row.get('ac_id'))]
             a['name'] = 'AC '+str(row['ac_id'])
-            a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'color': COLOR_LIST[row['ac_id']], 'size': 5}
+            a['type'], a['mode'], a['marker'] = 'scatter', 'lines+markers', {'color': COLOR_LIST[int(row['ac_id'])], 'size': 5}
             a['x'].append(float(row['time']))
             a['y'].append(float(row['hor_speed']))
     return {'data': [x for x in aggregation.values()],
@@ -359,7 +359,7 @@ def update_graph_xyz(data):
         if row.get('time') != '' and row.get('zUp') != '':        
             a = aggregation[float(row.get('ac_id'))]
             a['name'] = 'AC '+str(row['ac_id'])
-            a['type'], a['mode'], a['marker'] = 'scatter3d', 'lines+markers', {'color': COLOR_LIST[row['ac_id']], 'size': 5}
+            a['type'], a['mode'], a['marker'] = 'scatter3d', 'lines+markers', {'color': COLOR_LIST[int(row['ac_id'])], 'size': 5}
             a['x'].append(float(row['xEast']))
             a['y'].append(float(row['yNorth']))
             a['z'].append(float(row['zUp']))
@@ -380,6 +380,8 @@ from scipy.interpolate import PchipInterpolator
               Output('editable-graph-tz-slider', 'figure'),
               Output('editable-graph-tspeed-slider', 'figure'),
 #               Output('editable-graph-xyz-slider', 'figure'),
+              Output('slider', 'min'),
+              Output('slider', 'max'),
               Input('slider', 'value'),
               Input('editable-graph-xy', 'figure'),
               Input('editable-graph-tz', 'figure'),
@@ -432,29 +434,29 @@ def update_graph_slider(t_value, fig_xy, fig_tz, fig_tspeed, data, encounter_id_
         max_values_list.append([max(time_interp), max(xEast_interp), max(yNorth_interp), max(zUp_interp), max(hor_speed_interp)])
         
     if min_values_list == [] and max_values_list == []:
-        return 'time: ', {}, {}, {}
+        return 'Time: ', {}, {}, {}, 0, 100
 
     min_values = np.min(np.array(min_values_list), axis=0)
     max_values = np.max(np.array(max_values_list), axis=0)
-    return 'time: {}'.format(t_value), {
+    return 'Time: {} (s)'.format(t_value), {
             'data': fig_xy['data'] + data_fig_xy,
             'layout': {'title': 'xEast vs yNorth',
-                       'xaxis': {'title': 'xEast (NM)', 'range':[min(min_values[1],min_values[2]), 
-                                                                  max(max_values[1], max_values[2])]},
-                       'yaxis': {'title': 'yNorth (NM)', 'range':[min(min_values[1],min_values[2]), 
-                                                                   max(max_values[1], max_values[2])]}}
+                       'xaxis': {'title': 'xEast (NM)', 'range':[min(min_values[1],min_values[2])-0.2, 
+                                                                  max(max_values[1], max_values[2])+0.2]},
+                       'yaxis': {'title': 'yNorth (NM)', 'range':[min(min_values[1],min_values[2]-0.2), 
+                                                                   max(max_values[1], max_values[2])+0.2]}}
 #                       'uirevision': True}
            }, {
             'data': fig_tz['data'] + data_fig_tz,
             'layout': {'title': 'Time vs zUp',
-                       'xaxis': {'title': 'Time (s)', 'range':[min_values[0], max_values[0]]},
-                       'yaxis': {'title': 'zUp (ft)', 'range':[min_values[3], max_values[3]]}}
+                       'xaxis': {'title': 'Time (s)', 'range':[min_values[0]-2, max_values[0]+2]},
+                       'yaxis': {'title': 'zUp (ft)', 'range':[min_values[3]-50, max_values[3]+50]}}
            }, {
             'data': fig_tspeed['data'] + data_fig_tspeed,
             'layout': {'title': 'Time vs Horizontal Speed',
-                       'xaxis': {'title': 'Time (s)', 'range':[min_values[0], max_values[0]]},
-                       'yaxis': {'title': 'Speed (NM/s)', 'range':[min_values[4], max_values[4]]}}
-           }
+                       'xaxis': {'title': 'Time (s)', 'range':[min_values[0]-2, max_values[0]+2]},
+                       'yaxis': {'title': 'Speed (NM/s)', 'range':[min_values[4]-0.005, max_values[4]+0.005]}}
+           }, min_values[0], max_values[0]
 
 
 ##########################################################################################
@@ -859,7 +861,7 @@ def update_dropdowns_value(encounter_id_selected, create_n_clicks, start_new_n_c
             print("Enter an AC ID to create new nominal path")
         else:
             ac_selected.append(ac_value)
-            return [], ac_selected #[encounter_value], 
+            return [0], ac_selected #[encounter_value], 
 
     elif ctx == 'generate-button':
         # entered generation mode - clear dropdown values
