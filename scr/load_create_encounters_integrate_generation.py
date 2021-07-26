@@ -1174,8 +1174,28 @@ def toggle_covariance_type(cov_radio_value):
                         
     
 def exp_kernel_func(inputs, param_a, param_b, param_c):
-    pass
+    inputs = np.array(inputs)
+    N = inputs.shape[0]*inputs.shape[1]
 
+    K_mean = inputs.reshape((N,))    
+    K_cov = np.zeros((N, N))
+    param_a, param_b, param_c = float(param_a), float(param_b), float(param_c)
+    
+    for i, inputs_i in enumerate(inputs):
+        for j, inputs_j in enumerate(inputs):
+            if i == j or i < j:
+
+                [x_i,y_i,z_i] = inputs_i
+                [x_j,y_j,z_j] = inputs_j
+                dist = np.sqrt(param_b*(x_i-x_j)**2 + param_b*(y_i-y_j)**2 + param_c*(z_i-z_j)**2)
+                K_ij = [param_a * np.exp(-dist**2)]
+                
+                K_cov[3*i:3*(i+1), 3*j:3*(j+1)] = np.diag(K_ij)
+
+                if i != j:
+                    K_cov[3*j:3*(j+1), 3*i:3*(i+1)] = np.diag(K_ij)
+    return K_mean, K_cov
+    
 
 @app.callback(Output('generated-encounters', 'data'),
               Input('generate-button', 'n_clicks'),
@@ -1188,6 +1208,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
                State('memory-data', 'data')])
+# def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, sigma, num_encounters, memory_data):
 def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
@@ -1205,42 +1226,50 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             if not num_encounters:
                 print('Must input number of encounters to generate')
                 error = True
-
-
+                
             if cov_radio_value == 'cov-radio-diag':
                 if not sigma:
                     print('Must input a sigma value.')
-                    error = True  
-                cov = [ [sigma, 0, 0], 
-                        [0, sigma, 0], 
-                        [0, 0, sigma] ]
+                    error = True
             elif cov_radio_value == 'cov-radio-exp':
                 if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
                     print('Must input all pamater values.')
                     error = True
-
             if error:
                 return {}
 
+            
             df_memory_data = pd.DataFrame(memory_data) 
             df = df_memory_data.loc[df_memory_data['encounter_id'] == nom_enc_id] 
-            
-            generated_data = []            
-            for ac in nom_ac_ids:
-                ac_data = (df.loc[df['ac_id'] == ac]).to_dict('records')
-                kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_data]
 
+            generated_data = []
+            for ac in nom_ac_ids:
+                ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
+                
+                # mean (nominal path) saved in enc_id=0
+                generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
+                                   'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
+                                   for waypoint in ac_df]
+                                   
+                # generate samples    
                 if cov_radio_value == 'cov-radio-diag':
-                    waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
-                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': i, 'xEast': waypoint[0], 'yNorth': waypoint[1],\
-                                        'zUp': waypoint[2]} for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
+                    params = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
+                    cov = [ [sigma, 0, 0], 
+                            [0, sigma, 0], 
+                            [0, 0, sigma] ]
+                    waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in params]
+                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': i, 
+                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
+                                       for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
                     
                 elif cov_radio_value == 'cov-radio-exp':
+                    kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
                     mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-                    waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
+                    waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))                    
                     waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], waypoints_list.shape[1]//3, -1))
-                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': i, 'xEast': waypoint[0], 'yNorth': waypoint[1],\
-                                        'zUp': waypoint[2]} for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
+                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': i, 
+                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
+                                       for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
                 
             # if we need them to be sorted...
             # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
