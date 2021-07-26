@@ -1286,7 +1286,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               State('log-histogram-ac-0-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
     df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 0]
+    df_ac_1= df.loc[df['ac_id'] == 1]
 
     viridis = px.colors.sequential.Viridis
 
@@ -1310,7 +1310,7 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
     viridis = px.colors.sequential.Viridis
 
     df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 0]
+    df_ac_1= df.loc[df['ac_id'] == 1]
 
     fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
                             title='AC 0: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
@@ -1327,7 +1327,7 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
                 State('log-histogram-ac-1-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
     df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 1]
+    df_ac_1= df.loc[df['ac_id'] == 2]
 
     viridis = px.colors.sequential.Viridis
 
@@ -1348,7 +1348,7 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
     viridis = px.colors.sequential.Viridis
 
     df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 1]
+    df_ac_1= df.loc[df['ac_id'] == 2]
 
     fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
                             title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
