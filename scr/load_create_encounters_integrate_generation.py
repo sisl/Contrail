@@ -298,15 +298,15 @@ app.layout = html.Div([
     html.Div(id = 'tab-4-graphs', 
              children = [
                 html.Div([
-                    html.Div(dcc.Graph(id='log-histogram-ac-0-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
+                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
                             style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
-                    html.Div(dcc.Graph(id='log-histogram-ac-0-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
                           style={'width': '700px', 'height': '500px', 'display':'inline-block'})), #, 'margin-left':'50px'}))
                     ], className='row'), #, style={'margin-left':'100px'}),
                 html.Div([
-                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 2: xEast vs yNorth'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap(title='AC 2: xEast vs yNorth'),
                           style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
-                    html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 2: Time vs zUp'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap(title='AC 2: Time vs zUp'),
                           style={'width': '700px', 'height': '500px', 'display':'inline-block'})) #, 'margin-left':'50px'}))
                     ], className='row'), #, style={'margin-left':'100px'})
              ], style={'display': 'block'}),
@@ -1281,9 +1281,9 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
 
 ##########################################################################################
 ##########################################################################################
-@app.callback(Output('log-histogram-ac-0-xy', 'figure'),
+@app.callback(Output('log-histogram-ac-1-xy', 'figure'),
               Input('generated-encounters', 'data'),
-              State('log-histogram-ac-0-xy', 'figure'))
+              State('log-histogram-ac-1-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
     df = pd.DataFrame(generated_data)
     df_ac_1= df.loc[df['ac_id'] == 1]
@@ -1303,9 +1303,9 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
                                 [1., viridis[9]]])
     return fig
 
-@app.callback(Output('log-histogram-ac-0-tz', 'figure'),
+@app.callback(Output('log-histogram-ac-1-tz', 'figure'),
                 Input('generated-encounters', 'data'),
-                State('log-histogram-ac-0-xy', 'figure'))
+                State('log-histogram-ac-1-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
     viridis = px.colors.sequential.Viridis
 
@@ -1322,9 +1322,9 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
                                 [1., viridis[9]]])
     return fig
 
-@app.callback(Output('log-histogram-ac-1-xy', 'figure'),
+@app.callback(Output('log-histogram-ac-2-xy', 'figure'),
                 Input('generated-encounters', 'data'),
-                State('log-histogram-ac-1-xy', 'figure'))
+                State('log-histogram-ac-2-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
     df = pd.DataFrame(generated_data)
     df_ac_1= df.loc[df['ac_id'] == 2]
@@ -1341,9 +1341,9 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
                                 [1., viridis[9]]])
     return fig
 
-@app.callback(Output('log-histogram-ac-1-tz', 'figure'),
+@app.callback(Output('log-histogram-ac-2-tz', 'figure'),
                 Input('generated-encounters', 'data'),
-                State('log-histogram-ac-1-xy', 'figure'))
+                State('log-histogram-ac-2-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
     viridis = px.colors.sequential.Viridis
 
