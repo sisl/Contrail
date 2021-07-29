@@ -84,7 +84,8 @@ app.layout = html.Div([
 
         html.Div([
             html.Button('Save Waypoints (.dat)', id='save-button', n_clicks=0),
-            dcc.Download(id='download-waypoints')
+            dcc.Download(id='download-waypoints'),
+            dcc.Download(id='download-model')
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline'}),
         
         html.Button('Create Mode', id='create-mode', n_clicks=0,
@@ -1439,7 +1440,7 @@ def toggle_save_modal(save_n_clicks, close_n_clicks, save_file_n_clicks):
 @app.callback([Output('save-dat-div','style'),
                 Output('save-json-div', 'style')],
                 Input('file-checklist', 'value'))
-def toggle_save_modal(checked_values):
+def toggle_filename_inputs(checked_values):
     off = {'display':'none'}
     on = {'display':'inline-block'}
     
@@ -1462,13 +1463,14 @@ def toggle_save_modal(checked_values):
                 [State('generated-encounters', 'data'),
                 State('nominal-path-enc-ids', 'options'),
                 State('nominal-path-ac-ids', 'options'),
-                State('save-dat-filename', 'value')],
+                State('save-dat-filename', 'value'),
+                State('file-checklist', 'value')],
                 prevent_initial_call=True)
-def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename):
+def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save):
     
     if save_n_clicks > 0:
 
-        if generated_data:
+        if generated_data and 'dat-item' in files_to_save:
             df = pd.DataFrame(generated_data)
 
             file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
@@ -1524,6 +1526,72 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
             return dcc.send_file(file_name)
 
     return dash.no_update
+
+@app.callback(Output('download-model', 'data'),
+                Input('save-filename-button', 'n_clicks'),
+                [State('generated-encounters', 'data'),
+                State('cov-radio', 'value'),
+                State('diag-sigma-input', 'value'),
+                State('exp-kernel-input-a', 'value'),
+                State('exp-kernel-input-b', 'value'),
+                State('exp-kernel-input-c', 'value'),
+                State('save-json-filename', 'value'),
+                State('file-checklist', 'value')],
+                prevent_initial_call=True)
+def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma, a, b, c, json_filename, files_to_save):
+
+    if save_n_clicks > 0:
+        generated_data = []
+        generated_data += [{'encounter_id': 0, 'ac_id': 1, 'time': 0, 'xEast': -3.1023814099082156, 'yNorth': 3.1055186252047746, 'zUp': -17.006940314812592}]
+        generated_data += [{'encounter_id': 0, 'ac_id': 1, 'time': 1, 'xEast': -0.1565420094156938, 'yNorth': 2.9326213889295834, 'zUp': -7.62691530826666}]
+        generated_data += [{'encounter_id': 0, 'ac_id': 1, 'time': 2, 'xEast': 1.8184594973377814, 'yNorth': 1.668456371576915, 'zUp': -5.374647117396468}]
+        generated_data += [{'encounter_id': 0, 'ac_id': 2, 'time': 0, 'xEast': -1.5348446546513559, 'yNorth': 4.665203072865952, 'zUp': -21.321430073838226}]
+        generated_data += [{'encounter_id': 0, 'ac_id': 2, 'time': 1, 'xEast': -1.222363447846385, 'yNorth': 2.0897992525124116, 'zUp': -5.1782376400768975}]
+        generated_data += [{'encounter_id': 0, 'ac_id': 2, 'time': 2, 'xEast': 0.03151793611656069, 'yNorth': 0.49679057682516264, 'zUp': -0.21912475130121875}]
+
+        if generated_data and 'json-item' in files_to_save:
+            model_json = {}
+
+            df = pd.DataFrame(generated_data) 
+            df_enc = df.loc[df['encounter_id'] == 0]
+            ac_ids = df_enc['ac_id'].unique()
+           
+            model_json['mean'] = {'num_ac': len(ac_ids)}
+
+            
+            for i, ac in enumerate(ac_ids):
+                ac_df = (df_enc.loc[df_enc['ac_id'] == ac]).to_dict('records')
+                model_json['mean'][i+1] = { 'num_waypoints': len(ac_df), 
+                                            'waypoints': [] }
+                for waypoint in ac_df:
+                    # print(waypoint)
+                    # print()
+                    model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
+                                               'xEast':  waypoint['xEast'],
+                                               'yNorth': waypoint['yNorth'],
+                                               'zUp':    waypoint['zUp']}]
+  
+            if cov_radio_val == 'cov-radio-diag':
+                model_json['covariance'] = {
+                    'type': 'diagonal',
+                    'sigma': sigma}
+
+            elif cov_radio_val == 'cov-radio-exp':
+                model_json['covariance'] = {
+                    'type': 'exponential kernal',
+                    'a': a,
+                    'b': b,
+                    'c': c,
+                }
+
+            file_name = json_filename if json_filename else 'generation_model.json'
+            with open(file_name, 'w') as outfile:
+                json.dump(model_json, outfile, indent=4)
+
+            return dcc.send_file(file_name)
+
+    return dash.no_update
+
 
 
 ##########################################################################################
