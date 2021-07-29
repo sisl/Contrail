@@ -21,6 +21,8 @@ import re
 from read_file import *
 import base64
 
+import os
+
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -1469,22 +1471,17 @@ def toggle_filename_inputs(checked_values):
 def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save):
     
     if save_n_clicks > 0:
-
         if generated_data and 'dat-item' in files_to_save:
-            df = pd.DataFrame(generated_data)
-
             file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
             file = open(file_name, mode='wb')
+
+            df = pd.DataFrame(generated_data)
 
             # num encounters and num ac ids
             np.array(len(nom_enc_ids), dtype=np.uint32).tofile(file)
             np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
 
-            # print('num_enc: ', len(nom_enc_ids))
-            # print('num_ac: ', len(nom_ac_ids))
-
             for enc in nom_enc_ids:
-                # print('\n--',enc['label'],'--')
                 df_enc = df.loc[df['encounter_id'] == enc['value']]
                 
                 # write initial waypoints to file first
@@ -1495,17 +1492,11 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
                            dtype=np.dtype('float64, float64, float64')\
                         ).tofile(file)
 
-                # print('initial:\n', 
-                #             [(initial['xEast'] * NM_TO_FT,\
-                #            initial['yNorth'] * NM_TO_FT,\
-                #            initial['zUp']) for initial in df_initial])
-
                 # then write update waypoints to file
                 df_updates = df_enc.loc[df_enc['time'] != 0]
                 for ac in nom_ac_ids:
                     df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
                     
-                    # print('\nnum_updates: ', len(df_ac_updates))
                     np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
                     
                     np.array([(update['time'],\
@@ -1514,12 +1505,6 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
                               update['zUp']) for update in df_ac_updates],\
                               dtype=np.dtype('float64, float64, float64, float64')\
                             ).tofile(file)
-                    
-                    # print('updates:\n', 
-                    #         [(update['time'],\
-                    #           update['xEast'] * NM_TO_FT,\
-                    #           update['yNorth'] * NM_TO_FT,\
-                    #           update['zUp']) for update in df_ac_updates])
 
             file.close()
 
@@ -1541,14 +1526,6 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
 def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma, a, b, c, json_filename, files_to_save):
 
     if save_n_clicks > 0:
-        generated_data = []
-        generated_data += [{'encounter_id': 0, 'ac_id': 1, 'time': 0, 'xEast': -3.1023814099082156, 'yNorth': 3.1055186252047746, 'zUp': -17.006940314812592}]
-        generated_data += [{'encounter_id': 0, 'ac_id': 1, 'time': 1, 'xEast': -0.1565420094156938, 'yNorth': 2.9326213889295834, 'zUp': -7.62691530826666}]
-        generated_data += [{'encounter_id': 0, 'ac_id': 1, 'time': 2, 'xEast': 1.8184594973377814, 'yNorth': 1.668456371576915, 'zUp': -5.374647117396468}]
-        generated_data += [{'encounter_id': 0, 'ac_id': 2, 'time': 0, 'xEast': -1.5348446546513559, 'yNorth': 4.665203072865952, 'zUp': -21.321430073838226}]
-        generated_data += [{'encounter_id': 0, 'ac_id': 2, 'time': 1, 'xEast': -1.222363447846385, 'yNorth': 2.0897992525124116, 'zUp': -5.1782376400768975}]
-        generated_data += [{'encounter_id': 0, 'ac_id': 2, 'time': 2, 'xEast': 0.03151793611656069, 'yNorth': 0.49679057682516264, 'zUp': -0.21912475130121875}]
-
         if generated_data and 'json-item' in files_to_save:
             model_json = {}
 
@@ -1558,14 +1535,11 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma,
            
             model_json['mean'] = {'num_ac': len(ac_ids)}
 
-            
             for i, ac in enumerate(ac_ids):
                 ac_df = (df_enc.loc[df_enc['ac_id'] == ac]).to_dict('records')
                 model_json['mean'][i+1] = { 'num_waypoints': len(ac_df), 
                                             'waypoints': [] }
                 for waypoint in ac_df:
-                    # print(waypoint)
-                    # print()
                     model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
                                                'xEast':  waypoint['xEast'],
                                                'yNorth': waypoint['yNorth'],
@@ -1583,6 +1557,11 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma,
                     'b': b,
                     'c': c,
                 }
+
+            # script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
+            # file_name = json_filename if json_filename else 'generation_model.json'
+            # rel_path = "generated_models/"+file_name
+            # abs_file_path = os.path.join(script_dir, rel_path)
 
             file_name = json_filename if json_filename else 'generation_model.json'
             with open(file_name, 'w') as outfile:
