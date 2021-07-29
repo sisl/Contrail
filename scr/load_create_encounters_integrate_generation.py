@@ -41,6 +41,8 @@ def calculate_horizontal_speeds_df(df):
 M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
 FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
 FT_TO_NM = FT_TO_M*M_TO_NM
+NM_TO_FT = 1/FT_TO_NM 
+timestep = 0
 
 COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
 
@@ -81,7 +83,8 @@ app.layout = html.Div([
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
 
         html.Div([
-            html.Button('Save Waypoints (.dat)', id='save-button', n_clicks=0)
+            html.Button('Save Waypoints (.dat)', id='save-button', n_clicks=0),
+            dcc.Download(id='download-waypoints')
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline'}),
         
         html.Button('Create Mode', id='create-mode', n_clicks=0,
@@ -214,6 +217,13 @@ app.layout = html.Div([
                 debounce=True, #value=1,
                 pattern=u"^(\d+)$",
                 style={"margin-left": "20px", "width": "50%"}),
+            
+            # generation progress bar
+            # html.Div(id='progress-bar-div', children=[
+            #     dcc.Interval(id="gen-progress-interval", n_intervals=0, interval=500),
+            #     dbc.Progress(id="animated-progress", value=0, animated=True, striped=True)
+            #     ]),
+            
             html.Br(),
             dbc.ModalFooter(children= [
                 dbc.Button("CLOSE", id="close-button"),
@@ -222,6 +232,34 @@ app.layout = html.Div([
             ),
         ],
         id='gen-modal', is_open=False, size="lg",
+        backdrop=True,  # Modal to not be closed by clicking on backdrop
+        centered=True,  # Vertically center modal 
+        keyboard=True,  # Close modal when escape is pressed
+        fade=True,
+        style={"max-width": "none", "width": "50%"})
+    ]),
+
+    # pop up window for saving
+    html.Div(id='save-div', children=[
+        dbc.Modal([
+            dbc.ModalHeader("Save Generated Encounter Set", style={'font-size':'1000px'}), # className='w-100'),
+            html.Br(),
+            html.Div([
+                html.Div([
+                    dcc.Markdown(("""Save as:"""), style={"margin-left": "20px", "font-size":"1.5em"}),
+                    dcc.Input(id='save-filename-input', type='text', placeholder='filename.dat',
+                        debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
+                        style={"margin-left": "20px", "width": "300%", "font-size":"1.5em"}),
+                ], style={"margin-left": "20px"})
+            ], id='save-file-div', className  = 'row'),
+            html.Br(),
+            dbc.ModalFooter(children= [
+                dbc.Button("CLOSE", id="close-save-button"),
+                dbc.Button("SAVE", id="save-filename-button", className="ml-auto")
+                ]
+            ),
+        ],
+        id='save-modal', is_open=False, size="lg",
         backdrop=True,  # Modal to not be closed by clicking on backdrop
         centered=True,  # Vertically center modal 
         keyboard=True,  # Close modal when escape is pressed
@@ -399,7 +437,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
         
         if ctx == 'editable-table':
             t_value = np.min(np.array(min_values_list), axis=0)[0]
-            print('t_value', t_value)
+            # print('t_value', t_value)
 
         # plot 2D/3D slider graphs
         fig_xy = px.line(title='xEast vs yNorth')
@@ -743,7 +781,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             
         elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
             if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']: #not encounter_value
-                print('ac val: ', ac_value)
+                # print('ac val: ', ac_value)
                 return dash.no_update, dash.no_update
             
 #             timestep += 1
@@ -1233,7 +1271,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     error = True
             elif cov_radio_value == 'cov-radio-exp':
                 if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
-                    print('Must input all pamater values.')
+                    print('Must input all parameter values.')
                     error = True
             if error:
                 return {}
@@ -1293,7 +1331,7 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
 #     fig = px.scatter(df, x="total_bill", y="tip", color="sex", symbol="smoker", facet_col="time",
 #           labels={"sex": "Gender", "smoker": "Smokes"})
 
-    fig = px.density_heatmap(df_ac_1, x='xEast', y='yNorth', nbinsx=50, nbinsy=50, 
+    fig = px.density_heatmap(df_ac_1, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
                             title='AC 0: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
@@ -1312,7 +1350,7 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
     df = pd.DataFrame(generated_data)
     df_ac_1= df.loc[df['ac_id'] == 1]
 
-    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
+    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=100, nbinsy=500, 
                             title='AC 0: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
@@ -1350,7 +1388,7 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
     df = pd.DataFrame(generated_data)
     df_ac_1= df.loc[df['ac_id'] == 2]
 
-    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
+    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=100, nbinsy=100, 
                             title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
@@ -1359,6 +1397,80 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
                                 [1./100, viridis[7]],
                                 [1., viridis[9]]])
     return fig
+
+##########################################################################################
+##########################################################################################
+@app.callback(Output('save-modal','is_open'),
+                [Input('save-button', 'n_clicks'),
+                Input('close-save-button', 'n_clicks'),
+                Input('save-filename-button', 'n_clicks')])
+def toggle_save_modal(save_n_clicks, close_n_clicks, save_file_n_clicks):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    
+    if ctx == 'save-button':
+        if save_n_clicks > 0:
+            return True
+    elif ctx == 'close-save-button':
+        if close_n_clicks > 0:
+            return False
+    elif ctx == 'save-filename-button':
+        if save_file_n_clicks > 0:
+            return False
+
+    return dash.no_update
+
+
+@app.callback(Output('download-waypoints', 'data'),
+                Input('save-filename-button', 'n_clicks'),
+                [State('generated-encounters', 'data'),
+                State('nominal-path-enc-ids', 'options'),
+                State('nominal-path-ac-ids', 'options'),
+                State('save-filename-input', 'value')],
+                prevent_initial_call=True)
+def on_click_save_waypoints(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, filename):
+    
+    if save_n_clicks > 0:
+
+        if generated_data:
+            df = pd.DataFrame(generated_data)
+
+            file_name = filename if filename else 'generated_waypoints.dat'
+            file = open(file_name, mode='wb')
+
+            # num encounters and num ac ids
+            np.array(len(df['encounter_id'].unique()), dtype=np.uint32).tofile(file)
+            np.array(len(df['ac_id'].unique()), dtype=np.uint32).tofile(file)
+
+            for enc in nom_enc_ids:
+                df_enc = df.loc[df['encounter_id'] == enc['value']]
+                
+                # write initial waypoints to file first
+                df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
+                np.array([(initial['xEast'] * NM_TO_FT,\
+                           initial['yNorth'] * NM_TO_FT,\
+                           initial['zUp']) for initial in df_initial],\
+                           dtype=np.dtype('float64, float64, float64')\
+                        ).tofile(file)
+
+                # then write update waypoints to file
+                df_updates = df_enc.loc[df_enc['time'] != 0]
+                for ac in nom_ac_ids:
+                    df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
+                    
+                    np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
+                    
+                    np.array([(update['time'],\
+                              update['xEast'] * NM_TO_FT,\
+                              update['yNorth'] * NM_TO_FT,\
+                              update['zUp']) for update in df_ac_updates],\
+                              dtype=np.dtype('float64, float64, float64, float64')\
+                            ).tofile(file)
+
+            file.close()
+
+            return dcc.send_file(file_name)
+
+    return dash.no_update
 
 
 ##########################################################################################
