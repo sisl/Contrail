@@ -245,13 +245,32 @@ app.layout = html.Div([
             dbc.ModalHeader("Save Generated Encounter Set", style={'font-size':'1000px'}), # className='w-100'),
             html.Br(),
             html.Div([
+                dcc.Markdown(("""Select Files to Save: """), style={'font-size': '1.5em', "margin-left": "5px"}),
+                dcc.Checklist(id='file-checklist', options=[
+                    {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
+                    {'label': 'Model (.json)', 'value': 'json-item'}],
+                    value=['dat-item'],
+                    inputStyle={"margin-right": "8px"},
+                    labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1.5em'},
+                    style={"margin-left": "10px"}),
+            ], style={"margin-left": "20px"}, className  = 'row'),
+            html.Br(),
+            html.Div([
                 html.Div([
-                    dcc.Markdown(("""Save as:"""), style={"margin-left": "20px", "font-size":"1.5em"}),
-                    dcc.Input(id='save-filename-input', type='text', placeholder='filename.dat',
+                    dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1.5em"}),
+                    dcc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
                         debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
-                        style={"margin-left": "20px", "width": "300%", "font-size":"1.5em"}),
+                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
                 ], style={"margin-left": "20px"})
-            ], id='save-file-div', className  = 'row'),
+            ], id='save-dat-div', className  = 'row', style={'display':'none'}),
+            html.Div([
+                html.Div([
+                    dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1.5em", "margin-top":"5px"}),
+                    dcc.Input(id='save-json-filename', type='text', placeholder='filename.json',
+                        debounce=True, pattern=u"\w+\.json", value='generation_model.json',
+                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
+                ], style={"margin-left": "20px", "margin-top":"15px"})
+            ], id='save-json-div', className='row', style={'display':'none'}),
             html.Br(),
             dbc.ModalFooter(children= [
                 dbc.Button("CLOSE", id="close-save-button"),
@@ -1313,6 +1332,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
 
             return generated_data
+
     return dash.no_update
 
 
@@ -1327,9 +1347,6 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
     df_ac_1= df.loc[df['ac_id'] == 1]
 
     viridis = px.colors.sequential.Viridis
-
-#     fig = px.scatter(df, x="total_bill", y="tip", color="sex", symbol="smoker", facet_col="time",
-#           labels={"sex": "Gender", "smoker": "Smokes"})
 
     fig = px.density_heatmap(df_ac_1, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
                             title='AC 0: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
@@ -1419,29 +1436,53 @@ def toggle_save_modal(save_n_clicks, close_n_clicks, save_file_n_clicks):
 
     return dash.no_update
 
+@app.callback([Output('save-dat-div','style'),
+                Output('save-json-div', 'style')],
+                Input('file-checklist', 'value'))
+def toggle_save_modal(checked_values):
+    off = {'display':'none'}
+    on = {'display':'inline-block'}
+    
+    if checked_values:
+        if 'dat-item' in checked_values:
+            if 'json-item' in checked_values:
+                return on, on
+            else:
+                return on, off
+        elif 'json-item' in checked_values:
+            return off, on
+    else:
+        return off, off
+
+    return dash.no_update
+
 
 @app.callback(Output('download-waypoints', 'data'),
                 Input('save-filename-button', 'n_clicks'),
                 [State('generated-encounters', 'data'),
                 State('nominal-path-enc-ids', 'options'),
                 State('nominal-path-ac-ids', 'options'),
-                State('save-filename-input', 'value')],
+                State('save-dat-filename', 'value')],
                 prevent_initial_call=True)
-def on_click_save_waypoints(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, filename):
+def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename):
     
     if save_n_clicks > 0:
 
         if generated_data:
             df = pd.DataFrame(generated_data)
 
-            file_name = filename if filename else 'generated_waypoints.dat'
+            file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
             file = open(file_name, mode='wb')
 
             # num encounters and num ac ids
-            np.array(len(df['encounter_id'].unique()), dtype=np.uint32).tofile(file)
-            np.array(len(df['ac_id'].unique()), dtype=np.uint32).tofile(file)
+            np.array(len(nom_enc_ids), dtype=np.uint32).tofile(file)
+            np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
+
+            # print('num_enc: ', len(nom_enc_ids))
+            # print('num_ac: ', len(nom_ac_ids))
 
             for enc in nom_enc_ids:
+                # print('\n--',enc['label'],'--')
                 df_enc = df.loc[df['encounter_id'] == enc['value']]
                 
                 # write initial waypoints to file first
@@ -1452,11 +1493,17 @@ def on_click_save_waypoints(save_n_clicks, generated_data, nom_enc_ids, nom_ac_i
                            dtype=np.dtype('float64, float64, float64')\
                         ).tofile(file)
 
+                # print('initial:\n', 
+                #             [(initial['xEast'] * NM_TO_FT,\
+                #            initial['yNorth'] * NM_TO_FT,\
+                #            initial['zUp']) for initial in df_initial])
+
                 # then write update waypoints to file
                 df_updates = df_enc.loc[df_enc['time'] != 0]
                 for ac in nom_ac_ids:
                     df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
                     
+                    # print('\nnum_updates: ', len(df_ac_updates))
                     np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
                     
                     np.array([(update['time'],\
@@ -1465,6 +1512,12 @@ def on_click_save_waypoints(save_n_clicks, generated_data, nom_enc_ids, nom_ac_i
                               update['zUp']) for update in df_ac_updates],\
                               dtype=np.dtype('float64, float64, float64, float64')\
                             ).tofile(file)
+                    
+                    # print('updates:\n', 
+                    #         [(update['time'],\
+                    #           update['xEast'] * NM_TO_FT,\
+                    #           update['yNorth'] * NM_TO_FT,\
+                    #           update['zUp']) for update in df_ac_updates])
 
             file.close()
 
@@ -1523,5 +1576,5 @@ def toggle_data_table(active_tab):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8332)
+    app.run_server(debug=True, port=8333)
     
