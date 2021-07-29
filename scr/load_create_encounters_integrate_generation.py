@@ -21,9 +21,6 @@ import re
 from read_file import *
 import base64
 
-import os
-
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -85,7 +82,7 @@ app.layout = html.Div([
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
 
         html.Div([
-            html.Button('Save Waypoints (.dat)', id='save-button', n_clicks=0),
+            html.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0),
             dcc.Download(id='download-waypoints'),
             dcc.Download(id='download-model')
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline'}),
@@ -555,10 +552,10 @@ def center_map_around_ref_input(ref_data):
 
 
 @app.callback(Output('polyline-layer', 'children'),
-              Input('editable-table', 'data'),
-              [State('polyline-layer', 'children'),
-               State('session', 'data')])         
-def update_map(data, current_polylines, ref_data):
+              [Input('editable-table', 'data'),
+              Input('session', 'data')],
+              State('polyline-layer', 'children'))    
+def update_map(data, ref_data, current_polylines):
     if data is None:
         return dash.no_update
 
@@ -568,8 +565,11 @@ def update_map(data, current_polylines, ref_data):
         # data has changed - must update map polylines
         new_polylines = []
         
-        if len(data) == 0:
-            # no data, save computation time
+        if  not ref_data['ref_lat']\
+            or not ref_data['ref_long']\
+            or not ref_data['ref_long']\
+            or len(data)==0:
+            # either no ref point or no data, save computation time
             return new_polylines
 
         aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -581,21 +581,21 @@ def update_map(data, current_polylines, ref_data):
                 a['xEast'].append(float(row.get('xEast')))
                 a['yNorth'].append(float(row.get('yNorth')))
                 a['zUp'].append(float(row.get('zUp')))
+        
         data_group = [x for x in aggregation.values()]
             
-        ref_lat = ref_data['ref_lat']
-        ref_long = ref_data['ref_long']
-        ref_alt = ref_data['ref_alt']
-
         for data_id in data_group:
             lat_lng_dict = []
             for i in range(len(data_id['xEast'])):
                 lat, lng, alt = pm.enu2geodetic(data_id['xEast'][i]*NM_TO_M, data_id['yNorth'][i]*NM_TO_M, data_id['zUp'][i]*FT_TO_M, 
-                                                ref_lat, ref_long, ref_alt*FT_TO_M, 
+                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
                 lat_lng_dict.append([lat, lng])
+            
             new_polylines.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
+        
         return new_polylines
+    
     return current_polylines
 
 
@@ -1471,44 +1471,47 @@ def toggle_filename_inputs(checked_values):
 def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save):
     
     if save_n_clicks > 0:
-        if generated_data and 'dat-item' in files_to_save:
-            file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
-            file = open(file_name, mode='wb')
+        if generated_data:
+            if 'dat-item' in files_to_save:
+                file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
+                file = open(file_name, mode='wb')
 
-            df = pd.DataFrame(generated_data)
+                df = pd.DataFrame(generated_data)
 
-            # num encounters and num ac ids
-            np.array(len(nom_enc_ids), dtype=np.uint32).tofile(file)
-            np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
+                # num encounters and num ac ids
+                np.array(len(nom_enc_ids), dtype=np.uint32).tofile(file)
+                np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
 
-            for enc in nom_enc_ids:
-                df_enc = df.loc[df['encounter_id'] == enc['value']]
-                
-                # write initial waypoints to file first
-                df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
-                np.array([(initial['xEast'] * NM_TO_FT,\
-                           initial['yNorth'] * NM_TO_FT,\
-                           initial['zUp']) for initial in df_initial],\
-                           dtype=np.dtype('float64, float64, float64')\
-                        ).tofile(file)
-
-                # then write update waypoints to file
-                df_updates = df_enc.loc[df_enc['time'] != 0]
-                for ac in nom_ac_ids:
-                    df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
+                for enc in nom_enc_ids:
+                    df_enc = df.loc[df['encounter_id'] == enc['value']]
                     
-                    np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
-                    
-                    np.array([(update['time'],\
-                              update['xEast'] * NM_TO_FT,\
-                              update['yNorth'] * NM_TO_FT,\
-                              update['zUp']) for update in df_ac_updates],\
-                              dtype=np.dtype('float64, float64, float64, float64')\
+                    # write initial waypoints to file first
+                    df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
+                    np.array([(initial['xEast'] * NM_TO_FT,\
+                            initial['yNorth'] * NM_TO_FT,\
+                            initial['zUp']) for initial in df_initial],\
+                            dtype=np.dtype('float64, float64, float64')\
                             ).tofile(file)
 
-            file.close()
+                    # then write update waypoints to file
+                    df_updates = df_enc.loc[df_enc['time'] != 0]
+                    for ac in nom_ac_ids:
+                        df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
+                        
+                        np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
+                        
+                        np.array([(update['time'],\
+                                update['xEast'] * NM_TO_FT,\
+                                update['yNorth'] * NM_TO_FT,\
+                                update['zUp']) for update in df_ac_updates],\
+                                dtype=np.dtype('float64, float64, float64, float64')\
+                                ).tofile(file)
 
-            return dcc.send_file(file_name)
+                file.close()
+
+                return dcc.send_file(file_name)
+        else:
+            print('Must generate an encounter set')
 
     return dash.no_update
 
@@ -1526,48 +1529,51 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
 def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma, a, b, c, json_filename, files_to_save):
 
     if save_n_clicks > 0:
-        if generated_data and 'json-item' in files_to_save:
-            model_json = {}
+        if generated_data:
+            if 'json-item' in files_to_save:
+                model_json = {}
 
-            df = pd.DataFrame(generated_data) 
-            df_enc = df.loc[df['encounter_id'] == 0]
-            ac_ids = df_enc['ac_id'].unique()
-           
-            model_json['mean'] = {'num_ac': len(ac_ids)}
+                df = pd.DataFrame(generated_data) 
+                df_enc = df.loc[df['encounter_id'] == 0]
+                ac_ids = df_enc['ac_id'].unique()
+            
+                model_json['mean'] = {'num_ac': len(ac_ids)}
 
-            for i, ac in enumerate(ac_ids):
-                ac_df = (df_enc.loc[df_enc['ac_id'] == ac]).to_dict('records')
-                model_json['mean'][i+1] = { 'num_waypoints': len(ac_df), 
-                                            'waypoints': [] }
-                for waypoint in ac_df:
-                    model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
-                                               'xEast':  waypoint['xEast'],
-                                               'yNorth': waypoint['yNorth'],
-                                               'zUp':    waypoint['zUp']}]
-  
-            if cov_radio_val == 'cov-radio-diag':
-                model_json['covariance'] = {
-                    'type': 'diagonal',
-                    'sigma': sigma}
+                for i, ac in enumerate(ac_ids):
+                    ac_df = (df_enc.loc[df_enc['ac_id'] == ac]).to_dict('records')
+                    model_json['mean'][i+1] = { 'num_waypoints': len(ac_df), 
+                                                'waypoints': [] }
+                    for waypoint in ac_df:
+                        model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
+                                                'xEast':  waypoint['xEast'],
+                                                'yNorth': waypoint['yNorth'],
+                                                'zUp':    waypoint['zUp']}]
+    
+                if cov_radio_val == 'cov-radio-diag':
+                    model_json['covariance'] = {
+                        'type': 'diagonal',
+                        'sigma': sigma}
 
-            elif cov_radio_val == 'cov-radio-exp':
-                model_json['covariance'] = {
-                    'type': 'exponential kernal',
-                    'a': a,
-                    'b': b,
-                    'c': c,
-                }
+                elif cov_radio_val == 'cov-radio-exp':
+                    model_json['covariance'] = {
+                        'type': 'exponential kernal',
+                        'a': a,
+                        'b': b,
+                        'c': c,
+                    }
 
-            # script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
-            # file_name = json_filename if json_filename else 'generation_model.json'
-            # rel_path = "generated_models/"+file_name
-            # abs_file_path = os.path.join(script_dir, rel_path)
+                # script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
+                # file_name = json_filename if json_filename else 'generation_model.json'
+                # rel_path = "generated_models/"+file_name
+                # abs_file_path = os.path.join(script_dir, rel_path)
 
-            file_name = json_filename if json_filename else 'generation_model.json'
-            with open(file_name, 'w') as outfile:
-                json.dump(model_json, outfile, indent=4)
+                file_name = json_filename if json_filename else 'generation_model.json'
+                with open(file_name, 'w') as outfile:
+                    json.dump(model_json, outfile, indent=4)
 
-            return dcc.send_file(file_name)
+                return dcc.send_file(file_name)
+        else:
+            print('Must generate an encounter set')
 
     return dash.no_update
 
