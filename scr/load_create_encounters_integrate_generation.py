@@ -1302,10 +1302,6 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
               )
 def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
     df = pd.DataFrame(generated_data)
-<<<<<<< HEAD
-    df_ac_1= df.loc[df['ac_id'] == 1]
-=======
->>>>>>> ae877ca2e94b647a3f933007c2b9e81c57465ed6
 
     df_ac_1_interp = pd.DataFrame()
     for enc_id in set(df['encounter_id']):
@@ -1323,46 +1319,17 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
                                 [1./10000, viridis[3]],
                                 [1./1000, viridis[5]],
                                 [1./100, viridis[7]],
-<<<<<<< HEAD
-                                [1., viridis[9]]])
-    return fig
-
-@app.callback(Output('log-histogram-ac-0-tz', 'figure'),
-                Input('generated-encounters', 'data'),
-                State('log-histogram-ac-0-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
-    viridis = px.colors.sequential.Viridis
-
-    df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 1]
-
-    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
-                            title='AC 0: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
-=======
                                 [1./10, viridis[9]],
                                 [1., viridis[11]]])
     fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
                             title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
->>>>>>> ae877ca2e94b647a3f933007c2b9e81c57465ed6
                             color_continuous_scale=[
                                 [0, viridis[0]],
                                 [1./10000, viridis[3]],
                                 [1./1000, viridis[5]],
                                 [1./100, viridis[7]],
-<<<<<<< HEAD
-                                [1., viridis[9]]])
-    return fig
-
-@app.callback(Output('log-histogram-ac-1-xy', 'figure'),
-                Input('generated-encounters', 'data'),
-                State('log-histogram-ac-1-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
-    df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 2]
-=======
                                 [1./10, viridis[9]],
                                 [1., viridis[11]]])
->>>>>>> ae877ca2e94b647a3f933007c2b9e81c57465ed6
 
     df_ac_2_interp = pd.DataFrame()
     for enc_id in set(df['encounter_id']):
@@ -1377,27 +1344,10 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
                                 [1./10000, viridis[3]],
                                 [1./1000, viridis[5]],
                                 [1./100, viridis[7]],
-<<<<<<< HEAD
-                                [1., viridis[9]]])
-    return fig
-
-@app.callback(Output('log-histogram-ac-1-tz', 'figure'),
-                Input('generated-encounters', 'data'),
-                State('log-histogram-ac-1-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
-    viridis = px.colors.sequential.Viridis
-
-    df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 2]
-
-    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
-                            title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
-=======
                                 [1./10, viridis[9]],
                                 [1., viridis[11]]])
     fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
                             title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
->>>>>>> ae877ca2e94b647a3f933007c2b9e81c57465ed6
                             color_continuous_scale=[
                                 [0, viridis[0]],
                                 [1./10000, viridis[3]],
