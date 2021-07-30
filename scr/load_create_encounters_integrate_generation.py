@@ -2,6 +2,7 @@ import dash
 from dash.dependencies import Input, Output, State, ALL
 
 import dash_table
+from dash_table.Format import Format, Scheme
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
@@ -421,8 +422,10 @@ def interpolate_df_time(df, ac_ids_selected):
     
         df_interp = df_interp.append(df_ac_interp, ignore_index=True)   
 
-        min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), min(df_ac['hor_speed'])])
-        max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), max(df_ac_interp['hor_speed'])])
+        min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']),\
+                                min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), min(df_ac['hor_speed'])])
+        max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']),\
+                                max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), max(df_ac_interp['hor_speed'])])
 
     return df_interp, min_values_list, max_values_list
     
@@ -619,7 +622,7 @@ def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_
 
     if ctx == 'map':
         if create_n_clicks > 0 and start_new_n_clicks > 0:
-            if ac_value is not None: #and encounter_value 
+            if ac_value is not None:
                 if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
                     return dash.no_update
 
@@ -755,9 +758,13 @@ def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_
 def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, add_rows_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    columns = [{"name": 'encounter_id', "id": 'encounter_id'}, {"name": 'ac_id', "id": 'ac_id'},\
-                {"name": 'time', "id": 'time'}, {"name": 'xEast', "id": 'xEast'}, {"name": 'yNorth', "id": 'yNorth'},\
-                {"name": 'zUp', "id": 'zUp'}, {"name": 'hor_speed', "id": 'hor_speed'}]
+    columns = [{"name": 'encounter_id', "id": 'encounter_id'},\
+                {"name": 'ac_id', "id": 'ac_id'},\
+                {"name": 'time', "id": 'time', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'xEast', "id": 'xEast', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'yNorth', "id": 'yNorth', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'zUp', "id": 'zUp','type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'hor_speed', "id": 'hor_speed', 'type':'numeric', 'format': {'specifier': '.3~f'}}]
 
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [], []
@@ -769,7 +776,8 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         df = pd.DataFrame(memory_data)
         df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
         df_filtered = calculate_horizontal_speeds_df(df_filtered)
-        return df_filtered.to_dict('records'), [{"name": i, "id": i} for i in df_filtered.columns]
+        return df_filtered.to_dict('records'),\
+                [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
     
     if ctx == 'ac-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
@@ -780,7 +788,8 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             df = pd.DataFrame(memory_data)
             df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
             df_filtered = calculate_horizontal_speeds_df(df_filtered)
-            return df_filtered.to_dict('records'), [{"name": i, "id": i} for i in df_filtered.columns]
+            return df_filtered.to_dict('records'),\
+                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
@@ -791,22 +800,15 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             # add an empty row
             data.append({col["id"]: '' for col in columns})
         return data, columns
-
-    # elif ctx == 'gen-enounters-button':
-    #     if gen_n_clicks > 0:
-    #         return [], columns
-    
     else:
         if ctx == 'create-new-button' and start_new_n_clicks > 0:
             global timestep
             timestep = 0
             
         elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
-            if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']: #not encounter_value
-                # print('ac val: ', ac_value)
+            if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']:
                 return dash.no_update, dash.no_update
             
-#             timestep += 1
             if len(data) != len(current_markers):
                 # in creative mode and user has created another marker 
                 # we add each marker to the data as it is created 
@@ -816,7 +818,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
                                                      ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
                                                      ell=pm.Ellipsoid('wgs84'), deg=True)
                 marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
-                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'hor_speed': 0}  #'encounter_id': encounter_value
+                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'hor_speed': 0}  
                 data.append(marker_dict)
             else:
                 # an already existing marker was dragged
@@ -839,8 +841,9 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
             df = pd.DataFrame(data)
             df = calculate_horizontal_speeds_df(df)
-            return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
-            
+            return df.to_dict('records'),\
+                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df.columns]
+        
         return dash.no_update, dash.no_update
 
 
