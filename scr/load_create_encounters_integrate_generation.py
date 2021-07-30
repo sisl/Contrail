@@ -334,7 +334,7 @@ app.layout = html.Div([
     html.Div(id = 'tab-2-graphs', children=[
         dcc.Graph(id='editable-graph-xyz-slider', 
                   figure=px.line_3d(title='xEast vs yNorth vs zUp'))
-    ]), #, style={'display':'inline-block'})
+    ]), 
     
     # initialize tab-3 graphs
     html.Div(id = 'tab-3-graphs', 
@@ -1123,23 +1123,6 @@ def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
     if clear_n_clicks > 0:
         return ''
     return dash.no_update
-
-
-# @app.callback(Output('reference-point-div', 'style'),
-#                 [Input('create-mode', 'n_clicks'),
-#                 Input('exit-create-mode', 'n_clicks')])
-# def hide_ref_input_and_buttons(create_n_clicks, exit_create_n_clicks):
-#     on = {'display': 'inline-block'}
-#     off = {'display': 'none'}
-    
-#     if create_n_clicks > 0:
-#         return off
-#     if exit_create_n_clicks > 0:
-#         return on
-#     return dash.no_update
-
-
-
 
 @app.callback(Output('ref-point-input', 'disabled'),
                 [Input('create-mode', 'n_clicks'),
