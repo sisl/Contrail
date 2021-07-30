@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import collections
+from scipy.interpolate import PchipInterpolator
 
 import json
 import pymap3d as pm
@@ -34,7 +35,7 @@ def calculate_horizontal_speeds_df(df):
         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
         hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time']
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
-    dataf.loc[:, 'hor_speed'] = hor_speeds
+    dataf.loc[:, 'horizontal_speed'] = hor_speeds
     return dataf
 
 
@@ -147,7 +148,6 @@ app.layout = html.Div([
     html.Div(id='gen-modal-div', children=[
         dbc.Modal([
             dbc.ModalHeader("Generate an Encounter Set"),
-#                 dbc.ModalBody("First Stage: Multivariate Normal"),
             
             # mean (nominal paths)
             html.Br(),
@@ -169,7 +169,6 @@ app.layout = html.Div([
             
 
             # covariance
-            html.Hr(),
             html.Br(),
             dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
@@ -195,13 +194,13 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
                     dcc.Input(id='exp-kernel-input-a', type='text', placeholder='parameter a',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0,
+                        debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0,
                         style={"margin-left": "20px"}), #, "width": "30%"}),
                     dcc.Input(id='exp-kernel-input-b', type='text', placeholder='parameter b',
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0,
                         style={"margin-left": "10px"}), #, "width": "30%"}),
                     dcc.Input(id='exp-kernel-input-c', type='text', placeholder='parameter c',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=0.5,
+                        debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0,
                         style={"margin-left": "10px"}), #, "width": "30%"}),
                 ], style={"margin-left": "20px"}),
             ], id='cov-exp-kernel-input-container', className  = 'row'), #, "margin-bottom":"10px"})
@@ -211,7 +210,7 @@ app.layout = html.Div([
             html.Br(),
             dcc.Markdown(("""Number of Encounters to Generate"""), style={"margin-left": "20px"}),
             dcc.Input(id='num-encounters-input', type='text', placeholder='',
-                debounce=True, #value=1,
+                debounce=True, value=100,
                 pattern=u"^(\d+)$",
                 style={"margin-left": "20px", "width": "50%"}),
             html.Br(),
@@ -254,7 +253,7 @@ app.layout = html.Div([
                               className='six columns')),
                      html.Div(dcc.Graph(id='editable-graph-tdistxy-slider', 
                               figure=px.line(title='Time vs Horizontal Distance'),
-                              style={'width': '600px', 'height': '500px', 'display':'inline-block'}, #, 'margin-left': "115px"},
+                              style={'width': '600px', 'height': '500px', 'display':'inline-block', 'margin-left': "115px"},
                               className='ten columns')),
                      html.Div(dcc.Graph(id='editable-graph-tspeed-slider', 
                               figure=px.line(title='Time vs Horizontal Speed'), 
@@ -298,17 +297,17 @@ app.layout = html.Div([
     html.Div(id = 'tab-4-graphs', 
              children = [
                 html.Div([
-                    html.Div(dcc.Graph(id='log-histogram-ac-0-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
+                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
                             style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
-                    html.Div(dcc.Graph(id='log-histogram-ac-0-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
                           style={'width': '700px', 'height': '500px', 'display':'inline-block'})), #, 'margin-left':'50px'}))
-                    ], className='row'), #, style={'margin-left':'100px'}),
+                    ], className='row', style={'margin-left':'25px'}),
                 html.Div([
-                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 2: xEast vs yNorth'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap(title='AC 2: xEast vs yNorth'),
                           style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
-                    html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 2: Time vs zUp'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap(title='AC 2: Time vs zUp'),
                           style={'width': '700px', 'height': '500px', 'display':'inline-block'})) #, 'margin-left':'50px'}))
-                    ], className='row'), #, style={'margin-left':'100px'})
+                    ], className='row', style={'margin-left':'25px'})
              ], style={'display': 'block'}),
 
     
@@ -316,7 +315,7 @@ app.layout = html.Div([
     html.Div([
         html.Div(id='slider-drag-output', children='Time: ',
             style={'margin-left':'35px', 'margin-right': '15px', 'font-size': 15}),
-        html.Div([dcc.Slider(id='slider', value=0, step=1) #, updatemode='drag') #marks=?
+        html.Div([dcc.Slider(id='slider', value=0, step=1) #, #marks=?
                  ], id='slider-container', style={'width': '800px'})
     ], style={'margin-bottom':'10px'}, className='row'), #style={'justifyContent':'center'}, 
 
@@ -341,32 +340,119 @@ app.layout = html.Div([
 
 print('\n*****START OF CODE*****\n')
 
+#########################################################################################
+#########################################################################################
+
+@app.callback(Output('generated-encounters', 'data'),
+              Input('generate-button', 'n_clicks'),
+              [State('nominal-path-enc-ids', 'value'),
+               State('nominal-path-ac-ids', 'value'),
+               State('cov-radio', 'value'),
+               State('diag-sigma-input', 'value'),
+               State('exp-kernel-input-a', 'value'),
+               State('exp-kernel-input-b', 'value'),
+               State('exp-kernel-input-c', 'value'),
+               State('num-encounters-input', 'value'),
+               State('memory-data', 'data')])
+def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    if ctx == 'generate-button':
+        if gen_n_clicks > 0:
+
+            # error checking
+            error = False
+            if memory_data == [{}]: # or memory_data == []:
+                print('Must create a nominal encounter or load a waypoint file')
+                error = True
+            if not nom_ac_ids:
+                print("Must select at least one nominal path")
+                error = True
+            if not num_encounters:
+                print('Must input number of encounters to generate')
+                error = True
+                
+            if cov_radio_value == 'cov-radio-diag':
+                if not sigma:
+                    print('Must input a sigma value.')
+                    error = True
+            elif cov_radio_value == 'cov-radio-exp':
+                
+                if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
+                    print('Must input all pamater values.')
+                    error = True
+            if error:
+                return {}
+
+            df_memory_data = pd.DataFrame(memory_data) 
+            df = df_memory_data.loc[df_memory_data['encounter_id'] == nom_enc_id]
+
+            generated_data = []
+            for ac in nom_ac_ids:
+                ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
+                
+                # mean (nominal path) saved in enc_id=0
+                generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
+                                   'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
+                                   for waypoint in ac_df]
+                                   
+                # generate samples    
+                kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
+                ac_time = [waypoint['time'] for waypoint in ac_df]
+                
+                if cov_radio_value == 'cov-radio-diag':
+                    cov = [ [sigma, 0, 0], 
+                            [0, sigma, 0], 
+                            [0, 0, sigma] ]
+                    waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
+                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
+                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
+                                       for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
+                    
+                elif cov_radio_value == 'cov-radio-exp':                    
+                    mean, cov, K_dist_z, K_cov_z = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
+                    waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
+                    waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3))                
+                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
+                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
+                                       for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
+                
+            # if we need them to be sorted...
+            # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
+
+            return generated_data
+    return dash.no_update
+
 
 #########################################################################################
 #########################################################################################
 
 def interpolate_df_time(df, ac_ids_selected):
-    from scipy.interpolate import PchipInterpolator
 
-    df_interp = pd.DataFrame() #columns=['ac_id', 'time', 'xEast', 'yNorth', 'zUp', 'hor_speed'])
+    df_interp = pd.DataFrame()
     min_values_list, max_values_list = [], []
 
     for ac_id in ac_ids_selected:
         df_ac = df.loc[df['ac_id'] == ac_id].sort_values('time')
-        
-        df_ac_interp = pd.DataFrame() #columns=['ac_id', 'time', 'xEast', 'yNorth', 'zUp', 'hor_speed'])
+
+        df_ac_interp = pd.DataFrame()
         df_ac_interp['time'] = np.arange(int(min(df_ac['time'])), int(max(df_ac['time'])+1))
+        df_ac_interp['ac_id'] = [ac_id]*len(df_ac_interp['time'])
         df_ac_interp['xEast'] = PchipInterpolator(df_ac['time'], df_ac['xEast'])(df_ac_interp['time'])
         df_ac_interp['yNorth'] = PchipInterpolator(df_ac['time'], df_ac['yNorth'])(df_ac_interp['time'])
         df_ac_interp['zUp'] = PchipInterpolator(df_ac['time'], df_ac['zUp'])(df_ac_interp['time'])
-        df_ac_interp['hor_speed'] = PchipInterpolator(df_ac['time'], df_ac['hor_speed'])(df_ac_interp['time'])
-        df_ac_interp['ac_id'] = [ac_id]*len(df_ac_interp['time'])
-    
+        if 'horizontal_speed' in df_ac.columns:
+            df_ac_interp['horizontal_speed'] = PchipInterpolator(df_ac['time'], df_ac['horizontal_speed'])(df_ac_interp['time'])
+        
         df_interp = df_interp.append(df_ac_interp, ignore_index=True)   
 
-        min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), min(df_ac['hor_speed'])])
-        max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), max(df_ac_interp['hor_speed'])])
-
+        if 'horizontal_speed' in df_ac.columns:
+            min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), min(df_ac['horizontal_speed'])])
+            max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), max(df_ac_interp['horizontal_speed'])])
+        else:
+            min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp'])])
+            max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp'])])
+            
     return df_interp, min_values_list, max_values_list
     
     
@@ -388,7 +474,7 @@ def interpolate_df_time(df, ac_ids_selected):
 def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
     if data is None:
         return dash.no_update
-    if encounter_id_selected is None or encounter_id_selected == [] or ac_ids_selected == []:
+    if data == [] or encounter_id_selected is None or encounter_id_selected == [] or ac_ids_selected == []:
         return 'Time: ', 0, {}, {}, {}, {}, {}, {}, 0, 100
     
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
@@ -416,7 +502,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id))
             fig_tz.add_scatter(x=df_ac_interp['time'], y=df_ac_interp['zUp'], 
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id), showlegend=False)
-            fig_tspeed.add_scatter(x=df_ac_interp['time'], y=df_ac_interp['hor_speed'], 
+            fig_tspeed.add_scatter(x=df_ac_interp['time'], y=df_ac_interp['horizontal_speed'], 
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id), showlegend=False)
             fig_xyz.add_scatter3d(x=df_ac_interp['xEast'], y=df_ac_interp['yNorth'], z=df_ac_interp['zUp'],
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id))
@@ -426,7 +512,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
                                mode='markers', marker={'size':10, 'color':COLOR_LIST[i]}, showlegend=False)
             fig_tz.add_scatter(x=df_ac_slider['time'], y=df_ac_slider['zUp'],
                                mode='markers', marker={'size':10, 'color':COLOR_LIST[i]}, showlegend=False)
-            fig_tspeed.add_scatter(x=df_ac_slider['time'], y=df_ac_slider['hor_speed'],
+            fig_tspeed.add_scatter(x=df_ac_slider['time'], y=df_ac_slider['horizontal_speed'],
                                mode='markers', marker={'size':10, 'color':COLOR_LIST[i]}, showlegend=False)
             fig_xyz.add_scatter3d(x=df_ac_slider['xEast'], y=df_ac_slider['yNorth'], z=df_ac_slider['zUp'],
                                mode='markers', marker={'size':7, 'color':COLOR_LIST[i]}, showlegend=False)           
@@ -452,7 +538,6 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
 
         # update layout of graphs
         if min_values_list == [] and max_values_list == []:
-            print('min_values_list', min_values_list)
             return 'Time: ', 0, {}, {}, {}, {}, {}, {}, 0, 100
 
         min_values = np.min(np.array(min_values_list), axis=0)
@@ -626,7 +711,6 @@ def update_marker(new_positions, current_marker_tools, ref_data):
     return current_marker_tools
 
 
-
 ##########################################################################################
 ##########################################################################################
 def parse_contents(contents, filename):
@@ -662,10 +746,12 @@ def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_
             return [{}]
 
         df = parse_contents(contents, filename) 
+
         if 0 in set(df['encounter_id']):
             df['encounter_id'] += 1
         if 0 in set(df['ac_id']):
             df['ac_id'] += 1
+        
         df['xEast'] = df['xEast'] * FT_TO_NM  #np.around(df['xEast'] * FT_TO_NM, decimals=4)
         df['yNorth'] = df['yNorth'] * FT_TO_NM  #np.around(df['yNorth'] * FT_TO_NM, decimals=4)
         return df.to_dict('records')
@@ -697,7 +783,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
 
     columns = [{"name": 'encounter_id', "id": 'encounter_id'}, {"name": 'ac_id', "id": 'ac_id'},\
                 {"name": 'time', "id": 'time'}, {"name": 'xEast', "id": 'xEast'}, {"name": 'yNorth', "id": 'yNorth'},\
-                {"name": 'zUp', "id": 'zUp'}, {"name": 'hor_speed', "id": 'hor_speed'}]
+                {"name": 'zUp', "id": 'zUp'}, {"name": 'horizontal_speed', "id": 'horizontal_speed'}]
 
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [], []
@@ -715,12 +801,12 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         if encounter_id_selected is None or encounter_id_selected == []:
             print('Select an encounter ID.')
             return dash.no_update, dash.no_update
-        else:
-            # AC IDs have been updated or loaded in
-            df = pd.DataFrame(memory_data)
-            df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
-            df_filtered = calculate_horizontal_speeds_df(df_filtered)
-            return df_filtered.to_dict('records'), [{"name": i, "id": i} for i in df_filtered.columns]
+        
+        # AC IDs have been updated or loaded in
+        df = pd.DataFrame(memory_data)
+        df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
+        df_filtered = calculate_horizontal_speeds_df(df_filtered)
+        return df_filtered.to_dict('records'), [{"name": i, "id": i} for i in df_filtered.columns]
 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
@@ -743,7 +829,6 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             
         elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
             if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']: #not encounter_value
-                print('ac val: ', ac_value)
                 return dash.no_update, dash.no_update
             
 #             timestep += 1
@@ -756,7 +841,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
                                                      ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
                                                      ell=pm.Ellipsoid('wgs84'), deg=True)
                 marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
-                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'hor_speed': 0}  #'encounter_id': encounter_value
+                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'horizontal_speed': 0}  #'encounter_id': encounter_value
                 data.append(marker_dict)
             else:
                 # an already existing marker was dragged
@@ -797,11 +882,10 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
     if ctx == 'memory-data':
         if memory_data == [{}]: #or memory_data == []
             return []
-        else:
-            df = pd.DataFrame(memory_data)
-            encounter_ids = df['encounter_id'].unique()
-            options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id))} for encounter_id in encounter_ids]
-            return options
+        df = pd.DataFrame(memory_data)
+        encounter_ids = df['encounter_id'].unique()
+        options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id))} for encounter_id in encounter_ids]
+        return options
     elif ctx == 'create-mode' and create_n_clicks > 0:
         if memory_data is not [{}]: #and memory_data != []
             return []
@@ -863,7 +947,8 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
 @app.callback([Output('encounter-ids', 'value'),
                Output('ac-ids', 'value')],
               [Input('encounter-ids', 'value'),
-              Input('create-mode', 'n_clicks'),
+               Input('load-waypoints-button', 'n_clicks'),
+               Input('create-mode', 'n_clicks'),
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
                Input('generate-button', 'n_clicks'),
@@ -871,18 +956,18 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
                [State('ac-index', 'value'),
                State('ac-ids', 'value'),
                State('memory-data', 'data')])
-def update_dropdowns_value(encounter_id_selected, create_n_clicks, start_new_n_clicks, end_new_n_clicks, generate_n_clicks, ref_data, ac_value, ac_selected, memory_data): #encounter_value, 
+def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, generate_n_clicks, ref_data, ac_value, ac_selected, memory_data): #encounter_value, 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-#     print('\nupdate_dropdowns_value --', ctx)
     
-    if ctx == 'encounter-ids':
+    if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
+        return [], []
+    elif ctx == 'encounter-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
             return [], []
-        else:
-            df = pd.DataFrame(memory_data)
-            df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-            ac_ids = df_filtered['ac_id'].unique()
-            return encounter_id_selected, [ac_id for ac_id in ac_ids]
+        df = pd.DataFrame(memory_data)
+        df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
+        ac_ids = df_filtered['ac_id'].unique()
+        return encounter_id_selected, [ac_id for ac_id in ac_ids]
 
     elif ctx == 'create-mode' and create_n_clicks > 0:
         return [], []
@@ -911,28 +996,30 @@ def update_dropdowns_value(encounter_id_selected, create_n_clicks, start_new_n_c
     return dash.no_update, dash.no_update
 
 
-
 @app.callback([Output('encounter-ids', 'disabled'),
                Output('ac-ids', 'disabled')],
               [Input('create-mode', 'n_clicks'),
                Input('exit-create-mode', 'n_clicks'),
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
+               Input('load-waypoints-button', 'n_clicks'),
                Input('session', 'data')])
-def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, ref_data):
+def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, upload_n_clicks, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if create_n_clicks > 0:
+    if create_n_clicks > 0:        
         if ctx == 'create-mode' and start_new_n_clicks == 0:
             return True, True
         elif ctx == 'create-new-button' and start_new_n_clicks > 0:
             return True, True
-
         elif ctx == 'end-new-button' and end_new_n_clicks > 0:
             return False, False
-        elif ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
-            return False, False
-
+    elif exit_create_n_clicks > 0:
+        return False, False
+    
+    elif ctx == 'load-waypoints-button' and upload_n_clicks > 0:
+        return False, False
+        
     elif ctx == 'session':
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             # no trajectories should be selected if there isn't a ref point
@@ -958,13 +1045,18 @@ def creative_mode_switch_tabs(n_clicks):
               [Input('create-mode', 'n_clicks'),
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
-               Input('exit-create-mode', 'n_clicks')])
-def creative_mode_disable_tabs(create_n_clicks, start_new_n_clicks, end_new_n_clicks, exit_create_n_clicks):
-    if create_n_clicks > 0 and start_new_n_clicks > 0:
-        return True, True
-    elif end_new_n_clicks > 0 or exit_create_n_clicks > 0:
+               Input('exit-create-mode', 'n_clicks'),
+               Input('load-waypoints-button', 'n_clicks')])
+def creative_mode_disable_tabs(create_n_clicks, start_new_n_clicks, end_new_n_clicks, exit_create_n_clicks, upload_n_clicks):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return False, False
-    return dash.no_update, dash.no_update
+    else:
+        if create_n_clicks > 0 and start_new_n_clicks > 0:
+            return True, True
+        elif end_new_n_clicks > 0 or exit_create_n_clicks > 0:
+            return False, False
+    return dash.no_update, dash.no_update      
 
 
 @app.callback([Output('create-mode', 'n_clicks'),
@@ -975,7 +1067,8 @@ def creative_mode_disable_tabs(create_n_clicks, start_new_n_clicks, end_new_n_cl
                Output('create-new-button', 'style'),
                Output('end-new-button', 'style'),
                Output('ac-index', 'style')],
-              [Input('create-mode', 'n_clicks'), 
+              [Input('load-waypoints-button', 'n_clicks'),
+               Input('create-mode', 'n_clicks'), 
                Input('exit-create-mode', 'n_clicks'),
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks')],
@@ -983,7 +1076,7 @@ def creative_mode_disable_tabs(create_n_clicks, start_new_n_clicks, end_new_n_cl
                State('create-new-button', 'style'),
                State('end-new-button', 'style'),
                State('ac-index', 'style')])
-def toggle_create_mode(create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, exit_create_style, start_new_style, end_new_style, ac_style):
+def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, exit_create_style, start_new_style, end_new_style, ac_style):
     reset_create_clicks, reset_exit_create_clicks = create_n_clicks, exit_create_n_clicks
     reset_start_new_clicks, reset_end_new_clicks = start_new_n_clicks, end_new_n_clicks
 
@@ -1005,15 +1098,26 @@ def toggle_create_mode(create_n_clicks, exit_create_n_clicks, start_new_n_clicks
             reset_create_clicks = 0
             reset_start_new_clicks, reset_end_new_clicks = 0, 0
             exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
-            ac_style['display'] = 'none'     
+            ac_style['display'] = 'none'  
+            
+        if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
+            reset_create_clicks, reset_exit_create_clicks = 0, 0
+            reset_start_new_clicks, reset_end_new_clicks = 0, 0
+            exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
+            ac_style['display'] = 'none'  
+            
     return reset_create_clicks, reset_exit_create_clicks, reset_start_new_clicks, reset_end_new_clicks, exit_create_style, start_new_style, end_new_style, ac_style
 
 
 @app.callback(Output('ac-index', 'value'),
-                Input('exit-create-mode', 'n_clicks'),
-                State('ac-ids', 'options'))
-def exit_creative_mode_reset_ac_index(exit_n_clicks, options):
-    if exit_n_clicks > 0:
+              Input('exit-create-mode', 'n_clicks'),
+              Input('load-waypoints-button', 'n_clicks'),
+              State('ac-ids', 'options'))
+def exit_creative_mode_reset_ac_index(exit_n_clicks, upload_n_clicks, options):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    if ctx == 'exit-create-mode' and exit_n_clicks > 0:
+        return None    
+    if ctx == 'load-waypoints-button' and upload_n_clicks > 0: 
         return None
     return dash.no_update
 
@@ -1040,7 +1144,6 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
                 ref_data['ref_lat'] = float(vals[0])
                 ref_data['ref_long'] = float(vals[1])
                 ref_data['ref_alt'] = float(vals[2])
-
                 return 'reference point: ' + ref_point_value, ref_data
             else:
                 return '!!invalid format!!', ref_data
@@ -1065,36 +1168,22 @@ def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
     return dash.no_update
 
 
-@app.callback(Output('ref-point-input', 'disabled'),
-                [Input('create-mode', 'n_clicks'),
-                Input('exit-create-mode', 'n_clicks')])
-def disable_ref_input(create_n_clicks, exit_create_n_clicks):
-    if create_n_clicks > 0:
-        return True
-    if exit_create_n_clicks > 0:
-        return False
-    return dash.no_update
-
-
-@app.callback(Output('clear-ref-button', 'disabled'),
-                [Input('create-mode', 'n_clicks'),
-                Input('exit-create-mode', 'n_clicks')])
-def disable_clear_ref_button(create_n_clicks, exit_create_n_clicks):
-    if create_n_clicks > 0:
-        return True
-    if exit_create_n_clicks > 0:
-        return False
-    return dash.no_update
-
-@app.callback(Output('set-ref-button', 'disabled'),
-                [Input('create-mode', 'n_clicks'),
-                Input('exit-create-mode', 'n_clicks')])
-def disable_set_ref_button(create_n_clicks, exit_create_n_clicks):
-    if create_n_clicks > 0:
-        return True
-    if exit_create_n_clicks > 0:
-        return False
-    return dash.no_update
+@app.callback([Output('ref-point-input', 'disabled'),
+               Output('clear-ref-button', 'disabled'),
+               Output('set-ref-button', 'disabled')],
+              [Input('create-mode', 'n_clicks'),
+               Input('exit-create-mode', 'n_clicks'),
+               Input('load-waypoints-button', 'n_clicks')])
+def disable_ref_inputs(create_n_clicks, exit_create_n_clicks, upload_n_clicks):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
+        return False, False, False
+    else:
+        if create_n_clicks > 0:
+            return True, True, True
+        if exit_create_n_clicks > 0:
+            return False, False, False
+    return dash.no_update, dash.no_update, dash.no_update
 
 
 ##########################################################################################
@@ -1109,11 +1198,9 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
     if ctx == 'gen-encounters-button':
         if gen_n_clicks > 0:
             return True
-
     elif ctx == 'close-button':
         if close_n_clicks > 0:
             return False
-
     elif ctx == 'generate-button':
         if generate_n_clicks > 0:
             return False
@@ -1155,9 +1242,6 @@ def reset_nominal_dropdown_values(gen_n_clicks):
     return dash.no_update, dash.no_update
 
 
-#########################################################################################
-#########################################################################################
-
 @app.callback(Output('cov-diag-input-container', 'style'),
               Output('cov-exp-kernel-input-container', 'style'),
               Input('cov-radio', 'value'))
@@ -1175,190 +1259,101 @@ def toggle_covariance_type(cov_radio_value):
     
 def exp_kernel_func(inputs, param_a, param_b, param_c):
     inputs = np.array(inputs)
-    N = inputs.shape[0]*inputs.shape[1]
+    N = inputs.shape[0]*inputs.shape[1]  #n_points*3
 
-    K_mean = inputs.reshape((N,))    
-    K_cov = np.zeros((N, N))
+    K_mean = inputs.reshape((N,))
+    K_cov = np.zeros((N, N))  
+    
+    K_dist_z = np.zeros((inputs.shape[0], inputs.shape[0]))
+    K_cov_z = np.zeros((inputs.shape[0], inputs.shape[0])) # np.zeros((inputs.shape[0], inputs.shape[0]))
+    
     param_a, param_b, param_c = float(param_a), float(param_b), float(param_c)
     
     for i, inputs_i in enumerate(inputs):
         for j, inputs_j in enumerate(inputs):
-            if i == j or i < j:
+            if i == j or i < j:           
 
-                [x_i,y_i,z_i] = inputs_i
-                [x_j,y_j,z_j] = inputs_j
-                dist = np.sqrt(param_b*(x_i-x_j)**2 + param_b*(y_i-y_j)**2 + param_c*(z_i-z_j)**2)
-                K_ij = [param_a * np.exp(-dist**2)]
+                dist_xy = [[(x_i-x_j)**2, (x_i-y_j)**2], 
+                           [(y_i-x_j)**2, (y_i-y_j)**2]]
+                K_cov[3*i:3*i+2, 3*j:3*j+2] = np.exp(-(param_b * np.power(dist_xy, 2)) / (2 * param_a**2))
                 
-                K_cov[3*i:3*(i+1), 3*j:3*(j+1)] = np.diag(K_ij)
+                dist_z = [(z_i-z_j)]
+                K_cov[3*i+2, 3*j+2] = np.exp(-(param_c * np.power(dist_z, 2)) / (2 * param_a**2))
 
                 if i != j:
-                    K_cov[3*j:3*(j+1), 3*i:3*(i+1)] = np.diag(K_ij)
-    return K_mean, K_cov
-    
-
-@app.callback(Output('generated-encounters', 'data'),
-              Input('generate-button', 'n_clicks'),
-              [State('nominal-path-enc-ids', 'value'),
-               State('nominal-path-ac-ids', 'value'),
-               State('cov-radio', 'value'),
-               State('diag-sigma-input', 'value'),
-               State('exp-kernel-input-a', 'value'),
-               State('exp-kernel-input-b', 'value'),
-               State('exp-kernel-input-c', 'value'),
-               State('num-encounters-input', 'value'),
-               State('memory-data', 'data')])
-# def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, sigma, num_encounters, memory_data):
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
-    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-    if ctx == 'generate-button':
-        if gen_n_clicks > 0:
-
-            # error checking
-            error = False
-            if memory_data == [{}]: # or memory_data == []:
-                print('Must create a nominal encounter or load a waypoint file')
-                error = True
-            if not nom_ac_ids:
-                print("Must select at least one nominal path")
-                error = True
-            if not num_encounters:
-                print('Must input number of encounters to generate')
-                error = True
-                
-            if cov_radio_value == 'cov-radio-diag':
-                if not sigma:
-                    print('Must input a sigma value.')
-                    error = True
-            elif cov_radio_value == 'cov-radio-exp':
-                if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
-                    print('Must input all pamater values.')
-                    error = True
-            if error:
-                return {}
-
-            
-            df_memory_data = pd.DataFrame(memory_data) 
-            df = df_memory_data.loc[df_memory_data['encounter_id'] == nom_enc_id] 
-
-            generated_data = []
-            for ac in nom_ac_ids:
-                ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
-                
-                # mean (nominal path) saved in enc_id=0
-                generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
-                                   'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
-                                   for waypoint in ac_df]
-                                   
-                # generate samples    
-                if cov_radio_value == 'cov-radio-diag':
-                    params = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
-                    cov = [ [sigma, 0, 0], 
-                            [0, sigma, 0], 
-                            [0, 0, sigma] ]
-                    waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in params]
-                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': i, 
-                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
-                                       for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
+                    K_cov[3*j:3*j+3, 3*i:3*i+3] = np.transpose(K_cov[3*i:3*i+3, 3*j:3*j+3])
                     
-                elif cov_radio_value == 'cov-radio-exp':
-                    kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
-                    mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-                    waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))                    
-                    waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], waypoints_list.shape[1]//3, -1))
-                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': i, 
-                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
-                                       for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
-                
-            # if we need them to be sorted...
-            # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
+                K_dist_z[i:i+1, j:j+1] = z_i-z_j
+                K_cov_z[i:i+1, j:j+1] = np.exp(-np.array([param_c*(z_i-z_j)**2]) / (2 * param_a**2))
 
-            return generated_data
-    return dash.no_update
-
+    return K_mean, K_cov, K_dist_z, K_cov_z
 
 
 ##########################################################################################
 ##########################################################################################
-@app.callback(Output('log-histogram-ac-0-xy', 'figure'),
-              Input('generated-encounters', 'data'),
-              State('log-histogram-ac-0-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
-    df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 0]
-
-    viridis = px.colors.sequential.Viridis
-
-#     fig = px.scatter(df, x="total_bill", y="tip", color="sex", symbol="smoker", facet_col="time",
-#           labels={"sex": "Gender", "smoker": "Smokes"})
-
-    fig = px.density_heatmap(df_ac_1, x='xEast', y='yNorth', nbinsx=50, nbinsy=50, 
-                            title='AC 0: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
-                            color_continuous_scale=[
-                                [0, viridis[0]],
-                                [1./1000000, viridis[2]],
-                                [1./10000, viridis[4]],
-                                [1./100, viridis[7]],
-                                [1., viridis[9]]])
-    return fig
-
-@app.callback(Output('log-histogram-ac-0-tz', 'figure'),
-                Input('generated-encounters', 'data'),
-                State('log-histogram-ac-0-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
-    viridis = px.colors.sequential.Viridis
-
-    df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 0]
-
-    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
-                            title='AC 0: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
-                            color_continuous_scale=[
-                                [0, viridis[0]],
-                                [1./1000000, viridis[2]],
-                                [1./10000, viridis[4]],
-                                [1./100, viridis[7]],
-                                [1., viridis[9]]])
-    return fig
-
 @app.callback(Output('log-histogram-ac-1-xy', 'figure'),
-                Input('generated-encounters', 'data'),
-                State('log-histogram-ac-1-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
+              Output('log-histogram-ac-1-tz', 'figure'),
+              Output('log-histogram-ac-2-xy', 'figure'),
+              Output('log-histogram-ac-2-tz', 'figure'),
+              Input('generated-encounters', 'data'),
+              State('ac-ids', 'value'),
+              )
+def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
     df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 1]
 
-    viridis = px.colors.sequential.Viridis
+    df_ac_1_interp = pd.DataFrame()
+    for enc_id in set(df['encounter_id']):
+        df_enc = df.loc[df['encounter_id'] == enc_id]
+        
+        df_enc_interp, _, _ = interpolate_df_time(df_enc, [1])
+        df_ac_1_interp = df_ac_1_interp.append(df_enc_interp, ignore_index=True)
 
-    fig = px.density_heatmap(df_ac_1, x='xEast', y='yNorth', nbinsx=50, nbinsy=50, 
+    viridis = px.colors.sequential.gray
+    
+    fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=200, nbinsy=200, 
                             title='AC 1: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
-                                [1./1000000, viridis[2]],
-                                [1./10000, viridis[4]],
+                                [1./10000, viridis[3]],
+                                [1./1000, viridis[5]],
                                 [1./100, viridis[7]],
-                                [1., viridis[9]]])
-    return fig
-
-@app.callback(Output('log-histogram-ac-1-tz', 'figure'),
-                Input('generated-encounters', 'data'),
-                State('log-histogram-ac-1-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
-    viridis = px.colors.sequential.Viridis
-
-    df = pd.DataFrame(generated_data)
-    df_ac_1= df.loc[df['ac_id'] == 1]
-
-    fig = px.density_heatmap(df_ac_1, x='time', y='zUp', nbinsx=10, nbinsy=100, 
+                                [1./10, viridis[9]],
+                                [1., viridis[11]]])
+    fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
                             title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
-                                [1./1000000, viridis[2]],
-                                [1./10000, viridis[4]],
+                                [1./10000, viridis[3]],
+                                [1./1000, viridis[5]],
                                 [1./100, viridis[7]],
-                                [1., viridis[9]]])
-    return fig
+                                [1./10, viridis[9]],
+                                [1., viridis[11]]])
+
+    df_ac_2_interp = pd.DataFrame()
+    for enc_id in set(df['encounter_id']):
+        df_enc = df.loc[df['encounter_id'] == enc_id]
+        df_enc_interp, _, _ = interpolate_df_time(df_enc, [2])
+        df_ac_2_interp = df_ac_2_interp.append(df_enc_interp, ignore_index=True)   
+
+    fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=200, nbinsy=200, 
+                            title='AC 2: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
+                            color_continuous_scale=[
+                                [0, viridis[0]],
+                                [1./10000, viridis[3]],
+                                [1./1000, viridis[5]],
+                                [1./100, viridis[7]],
+                                [1./10, viridis[9]],
+                                [1., viridis[11]]])
+    fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
+                            title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
+                            color_continuous_scale=[
+                                [0, viridis[0]],
+                                [1./10000, viridis[3]],
+                                [1./1000, viridis[5]],
+                                [1./100, viridis[7]],
+                                [1./10, viridis[9]],
+                                [1., viridis[11]]])
+    return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
 
 
 ##########################################################################################
