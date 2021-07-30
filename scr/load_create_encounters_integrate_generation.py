@@ -40,8 +40,6 @@ def calculate_horizontal_speeds_df(df):
 M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
 FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
 FT_TO_NM = FT_TO_M*M_TO_NM
-NM_TO_FT = 1/FT_TO_NM 
-timestep = 0
 
 COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
 
@@ -93,21 +91,7 @@ app.layout = html.Div([
         html.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0,
                  style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'}),
 
-        # reference point input
-        html.Div(id='reference-point-div', children = [
-            dcc.Input(id='ref-point-input', type='text', 
-                    placeholder='lat/lng/alt: 0.0/0.0/0.0',
-                    debounce=True,
-                    pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
-                    style={"margin-left": "15px", 'display':'inline-block'}),
-            html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
-                    style={"margin-left": "15px", 'display':'inline-block'}),
-            html.Button('Clear', id='clear-ref-button', n_clicks=0,
-                    style={"margin-left": "15px", 'display':'inline-block'}),
-            html.Div(id='ref-point-output', children=[],
-                    style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1.2em'})
-            ], style={"margin-left": "175px"}
-        ),
+        
     ],  className  = 'row'),
     
     
@@ -134,6 +118,24 @@ app.layout = html.Div([
             dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True, style={"margin-left": "10px"})
         ], style={"margin-left": "15px", "margin-bottom":"10px"}, className='two columns'),
     ], className  = 'row'),
+
+    html.Br(),
+
+    # reference point input
+        html.Div(id='reference-point-div', children = [
+            dcc.Input(id='ref-point-input', type='text', 
+                    placeholder='lat/lng/alt: 0.0/0.0/0.0',
+                    debounce=True,
+                    pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Button('Clear', id='clear-ref-button', n_clicks=0,
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Div(id='ref-point-output', children=[],
+                    style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1.2em'})
+            ]
+    ),
 
     html.Br(),
 
@@ -237,54 +239,6 @@ app.layout = html.Div([
         fade=True,
         style={"max-width": "none", "width": "50%"})
     ]),
-
-    # pop up window for saving
-    html.Div(id='save-div', children=[
-        dbc.Modal([
-            dbc.ModalHeader("Save Generated Encounter Set", style={'font-size':'1000px'}), # className='w-100'),
-            html.Br(),
-            html.Div([
-                dcc.Markdown(("""Select Files to Save: """), style={'font-size': '1.5em', "margin-left": "5px"}),
-                dcc.Checklist(id='file-checklist', options=[
-                    {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
-                    {'label': 'Model (.json)', 'value': 'json-item'}],
-                    value=['dat-item'],
-                    inputStyle={"margin-right": "8px"},
-                    labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1.5em'},
-                    style={"margin-left": "10px"}),
-            ], style={"margin-left": "20px"}, className  = 'row'),
-            html.Br(),
-            html.Div([
-                html.Div([
-                    dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1.5em"}),
-                    dcc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
-                        debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
-                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
-                ], style={"margin-left": "20px"})
-            ], id='save-dat-div', className  = 'row', style={'display':'none'}),
-            html.Div([
-                html.Div([
-                    dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1.5em", "margin-top":"5px"}),
-                    dcc.Input(id='save-json-filename', type='text', placeholder='filename.json',
-                        debounce=True, pattern=u"\w+\.json", value='generation_model.json',
-                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
-                ], style={"margin-left": "20px", "margin-top":"15px"})
-            ], id='save-json-div', className='row', style={'display':'none'}),
-            html.Br(),
-            dbc.ModalFooter(children= [
-                dbc.Button("CLOSE", id="close-save-button"),
-                dbc.Button("SAVE", id="save-filename-button", className="ml-auto")
-                ]
-            ),
-        ],
-        id='save-modal', is_open=False, size="lg",
-        backdrop=True,  # Modal to not be closed by clicking on backdrop
-        centered=True,  # Vertically center modal 
-        keyboard=True,  # Close modal when escape is pressed
-        fade=True,
-        style={"max-width": "none", "width": "50%"})
-    ]),
-    
     
     # main tabs for navigating webpage
     html.Div([
@@ -354,15 +308,15 @@ app.layout = html.Div([
     html.Div(id = 'tab-4-graphs', 
              children = [
                 html.Div([
-                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
+                    html.Div(dcc.Graph(id='log-histogram-ac-0-xy', figure=px.density_heatmap(title='AC 0: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
                             style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
-                    html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-0-tz', figure=px.density_heatmap(title='AC 0: Time vs zUp'),
                           style={'width': '700px', 'height': '500px', 'display':'inline-block'})), #, 'margin-left':'50px'}))
                     ], className='row'), #, style={'margin-left':'100px'}),
                 html.Div([
-                    html.Div(dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap(title='AC 2: xEast vs yNorth'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'),
                           style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
-                    html.Div(dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap(title='AC 2: Time vs zUp'),
+                    html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
                           style={'width': '700px', 'height': '500px', 'display':'inline-block'})) #, 'margin-left':'50px'}))
                     ], className='row'), #, style={'margin-left':'100px'})
              ], style={'display': 'block'}),
@@ -1341,10 +1295,10 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
 
 ##########################################################################################
 ##########################################################################################
-@app.callback(Output('log-histogram-ac-1-xy', 'figure'),
+@app.callback(Output('log-histogram-ac-0-xy', 'figure'),
               Input('generated-encounters', 'data'),
-              State('log-histogram-ac-1-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
+              State('log-histogram-ac-0-xy', 'figure'))
+def on_generation_update_log_histogram_ac_0_xy(generated_data, figure):
     df = pd.DataFrame(generated_data)
     df_ac_1= df.loc[df['ac_id'] == 1]
 
@@ -1360,10 +1314,10 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
                                 [1., viridis[9]]])
     return fig
 
-@app.callback(Output('log-histogram-ac-1-tz', 'figure'),
+@app.callback(Output('log-histogram-ac-0-tz', 'figure'),
                 Input('generated-encounters', 'data'),
-                State('log-histogram-ac-1-xy', 'figure'))
-def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
+                State('log-histogram-ac-0-xy', 'figure'))
+def on_generation_update_log_histogram_ac_0_tz(generated_data, figure):
     viridis = px.colors.sequential.Viridis
 
     df = pd.DataFrame(generated_data)
@@ -1379,9 +1333,9 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
                                 [1., viridis[9]]])
     return fig
 
-@app.callback(Output('log-histogram-ac-2-xy', 'figure'),
+@app.callback(Output('log-histogram-ac-1-xy', 'figure'),
                 Input('generated-encounters', 'data'),
-                State('log-histogram-ac-2-xy', 'figure'))
+                State('log-histogram-ac-1-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
     df = pd.DataFrame(generated_data)
     df_ac_1= df.loc[df['ac_id'] == 2]
@@ -1398,9 +1352,9 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, figure):
                                 [1., viridis[9]]])
     return fig
 
-@app.callback(Output('log-histogram-ac-2-tz', 'figure'),
+@app.callback(Output('log-histogram-ac-1-tz', 'figure'),
                 Input('generated-encounters', 'data'),
-                State('log-histogram-ac-2-xy', 'figure'))
+                State('log-histogram-ac-1-xy', 'figure'))
 def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
     viridis = px.colors.sequential.Viridis
 
@@ -1416,165 +1370,6 @@ def on_generation_update_log_histogram_ac_1_tz(generated_data, figure):
                                 [1./100, viridis[7]],
                                 [1., viridis[9]]])
     return fig
-
-##########################################################################################
-##########################################################################################
-@app.callback(Output('save-modal','is_open'),
-                [Input('save-button', 'n_clicks'),
-                Input('close-save-button', 'n_clicks'),
-                Input('save-filename-button', 'n_clicks')])
-def toggle_save_modal(save_n_clicks, close_n_clicks, save_file_n_clicks):
-    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    
-    if ctx == 'save-button':
-        if save_n_clicks > 0:
-            return True
-    elif ctx == 'close-save-button':
-        if close_n_clicks > 0:
-            return False
-    elif ctx == 'save-filename-button':
-        if save_file_n_clicks > 0:
-            return False
-
-    return dash.no_update
-
-@app.callback([Output('save-dat-div','style'),
-                Output('save-json-div', 'style')],
-                Input('file-checklist', 'value'))
-def toggle_filename_inputs(checked_values):
-    off = {'display':'none'}
-    on = {'display':'inline-block'}
-    
-    if checked_values:
-        if 'dat-item' in checked_values:
-            if 'json-item' in checked_values:
-                return on, on
-            else:
-                return on, off
-        elif 'json-item' in checked_values:
-            return off, on
-    else:
-        return off, off
-
-    return dash.no_update
-
-
-@app.callback(Output('download-waypoints', 'data'),
-                Input('save-filename-button', 'n_clicks'),
-                [State('generated-encounters', 'data'),
-                State('nominal-path-enc-ids', 'options'),
-                State('nominal-path-ac-ids', 'options'),
-                State('save-dat-filename', 'value'),
-                State('file-checklist', 'value')],
-                prevent_initial_call=True)
-def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save):
-    
-    if save_n_clicks > 0:
-        if generated_data:
-            if 'dat-item' in files_to_save:
-                file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
-                file = open(file_name, mode='wb')
-
-                df = pd.DataFrame(generated_data)
-
-                # num encounters and num ac ids
-                np.array(len(nom_enc_ids), dtype=np.uint32).tofile(file)
-                np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
-
-                for enc in nom_enc_ids:
-                    df_enc = df.loc[df['encounter_id'] == enc['value']]
-                    
-                    # write initial waypoints to file first
-                    df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
-                    np.array([(initial['xEast'] * NM_TO_FT,\
-                            initial['yNorth'] * NM_TO_FT,\
-                            initial['zUp']) for initial in df_initial],\
-                            dtype=np.dtype('float64, float64, float64')\
-                            ).tofile(file)
-
-                    # then write update waypoints to file
-                    df_updates = df_enc.loc[df_enc['time'] != 0]
-                    for ac in nom_ac_ids:
-                        df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
-                        
-                        np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
-                        
-                        np.array([(update['time'],\
-                                update['xEast'] * NM_TO_FT,\
-                                update['yNorth'] * NM_TO_FT,\
-                                update['zUp']) for update in df_ac_updates],\
-                                dtype=np.dtype('float64, float64, float64, float64')\
-                                ).tofile(file)
-
-                file.close()
-
-                return dcc.send_file(file_name)
-        else:
-            print('Must generate an encounter set')
-
-    return dash.no_update
-
-@app.callback(Output('download-model', 'data'),
-                Input('save-filename-button', 'n_clicks'),
-                [State('generated-encounters', 'data'),
-                State('cov-radio', 'value'),
-                State('diag-sigma-input', 'value'),
-                State('exp-kernel-input-a', 'value'),
-                State('exp-kernel-input-b', 'value'),
-                State('exp-kernel-input-c', 'value'),
-                State('save-json-filename', 'value'),
-                State('file-checklist', 'value')],
-                prevent_initial_call=True)
-def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma, a, b, c, json_filename, files_to_save):
-
-    if save_n_clicks > 0:
-        if generated_data:
-            if 'json-item' in files_to_save:
-                model_json = {}
-
-                df = pd.DataFrame(generated_data) 
-                df_enc = df.loc[df['encounter_id'] == 0]
-                ac_ids = df_enc['ac_id'].unique()
-            
-                model_json['mean'] = {'num_ac': len(ac_ids)}
-
-                for i, ac in enumerate(ac_ids):
-                    ac_df = (df_enc.loc[df_enc['ac_id'] == ac]).to_dict('records')
-                    model_json['mean'][i+1] = { 'num_waypoints': len(ac_df), 
-                                                'waypoints': [] }
-                    for waypoint in ac_df:
-                        model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
-                                                'xEast':  waypoint['xEast'],
-                                                'yNorth': waypoint['yNorth'],
-                                                'zUp':    waypoint['zUp']}]
-    
-                if cov_radio_val == 'cov-radio-diag':
-                    model_json['covariance'] = {
-                        'type': 'diagonal',
-                        'sigma': sigma}
-
-                elif cov_radio_val == 'cov-radio-exp':
-                    model_json['covariance'] = {
-                        'type': 'exponential kernal',
-                        'a': a,
-                        'b': b,
-                        'c': c,
-                    }
-
-                # script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
-                # file_name = json_filename if json_filename else 'generation_model.json'
-                # rel_path = "generated_models/"+file_name
-                # abs_file_path = os.path.join(script_dir, rel_path)
-
-                file_name = json_filename if json_filename else 'generation_model.json'
-                with open(file_name, 'w') as outfile:
-                    json.dump(model_json, outfile, indent=4)
-
-                return dcc.send_file(file_name)
-        else:
-            print('Must generate an encounter set')
-
-    return dash.no_update
 
 
 
