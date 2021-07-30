@@ -2,7 +2,6 @@ import dash
 from dash.dependencies import Input, Output, State, ALL
 
 import dash_table
-from dash_table.Format import Format, Scheme
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
@@ -92,7 +91,23 @@ app.layout = html.Div([
                  style={"margin-left": "15px", "margin-bottom":"10px"}),
         
         html.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0,
-                 style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'})
+                 style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'}),
+
+        # reference point input
+        html.Div(id='reference-point-div', children = [
+            dcc.Input(id='ref-point-input', type='text', 
+                    placeholder='lat/lng/alt: 0.0/0.0/0.0',
+                    debounce=True,
+                    pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Button('Clear', id='clear-ref-button', n_clicks=0,
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Div(id='ref-point-output', children=[],
+                    style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1.2em'})
+            ], style={"margin-left": "175px"}
+        ),
     ],  className  = 'row'),
     
     
@@ -119,23 +134,6 @@ app.layout = html.Div([
             dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True, style={"margin-left": "10px"})
         ], style={"margin-left": "15px", "margin-bottom":"10px"}, className='two columns'),
     ], className  = 'row'),
-
-
-    # reference point input
-    html.Div(id='reference-point-div', children = [
-        dcc.Input(id='ref-point-input', type='text', 
-                  placeholder='lat/lng/alt: 0.0/0.0/0.0',
-                  debounce=True,
-                  pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
-                  style={"margin-left": "15px", 'display':'inline-block'}),
-        html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
-                  style={"margin-left": "15px", 'display':'inline-block'}),
-        html.Button('Clear', id='clear-ref-button', n_clicks=0,
-                  style={"margin-left": "15px", 'display':'inline-block'}),
-        html.Div(id='ref-point-output', children=[],
-                  style={"margin-left": "15px", "margin-top": "10px"})
-        ]
-    ),
 
     html.Br(),
 
@@ -388,10 +386,9 @@ app.layout = html.Div([
             id = 'editable-table',
             editable = True,
             row_deletable = True,
-            style_table={'width': '1200px', 'margin-left': "15px", 'display': "block"}), #'height': '750px',  
-        html.Button('Add Row', id='add-rows-button', n_clicks=0,
-                    style={'margin-left':'15px'}),
-    ], className='row'),
+            style_table={'width': '1200px', 'display': "block"}), 
+        html.Button('Add Row', id='add-rows-button', n_clicks=0, style={'margin-left':'15px'}),
+    ], className='row', style={'margin-left':'12px'}),
 
     # style
     html.Br(), html.Br()
@@ -1126,6 +1123,22 @@ def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
     if clear_n_clicks > 0:
         return ''
     return dash.no_update
+
+
+# @app.callback(Output('reference-point-div', 'style'),
+#                 [Input('create-mode', 'n_clicks'),
+#                 Input('exit-create-mode', 'n_clicks')])
+# def hide_ref_input_and_buttons(create_n_clicks, exit_create_n_clicks):
+#     on = {'display': 'inline-block'}
+#     off = {'display': 'none'}
+    
+#     if create_n_clicks > 0:
+#         return off
+#     if exit_create_n_clicks > 0:
+#         return on
+#     return dash.no_update
+
+
 
 
 @app.callback(Output('ref-point-input', 'disabled'),
