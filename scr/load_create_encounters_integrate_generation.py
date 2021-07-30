@@ -1254,12 +1254,12 @@ def toggle_covariance_type(cov_radio_value):
     elif cov_radio_value == 'cov-radio-exp':
         return off, on
     else:
-        print("Select a covariance matrix type.")
+        print("Select a covariance matrix type.") 
                         
     
-def exp_kernel_func(inputs, param_a, param_b, param_c):
+def exp_kernel_func(inputs, param_a, param_b, param_c): 
     inputs = np.array(inputs)
-    N = inputs.shape[0]*inputs.shape[1]  #n_points*3
+    N = inputs.shape[0]*inputs.shape[1]
 
     K_mean = inputs.reshape((N,))
     K_cov = np.zeros((N, N))  
@@ -1272,7 +1272,9 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
     for i, inputs_i in enumerate(inputs):
         for j, inputs_j in enumerate(inputs):
             if i == j or i < j:           
-
+                [x_i,y_i,z_i] = inputs_i
+                [x_j,y_j,z_j] = inputs_j
+                
                 dist_xy = [[(x_i-x_j)**2, (x_i-y_j)**2], 
                            [(y_i-x_j)**2, (y_i-y_j)**2]]
                 K_cov[3*i:3*i+2, 3*j:3*j+2] = np.exp(-(param_b * np.power(dist_xy, 2)) / (2 * param_a**2))
