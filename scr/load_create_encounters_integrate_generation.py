@@ -22,7 +22,6 @@ import re
 from read_file import *
 import base64
 
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -42,6 +41,8 @@ def calculate_horizontal_speeds_df(df):
 M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
 FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
 FT_TO_NM = FT_TO_M*M_TO_NM
+NM_TO_FT = 1/FT_TO_NM 
+timestep = 0
 
 COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
 
@@ -82,14 +83,32 @@ app.layout = html.Div([
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
 
         html.Div([
-            html.Button('Save Waypoints (.dat)', id='save-button', n_clicks=0)
+            html.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0),
+            dcc.Download(id='download-waypoints'),
+            dcc.Download(id='download-model')
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline'}),
         
         html.Button('Create Mode', id='create-mode', n_clicks=0,
                  style={"margin-left": "15px", "margin-bottom":"10px"}),
         
         html.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0,
-                 style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'})
+                 style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'}),
+
+        # reference point input
+        html.Div(id='reference-point-div', children = [
+            dcc.Input(id='ref-point-input', type='text', 
+                    placeholder='lat/lng/alt: 0.0/0.0/0.0',
+                    debounce=True,
+                    pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Button('Clear', id='clear-ref-button', n_clicks=0,
+                    style={"margin-left": "15px", 'display':'inline-block'}),
+            html.Div(id='ref-point-output', children=[],
+                    style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1.2em'})
+            ], style={"margin-left": "175px"}
+        ),
     ],  className  = 'row'),
     
     
@@ -116,23 +135,6 @@ app.layout = html.Div([
             dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True, style={"margin-left": "10px"})
         ], style={"margin-left": "15px", "margin-bottom":"10px"}, className='two columns'),
     ], className  = 'row'),
-
-
-    # reference point input
-    html.Div(id='reference-point-div', children = [
-        dcc.Input(id='ref-point-input', type='text', 
-                  placeholder='lat/lng/alt: 0.0/0.0/0.0',
-                  debounce=True,
-                  pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
-                  style={"margin-left": "15px", 'display':'inline-block'}),
-        html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
-                  style={"margin-left": "15px", 'display':'inline-block'}),
-        html.Button('Clear', id='clear-ref-button', n_clicks=0,
-                  style={"margin-left": "15px", 'display':'inline-block'}),
-        html.Div(id='ref-point-output', children=[],
-                  style={"margin-left": "15px", "margin-top": "10px"})
-        ]
-    ),
 
     html.Br(),
 
@@ -213,6 +215,13 @@ app.layout = html.Div([
                 debounce=True, value=100,
                 pattern=u"^(\d+)$",
                 style={"margin-left": "20px", "width": "50%"}),
+            
+            # generation progress bar
+            # html.Div(id='progress-bar-div', children=[
+            #     dcc.Interval(id="gen-progress-interval", n_intervals=0, interval=500),
+            #     dbc.Progress(id="animated-progress", value=0, animated=True, striped=True)
+            #     ]),
+            
             html.Br(),
             dbc.ModalFooter(children= [
                 dbc.Button("CLOSE", id="close-button"),
@@ -221,6 +230,53 @@ app.layout = html.Div([
             ),
         ],
         id='gen-modal', is_open=False, size="lg",
+        backdrop=True,  # Modal to not be closed by clicking on backdrop
+        centered=True,  # Vertically center modal 
+        keyboard=True,  # Close modal when escape is pressed
+        fade=True,
+        style={"max-width": "none", "width": "50%"})
+    ]),
+
+    # pop up window for saving
+    html.Div(id='save-div', children=[
+        dbc.Modal([
+            dbc.ModalHeader("Save Generated Encounter Set", style={'font-size':'1000px'}), # className='w-100'),
+            html.Br(),
+            html.Div([
+                dcc.Markdown(("""Select Files to Save: """), style={'font-size': '1.5em', "margin-left": "5px"}),
+                dcc.Checklist(id='file-checklist', options=[
+                    {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
+                    {'label': 'Model (.json)', 'value': 'json-item'}],
+                    value=['dat-item'],
+                    inputStyle={"margin-right": "8px"},
+                    labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1.5em'},
+                    style={"margin-left": "10px"}),
+            ], style={"margin-left": "20px"}, className  = 'row'),
+            html.Br(),
+            html.Div([
+                html.Div([
+                    dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1.5em"}),
+                    dcc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
+                        debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
+                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
+                ], style={"margin-left": "20px"})
+            ], id='save-dat-div', className  = 'row', style={'display':'none'}),
+            html.Div([
+                html.Div([
+                    dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1.5em", "margin-top":"5px"}),
+                    dcc.Input(id='save-json-filename', type='text', placeholder='filename.json',
+                        debounce=True, pattern=u"\w+\.json", value='generation_model.json',
+                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
+                ], style={"margin-left": "20px", "margin-top":"15px"})
+            ], id='save-json-div', className='row', style={'display':'none'}),
+            html.Br(),
+            dbc.ModalFooter(children= [
+                dbc.Button("CLOSE", id="close-save-button"),
+                dbc.Button("SAVE", id="save-filename-button", className="ml-auto")
+                ]
+            ),
+        ],
+        id='save-modal', is_open=False, size="lg",
         backdrop=True,  # Modal to not be closed by clicking on backdrop
         centered=True,  # Vertically center modal 
         keyboard=True,  # Close modal when escape is pressed
@@ -277,7 +333,7 @@ app.layout = html.Div([
     html.Div(id = 'tab-2-graphs', children=[
         dcc.Graph(id='editable-graph-xyz-slider', 
                   figure=px.line_3d(title='xEast vs yNorth vs zUp'))
-    ]), #, style={'display':'inline-block'})
+    ]), 
     
     # initialize tab-3 graphs
     html.Div(id = 'tab-3-graphs', 
@@ -329,10 +385,9 @@ app.layout = html.Div([
             id = 'editable-table',
             editable = True,
             row_deletable = True,
-            style_table={'width': '1200px', 'margin-left': "15px", 'display': "block"}), #'height': '750px',  
-        html.Button('Add Row', id='add-rows-button', n_clicks=0,
-                    style={'margin-left':'15px'}),
-    ], className='row'),
+            style_table={'width': '1200px', 'display': "block"}), 
+        html.Button('Add Row', id='add-rows-button', n_clicks=0, style={'margin-left':'15px'}),
+    ], className='row', style={'margin-left':'12px'}),
 
     # style
     html.Br(), html.Br()
@@ -485,7 +540,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
         
         if ctx == 'editable-table':
             t_value = np.min(np.array(min_values_list), axis=0)[0]
-            print('t_value', t_value)
+            # print('t_value', t_value)
 
         # plot 2D/3D slider graphs
         fig_xy = px.line(title='xEast vs yNorth')
@@ -580,10 +635,10 @@ def center_map_around_ref_input(ref_data):
 
 
 @app.callback(Output('polyline-layer', 'children'),
-              Input('editable-table', 'data'),
-              [State('polyline-layer', 'children'),
-               State('session', 'data')])         
-def update_map(data, current_polylines, ref_data):
+              [Input('editable-table', 'data'),
+              Input('session', 'data')],
+              State('polyline-layer', 'children'))    
+def update_map(data, ref_data, current_polylines):
     if data is None:
         return dash.no_update
 
@@ -593,8 +648,11 @@ def update_map(data, current_polylines, ref_data):
         # data has changed - must update map polylines
         new_polylines = []
         
-        if len(data) == 0:
-            # no data, save computation time
+        if  not ref_data['ref_lat']\
+            or not ref_data['ref_long']\
+            or not ref_data['ref_long']\
+            or len(data)==0:
+            # either no ref point or no data, save computation time
             return new_polylines
 
         aggregation = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -606,21 +664,21 @@ def update_map(data, current_polylines, ref_data):
                 a['xEast'].append(float(row.get('xEast')))
                 a['yNorth'].append(float(row.get('yNorth')))
                 a['zUp'].append(float(row.get('zUp')))
+        
         data_group = [x for x in aggregation.values()]
             
-        ref_lat = ref_data['ref_lat']
-        ref_long = ref_data['ref_long']
-        ref_alt = ref_data['ref_alt']
-
         for data_id in data_group:
             lat_lng_dict = []
             for i in range(len(data_id['xEast'])):
                 lat, lng, alt = pm.enu2geodetic(data_id['xEast'][i]*NM_TO_M, data_id['yNorth'][i]*NM_TO_M, data_id['zUp'][i]*FT_TO_M, 
-                                                ref_lat, ref_long, ref_alt*FT_TO_M, 
+                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
                                                 ell=pm.Ellipsoid('wgs84'), deg=True)
                 lat_lng_dict.append([lat, lng])
+            
             new_polylines.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
+        
         return new_polylines
+    
     return current_polylines
 
 
@@ -644,7 +702,7 @@ def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_
 
     if ctx == 'map':
         if create_n_clicks > 0 and start_new_n_clicks > 0:
-            if ac_value is not None: #and encounter_value 
+            if ac_value is not None:
                 if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
                     return dash.no_update
 
@@ -781,9 +839,13 @@ def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_
 def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, add_rows_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    columns = [{"name": 'encounter_id', "id": 'encounter_id'}, {"name": 'ac_id', "id": 'ac_id'},\
-                {"name": 'time', "id": 'time'}, {"name": 'xEast', "id": 'xEast'}, {"name": 'yNorth', "id": 'yNorth'},\
-                {"name": 'zUp', "id": 'zUp'}, {"name": 'horizontal_speed', "id": 'horizontal_speed'}]
+    columns = [{"name": 'encounter_id', "id": 'encounter_id'},\
+                {"name": 'ac_id', "id": 'ac_id'},\
+                {"name": 'time', "id": 'time', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'xEast', "id": 'xEast', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'yNorth', "id": 'yNorth', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'zUp', "id": 'zUp','type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'hor_speed', "id": 'hor_speed', 'type':'numeric', 'format': {'specifier': '.3~f'}}]
 
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [], []
@@ -795,18 +857,20 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         df = pd.DataFrame(memory_data)
         df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
         df_filtered = calculate_horizontal_speeds_df(df_filtered)
-        return df_filtered.to_dict('records'), [{"name": i, "id": i} for i in df_filtered.columns]
+        return df_filtered.to_dict('records'),\
+                [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
     
     if ctx == 'ac-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
             print('Select an encounter ID.')
             return dash.no_update, dash.no_update
-        
-        # AC IDs have been updated or loaded in
-        df = pd.DataFrame(memory_data)
-        df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
-        df_filtered = calculate_horizontal_speeds_df(df_filtered)
-        return df_filtered.to_dict('records'), [{"name": i, "id": i} for i in df_filtered.columns]
+        else:
+            # AC IDs have been updated or loaded in
+            df = pd.DataFrame(memory_data)
+            df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
+            df_filtered = calculate_horizontal_speeds_df(df_filtered)
+            return df_filtered.to_dict('records'),\
+                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
@@ -817,21 +881,15 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             # add an empty row
             data.append({col["id"]: '' for col in columns})
         return data, columns
-
-    # elif ctx == 'gen-enounters-button':
-    #     if gen_n_clicks > 0:
-    #         return [], columns
-    
     else:
         if ctx == 'create-new-button' and start_new_n_clicks > 0:
             global timestep
             timestep = 0
             
         elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
-            if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']: #not encounter_value
+            if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']:
                 return dash.no_update, dash.no_update
             
-#             timestep += 1
             if len(data) != len(current_markers):
                 # in creative mode and user has created another marker 
                 # we add each marker to the data as it is created 
@@ -841,7 +899,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
                                                      ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
                                                      ell=pm.Ellipsoid('wgs84'), deg=True)
                 marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
-                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'horizontal_speed': 0}  #'encounter_id': encounter_value
+                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'hor_speed': 0}  
                 data.append(marker_dict)
             else:
                 # an already existing marker was dragged
@@ -864,8 +922,9 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
             df = pd.DataFrame(data)
             df = calculate_horizontal_speeds_df(df)
-            return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
-            
+            return df.to_dict('records'),\
+                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df.columns]
+        
         return dash.no_update, dash.no_update
 
 
@@ -1356,6 +1415,166 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
                                 [1./10, viridis[9]],
                                 [1., viridis[11]]])
     return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
+
+##########################################################################################
+##########################################################################################
+@app.callback(Output('save-modal','is_open'),
+                [Input('save-button', 'n_clicks'),
+                Input('close-save-button', 'n_clicks'),
+                Input('save-filename-button', 'n_clicks')])
+def toggle_save_modal(save_n_clicks, close_n_clicks, save_file_n_clicks):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    
+    if ctx == 'save-button':
+        if save_n_clicks > 0:
+            return True
+    elif ctx == 'close-save-button':
+        if close_n_clicks > 0:
+            return False
+    elif ctx == 'save-filename-button':
+        if save_file_n_clicks > 0:
+            return False
+
+    return dash.no_update
+
+@app.callback([Output('save-dat-div','style'),
+                Output('save-json-div', 'style')],
+                Input('file-checklist', 'value'))
+def toggle_filename_inputs(checked_values):
+    off = {'display':'none'}
+    on = {'display':'inline-block'}
+    
+    if checked_values:
+        if 'dat-item' in checked_values:
+            if 'json-item' in checked_values:
+                return on, on
+            else:
+                return on, off
+        elif 'json-item' in checked_values:
+            return off, on
+    else:
+        return off, off
+
+    return dash.no_update
+
+
+@app.callback(Output('download-waypoints', 'data'),
+                Input('save-filename-button', 'n_clicks'),
+                [State('generated-encounters', 'data'),
+                State('nominal-path-enc-ids', 'options'),
+                State('nominal-path-ac-ids', 'options'),
+                State('save-dat-filename', 'value'),
+                State('file-checklist', 'value')],
+                prevent_initial_call=True)
+def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save):
+    
+    if save_n_clicks > 0:
+        if generated_data:
+            if 'dat-item' in files_to_save:
+                file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
+                file = open(file_name, mode='wb')
+
+                df = pd.DataFrame(generated_data)
+
+                # num encounters and num ac ids
+                np.array(len(nom_enc_ids), dtype=np.uint32).tofile(file)
+                np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
+
+                for enc in nom_enc_ids:
+                    df_enc = df.loc[df['encounter_id'] == enc['value']]
+                    
+                    # write initial waypoints to file first
+                    df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
+                    np.array([(initial['xEast'] * NM_TO_FT,\
+                            initial['yNorth'] * NM_TO_FT,\
+                            initial['zUp']) for initial in df_initial],\
+                            dtype=np.dtype('float64, float64, float64')\
+                            ).tofile(file)
+
+                    # then write update waypoints to file
+                    df_updates = df_enc.loc[df_enc['time'] != 0]
+                    for ac in nom_ac_ids:
+                        df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
+                        
+                        np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
+                        
+                        np.array([(update['time'],\
+                                update['xEast'] * NM_TO_FT,\
+                                update['yNorth'] * NM_TO_FT,\
+                                update['zUp']) for update in df_ac_updates],\
+                                dtype=np.dtype('float64, float64, float64, float64')\
+                                ).tofile(file)
+
+                file.close()
+
+                return dcc.send_file(file_name)
+        else:
+            print('Must generate an encounter set')
+
+    return dash.no_update
+
+@app.callback(Output('download-model', 'data'),
+                Input('save-filename-button', 'n_clicks'),
+                [State('generated-encounters', 'data'),
+                State('cov-radio', 'value'),
+                State('diag-sigma-input', 'value'),
+                State('exp-kernel-input-a', 'value'),
+                State('exp-kernel-input-b', 'value'),
+                State('exp-kernel-input-c', 'value'),
+                State('save-json-filename', 'value'),
+                State('file-checklist', 'value')],
+                prevent_initial_call=True)
+def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma, a, b, c, json_filename, files_to_save):
+
+    if save_n_clicks > 0:
+        if generated_data:
+            if 'json-item' in files_to_save:
+                model_json = {}
+
+                df = pd.DataFrame(generated_data) 
+                df_enc = df.loc[df['encounter_id'] == 0]
+                ac_ids = df_enc['ac_id'].unique()
+            
+                model_json['mean'] = {'num_ac': len(ac_ids)}
+
+                for i, ac in enumerate(ac_ids):
+                    ac_df = (df_enc.loc[df_enc['ac_id'] == ac]).to_dict('records')
+                    model_json['mean'][i+1] = { 'num_waypoints': len(ac_df), 
+                                                'waypoints': [] }
+                    for waypoint in ac_df:
+                        model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
+                                                'xEast':  waypoint['xEast'],
+                                                'yNorth': waypoint['yNorth'],
+                                                'zUp':    waypoint['zUp']}]
+    
+                if cov_radio_val == 'cov-radio-diag':
+                    model_json['covariance'] = {
+                        'type': 'diagonal',
+                        'sigma': sigma}
+
+                elif cov_radio_val == 'cov-radio-exp':
+                    model_json['covariance'] = {
+                        'type': 'exponential kernal',
+                        'a': a,
+                        'b': b,
+                        'c': c,
+                    }
+
+                # script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
+                # file_name = json_filename if json_filename else 'generation_model.json'
+                # rel_path = "generated_models/"+file_name
+                # abs_file_path = os.path.join(script_dir, rel_path)
+
+                file_name = json_filename if json_filename else 'generation_model.json'
+                with open(file_name, 'w') as outfile:
+                    json.dump(model_json, outfile, indent=4)
+
+                return dcc.send_file(file_name)
+        else:
+            print('Must generate an encounter set')
+
+    return dash.no_update
+
 
 
 ##########################################################################################
