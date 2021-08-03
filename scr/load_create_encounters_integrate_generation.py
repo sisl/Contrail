@@ -1,5 +1,6 @@
 import dash
 from dash.dependencies import Input, Output, State, ALL
+from dash.exceptions import PreventUpdate
 
 import dash_table
 import dash_core_components as dcc
@@ -75,12 +76,12 @@ app.layout = html.Div([
             ])
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
 
-        html.Div([
-            html.Label([
-                dcc.Upload(id='load-model', children = 
-                           html.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
-            ])
-        ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
+        # html.Div([
+        #     html.Label([
+        #         dcc.Upload(id='load-model', children = 
+        #                    html.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
+        #     ])
+        # ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
 
         html.Div([
             html.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0),
@@ -150,23 +151,34 @@ app.layout = html.Div([
     html.Div(id='gen-modal-div', children=[
         dbc.Modal([
             dbc.ModalHeader("Generate an Encounter Set"),
+
+            html.Br(),
+            html.Div([
+                html.Label([
+                    dcc.Upload(id='load-model', children = 
+                            html.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
+                ])
+            ], style={"margin-left": "20px", 'display':'inline-block'}),
+            html.Br(),
+            dcc.Markdown(("---")),
+            html.Br(),
+                #style={'font-weight': 'bold', "margin-left": "20px", 'font-size':'3em'}),
             
             # mean (nominal paths)
-            html.Br(),
             dcc.Markdown(("""Mean:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Select an Encounter."""), style={"margin-left": "20px"}),
+                    dcc.Markdown(("""Select an Encounter:"""), style={"margin-left": "20px"}),
                     dcc.Dropdown(id='nominal-path-enc-ids', 
                         options=[], multi=False, value=[],
-                        style={"margin-left": "10px"})#, "width": "71%"}),
+                        style={"margin-left": "10px", "width": "105%"}),
                 ], style={"margin-left": "20px"}),
                 html.Div([
-                    dcc.Markdown(("""Select at least one Nominal Path."""), style={"margin-left": "20px"}),
+                    dcc.Markdown(("""Select at least one Nominal Path:"""), style={"margin-left": "20px"}),
                     dcc.Dropdown(id='nominal-path-ac-ids', 
                         options=[], multi=True, value=[],
-                        style={"margin-left": "10px"})#, "width": "71%"}),
-                ], style={"margin-left": "20px"}) #, "margin-bottom":"10px"})
+                        style={"margin-left": "12px", "width": "100%"}),
+                ], style={"margin-left": "30px"}) #, "margin-bottom":"10px"})
             ], className  = 'row'),
             
 
@@ -174,47 +186,48 @@ app.layout = html.Div([
             html.Br(),
             dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
-                dcc.Markdown(("""Select one type."""), style={"margin-left": "5px"}),
+                dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
                 dcc.RadioItems(id='cov-radio', options=[
                     {'label': 'Diagonal', 'value': 'cov-radio-diag'},
                     {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
                     value='cov-radio-exp',
+                    inputStyle={"margin-right": "5px"},
                     labelStyle={'display': 'inline-block', "margin-right": "10px"},
                     style={"margin-left": "15px"}),
             ], style={"margin-left": "20px"}, className  = 'row'),
             
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Sigma."""), style={"margin-left": "20px"}),
-                    dcc.Input(id='diag-sigma-input', type='text', placeholder='default sigma = 0.1',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=0.1,
+                    dcc.Markdown(("""Enter Sigma:"""), style={"margin-left": "20px"}),
+                    dcc.Input(id='diag-sigma-input', type='text', placeholder='0 < sigma < 1',
+                        debounce=True, pattern=u"^(0?\.?\d+)$",# value=0.1,
                         style={"margin-left": "20px"}), #, "width": "50%"}),
                 ], style={"margin-left": "20px"})
-            ], id='cov-diag-input-container', className  = 'row'),
+            ], id='cov-diag-input-container', style={"display":"none"}, className  = 'row'),
 
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
+                    dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
                     dcc.Input(id='exp-kernel-input-a', type='text', placeholder='parameter a',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0,
-                        style={"margin-left": "20px"}), #, "width": "30%"}),
+                        debounce=True, pattern=u"^(0?\.?\d+)$",# value=15.0,
+                        style={"margin-left": "20px", "width": "12.33%"}),
                     dcc.Input(id='exp-kernel-input-b', type='text', placeholder='parameter b',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0,
-                        style={"margin-left": "10px"}), #, "width": "30%"}),
+                        debounce=True, pattern=u"^(0?\.?\d+)$",# value=1.0,
+                        style={"margin-left": "10px", "width": "12.33%"}),
                     dcc.Input(id='exp-kernel-input-c', type='text', placeholder='parameter c',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0,
-                        style={"margin-left": "10px"}), #, "width": "30%"}),
+                        debounce=True, pattern=u"^(0?\.?\d+)$",# value=100.0,
+                        style={"margin-left": "10px", "width": "12.33%"}),
                 ], style={"margin-left": "20px"}),
-            ], id='cov-exp-kernel-input-container', className  = 'row'), #, "margin-bottom":"10px"})
+            ], id='cov-exp-kernel-input-container', style={"display":"block"}, className  = 'row'), #, "margin-bottom":"10px"})
 
             
             # number of encounter sets to generate
             html.Br(),
-            dcc.Markdown(("""Number of Encounters to Generate"""), style={"margin-left": "20px"}),
+            dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
             dcc.Input(id='num-encounters-input', type='text', placeholder='',
-                debounce=True, value=100,
+                debounce=True,# value=100,
                 pattern=u"^(\d+)$",
-                style={"margin-left": "20px", "width": "50%"}),
+                style={"margin-left": "25px", "width": "40%"}),
             
             # generation progress bar
             # html.Div(id='progress-bar-div', children=[
@@ -786,10 +799,11 @@ def parse_contents(contents, filename):
                Input('end-new-button', 'n_clicks'),
                Input('exit-create-mode', 'n_clicks'),
                Input('load-waypoints', 'contents'),
-               Input('generated-encounters', 'data')],
+               Input('generated-encounters', 'data'),
+               Input('load-model', 'contents')],
               [State('load-waypoints', 'filename'),
                State('editable-table', 'data')])
-def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_create_n_clicks, contents, generated_data, filename, data):
+def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_create_n_clicks, waypoints_contents, generated_data, model_contents, filename, data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-mode' and create_n_clicks > 0:
@@ -800,10 +814,10 @@ def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_
     elif ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [{}]
     elif ctx == 'load-waypoints':
-        if contents is None or not filename:
+        if waypoints_contents is None or not filename:
             return [{}]
 
-        df = parse_contents(contents, filename) 
+        df = parse_contents(waypoints_contents, filename) 
 
         if 0 in set(df['encounter_id']):
             df['encounter_id'] += 1
@@ -817,6 +831,24 @@ def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_
     elif ctx == 'generated-encounters':
         if data is not None:
             return generated_data
+
+    elif ctx == 'load-model':
+        if model_contents is not None:
+            content_type, content_string = model_contents.split(',')
+        
+            if 'json' in content_type:
+                data = []
+                model = json.loads(base64.b64decode(content_string))
+                mean = model['mean']
+                for ac in range(1, mean['num_ac']+1):
+                    ac_traj = mean[str(ac)]['waypoints']
+                    for waypoint in ac_traj:
+                        data += [{'encounter_id':0, 'ac_id': ac, 'time':waypoint['time'], 
+                                 'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'],
+                                 'zUp':waypoint['zUp'], 'hor_speed':0}]
+
+                return data
+
     return dash.no_update
 
 
@@ -969,21 +1001,23 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
               [State('ac-index', 'value'),
                State('ac-ids', 'options'),
                State('create-new-button', 'n_clicks'),
+               State('generate-button', 'n_clicks'),
                State('editable-table', 'data'),
                State('memory-data', 'data')])
-def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, data, memory_data):
+def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, data, memory_data):
     if not encounter_id_selected and ac_value is None:
         return dash.no_update
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return []    
-    elif ctx == 'encounter-ids' and upload_n_clicks > 0 and end_new_n_clicks == 0:
-        df = pd.DataFrame(memory_data)
-        df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-        ac_ids = df_filtered['ac_id'].unique()
-        dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in ac_ids]
-        return dropdown_options
+    elif ctx == 'encounter-ids':
+        if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0:
+            df = pd.DataFrame(memory_data)
+            df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
+            ac_ids = df_filtered['ac_id'].unique()
+            dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in ac_ids]
+            return dropdown_options
     
     elif ctx == 'create-mode' and create_n_clicks > 0 and start_new_n_clicks == 0 and end_new_n_clicks == 0:
         return []  
@@ -1049,7 +1083,6 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
     elif ctx == 'session':
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             # no trajectories should be selected if there isn't a ref point
-            print('Enter a reference point.')
             return [], []
 
     return dash.no_update, dash.no_update
@@ -1290,15 +1323,50 @@ def set_nominal_ac_ids_options(encounter_id_selected, memory_data):
 
 @app.callback([Output('nominal-path-enc-ids','value'),
                Output('nominal-path-ac-ids','value')],
-               Input('gen-encounters-button', 'n_clicks'))
-def reset_nominal_dropdown_values(gen_n_clicks):
+               [Input('gen-encounters-button', 'n_clicks'),
+               Input('load-model', 'contents')],
+               State('nominal-path-ac-ids','options'))
+def reset_nominal_dropdown_values(gen_n_clicks, contents, ac_options):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'gen-encounters-button':
         if gen_n_clicks > 0:
             return [], []
+    elif ctx == 'load-model':
+        if contents is not None:
+            content_type, content_string = contents.split(',')
+            if 'json' in content_type:
+                model = json.loads(base64.b64decode(content_string))
+                return 0, [ac for ac in range(1, model['mean']['num_ac']+1)]
 
     return dash.no_update, dash.no_update
+
+@app.callback([Output('cov-radio','value'),
+                Output('diag-sigma-input', 'value'),
+                Output('exp-kernel-input-a', 'value'),
+                Output('exp-kernel-input-b', 'value'),
+                Output('exp-kernel-input-c', 'value'),
+                Output('num-encounters-input', 'value')],
+                Input('load-model', 'contents'))
+def load_in_model(contents):
+    if contents is not None:
+        content_type, content_string = contents.split(',')
+        
+        if 'json' in content_type:
+            model = json.loads(base64.b64decode(content_string))
+
+            cov = model['covariance']
+            if cov['type'] == 'diagonal':
+                if 'sigma' in cov.keys():
+                    return 'cov-radio-diag', cov['sigma'], None, None, None, None
+
+            elif cov['type'] == 'exponential kernel':
+                if 'a' in cov.keys() and 'b' in cov.keys() and 'c' in cov.keys():
+                    return 'cov-radio-exp', None, cov['a'], cov['b'], cov['c'], None
+
+
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
 
 
 @app.callback(Output('cov-diag-input-container', 'style'),
@@ -1359,7 +1427,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
               Input('generated-encounters', 'data'),
               State('ac-ids', 'value'),
               )
-def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
+def on_generation_update_log_histograms(generated_data, ac_ids_selected):
     df = pd.DataFrame(generated_data)
 
     df_ac_1_interp = pd.DataFrame()
@@ -1370,25 +1438,19 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
         df_ac_1_interp = df_ac_1_interp.append(df_enc_interp, ignore_index=True)
 
     viridis = px.colors.sequential.gray
+    colors = [  [0, viridis[0]],
+                [1./10000, viridis[3]],
+                [1./1000, viridis[5]],
+                [1./100, viridis[7]],
+                [1./10, viridis[9]],
+                [1., viridis[11]]   ]
     
     fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=200, nbinsy=200, 
                             title='AC 1: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
-                            color_continuous_scale=[
-                                [0, viridis[0]],
-                                [1./10000, viridis[3]],
-                                [1./1000, viridis[5]],
-                                [1./100, viridis[7]],
-                                [1./10, viridis[9]],
-                                [1., viridis[11]]])
+                            color_continuous_scale=colors)
     fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
                             title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
-                            color_continuous_scale=[
-                                [0, viridis[0]],
-                                [1./10000, viridis[3]],
-                                [1./1000, viridis[5]],
-                                [1./100, viridis[7]],
-                                [1./10, viridis[9]],
-                                [1., viridis[11]]])
+                            color_continuous_scale=colors)
 
     df_ac_2_interp = pd.DataFrame()
     for enc_id in set(df['encounter_id']):
@@ -1398,22 +1460,10 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
 
     fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=200, nbinsy=200, 
                             title='AC 2: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
-                            color_continuous_scale=[
-                                [0, viridis[0]],
-                                [1./10000, viridis[3]],
-                                [1./1000, viridis[5]],
-                                [1./100, viridis[7]],
-                                [1./10, viridis[9]],
-                                [1., viridis[11]]])
+                            color_continuous_scale=colors)
     fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
                             title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
-                            color_continuous_scale=[
-                                [0, viridis[0]],
-                                [1./10000, viridis[3]],
-                                [1./1000, viridis[5]],
-                                [1./100, viridis[7]],
-                                [1./10, viridis[9]],
-                                [1., viridis[11]]])
+                            color_continuous_scale=colors)
     return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
 
 ##########################################################################################
@@ -1455,7 +1505,7 @@ def toggle_filename_inputs(checked_values):
     else:
         return off, off
 
-    return dash.no_update
+    return dash.no_update, dash.no_update
 
 
 @app.callback(Output('download-waypoints', 'data'),
@@ -1554,7 +1604,7 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma,
 
                 elif cov_radio_val == 'cov-radio-exp':
                     model_json['covariance'] = {
-                        'type': 'exponential kernal',
+                        'type': 'exponential kernel',
                         'a': a,
                         'b': b,
                         'c': c,
