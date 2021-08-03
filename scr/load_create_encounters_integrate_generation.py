@@ -62,8 +62,16 @@ app.layout = html.Div([
                                   'ref_alt': 12.7}),
 
     dcc.Store(id='generated-encounters', data={}),
+
+    
     
     # style
+    html.Br(), 
+
+    html.Div(id='progress-bar-div', children=[
+        dcc.Interval(id="gen-progress-interval", n_intervals=0, interval=500, max_intervals=-1),
+        dbc.Progress(id="animated-progress", value=0, animated=True, striped=True)
+    ], style={'display':'none'}),
     html.Br(), 
     
     # buttons to load/save waypoints
@@ -75,13 +83,6 @@ app.layout = html.Div([
                            style={"margin-left": "15px"}))
             ])
         ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
-
-        # html.Div([
-        #     html.Label([
-        #         dcc.Upload(id='load-model', children = 
-        #                    html.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
-        #     ])
-        # ], style={"margin-left": "15px", "margin-bottom":"10px", 'display':'inline-block'}),
 
         html.Div([
             html.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0),
@@ -162,7 +163,6 @@ app.layout = html.Div([
             html.Br(),
             dcc.Markdown(("---")),
             html.Br(),
-                #style={'font-weight': 'bold', "margin-left": "20px", 'font-size':'3em'}),
             
             # mean (nominal paths)
             dcc.Markdown(("""Mean:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
@@ -178,7 +178,7 @@ app.layout = html.Div([
                     dcc.Dropdown(id='nominal-path-ac-ids', 
                         options=[], multi=True, value=[],
                         style={"margin-left": "12px", "width": "100%"}),
-                ], style={"margin-left": "30px"}) #, "margin-bottom":"10px"})
+                ], style={"margin-left": "30px"})
             ], className  = 'row'),
             
 
@@ -229,16 +229,16 @@ app.layout = html.Div([
                 pattern=u"^(\d+)$",
                 style={"margin-left": "25px", "width": "40%"}),
             
-            # generation progress bar
-            # html.Div(id='progress-bar-div', children=[
-            #     dcc.Interval(id="gen-progress-interval", n_intervals=0, interval=500),
-            #     dbc.Progress(id="animated-progress", value=0, animated=True, striped=True)
-            #     ]),
             
+            # generation progress bar
             html.Br(),
+
+            html.Br(),
+
             dbc.ModalFooter(children= [
                 dbc.Button("CLOSE", id="close-button"),
-                dbc.Button("GENERATE", id="generate-button", className="ml-auto")
+                #dbc.Spinner(size='md', spinnerClassName='ml-auto', children=[html.Div(id='gen-spinner-output', children='nothin')]), #html.Div(id='gen-spinner-output')),
+                dbc.Button("GENERATE", id="generate-button", color='success', className="ml-auto")
                 ]
             ),
         ],
@@ -447,7 +447,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             elif cov_radio_value == 'cov-radio-exp':
                 
                 if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
-                    print('Must input all pamater values.')
+                    print('Must input all parameter values.')
                     error = True
             if error:
                 return {}
@@ -1337,9 +1337,11 @@ def reset_nominal_dropdown_values(gen_n_clicks, contents, ac_options):
             content_type, content_string = contents.split(',')
             if 'json' in content_type:
                 model = json.loads(base64.b64decode(content_string))
-                return 0, [ac for ac in range(1, model['mean']['num_ac']+1)]
+                return 0, [ac for ac in range(1, model['mean']['num_ac'])]
 
     return dash.no_update, dash.no_update
+
+
 
 @app.callback([Output('cov-radio','value'),
                 Output('diag-sigma-input', 'value'),
@@ -1425,8 +1427,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
               Output('log-histogram-ac-2-xy', 'figure'),
               Output('log-histogram-ac-2-tz', 'figure'),
               Input('generated-encounters', 'data'),
-              State('ac-ids', 'value'),
-              )
+              State('ac-ids', 'value'))
 def on_generation_update_log_histograms(generated_data, ac_ids_selected):
     df = pd.DataFrame(generated_data)
 
@@ -1465,6 +1466,72 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
                             title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
                             color_continuous_scale=colors)
     return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
+
+# @app.callback([Output('gen-progress-interval', 'n_intervals'),
+#                 Output('gen-progress-interval','interval')],
+#                 Input('num-encounters-input', 'value'))
+# def before_generation_set_progress_intervals(num_encounters):
+#     if num_encounters is not None:
+#         #i = int(num_encounters) * 100
+#         i = max(int(num_encounters) / 10, 500)
+#         return 0, i
+
+#     return dash.no_update, dash.no_update
+
+# @app.callback([Output('animated-progress', 'value'), 
+#                 Output('animated-progress', 'children')],
+#                 Input('gen-progress-interval', 'n_intervals'),
+#                 #Input('generated-encounters','data')],
+#                 State('gen-progress-interval', 'max_intervals'))
+# def on_generation_display_progress(n, max_intervals):
+#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+#     # if ctx == 'generated-encounters':
+#     #     print('generated all encounters - should be done then')
+#     #     n = 100
+
+#     progress = min(n % 110, 100)
+#     # only add text after 5% progress to ensure text isn't squashed too much
+#     return progress, f"{progress} %" if progress >= 5 else ""
+
+# # @app.callback(Output('gen-spinner-output', 'children'),
+# #                 Input('generated-encounters', 'data'))
+# # def on_generation_display_progress(generated_data):
+# #     if generated_data:
+# #         return "something"
+# #     # only add text after 5% progress to ensure text isn't squashed too much
+# #     return ""
+
+# @app.callback(Output('gen-progress-interval', 'max_intervals'),
+#                 Input('generated-encounters','data'))
+# def after_generation_hide_progress_bar(generated_data):
+#     if generated_data != {}:
+#         return 0
+
+#     return -1
+
+
+
+# @app.callback(Output('progress-bar-div', 'style'),
+#                 [Input('generate-button', 'n_clicks'),
+#                 Input('gen-progress-interval', 'max_intervals')])
+# def on_generation_display_progress(generate_n_clicks, max_intervals):
+#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+#     print("CTX: ", ctx)
+    
+#     on = {'display':'block'}
+#     off = {'display':'none'}
+
+#     if ctx == 'generate-button':
+#         if generate_n_clicks > 0:
+#             return on
+#     elif ctx == 'gen-progress-interval':
+#         if max_intervals == 0:
+#             return off
+
+#     return off
+    
 
 ##########################################################################################
 ##########################################################################################
