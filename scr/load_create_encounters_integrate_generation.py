@@ -1,4 +1,5 @@
 from logging import error
+from types import new_class
 import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
@@ -24,6 +25,20 @@ import re
 from read_file import *
 import base64
 
+# from tqdm import tqdm
+
+# from rq.exceptions import NoSuchJobError
+# from rq.job import Job
+# from rq import Queue
+
+# import redis
+# import os
+# import uuid
+
+# from generate import generate_encounters
+
+
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -48,6 +63,10 @@ timestep = 0
 
 COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
 
+# redis_url = os.getenv("REDISTOGO_URL", "redis://localhost:8332")
+# conn = redis.from_url(redis_url)
+# queue = Queue(connection=conn)
+
 
 map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
@@ -62,18 +81,19 @@ app.layout = html.Div([
                                   'ref_long': -73.77869,
                                   'ref_alt': 12.7}),
 
-    dcc.Store(id='generated-encounters', data={}),
-
+    dcc.Loading(id='gen-spinner', 
+            children=[dcc.Store(id='generated-encounters', data={})],
+            type='circle',
+            fullscreen=True,
+            style={'margin-top':'250px'}),   
     
-    
-    # style
     html.Br(), 
 
-    html.Div(id='progress-bar-div', children=[
-        dcc.Interval(id="gen-progress-interval", n_intervals=0, interval=500, max_intervals=-1),
-        dbc.Progress(id="animated-progress", value=0, animated=True, striped=True)
-    ], style={'display':'none'}),
-    html.Br(), 
+    # html.Div(id='progress-bar-div', children=[
+    #     dcc.Interval(id="gen-progress-interval", n_intervals=0, interval=500, max_intervals=-1),
+    #     dbc.Progress(id="animated-progress", value=0, animated=True, striped=True)
+    # ], style={'display':'block', 'margin-left':'15px', 'width':'98%'}),
+    # html.Br(), 
     
     # buttons to load/save waypoints
     html.Div([
@@ -404,14 +424,14 @@ app.layout = html.Div([
     ], className='row', style={'margin-left':'12px'}),
 
     # style
-    html.Br(), html.Br()
+    html.Br(),
+    html.Br()
 ]) 
 
 print('\n*****START OF CODE*****\n')
 
 #########################################################################################
 #########################################################################################
-
 @app.callback(Output('generated-encounters', 'data'),
               Input('generate-button', 'n_clicks'),
               [State('nominal-path-enc-ids', 'value'),
@@ -423,7 +443,8 @@ print('\n*****START OF CODE*****\n')
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
                State('memory-data', 'data')])
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
+def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma, exp_kernel_a,
+                        exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
@@ -431,7 +452,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
 
             # error checking
             if generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_value, 
-                            sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c):
+                                        sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c):
                 return {}
 
             df_memory_data = pd.DataFrame(memory_data) 
@@ -458,6 +479,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
                                         'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
                                        for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
+
                     
                 elif cov_radio_value == 'cov-radio-exp':                    
                     mean, cov, K_dist_z, K_cov_z = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
@@ -466,11 +488,12 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
                                         'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
                                        for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
+
                 
             # if we need them to be sorted...
             # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
-
             return generated_data
+
     return dash.no_update
 
 def generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_value, 
@@ -1348,7 +1371,6 @@ def reset_nominal_dropdown_values(gen_n_clicks, contents, ac_options):
     return dash.no_update, dash.no_update
 
 
-
 @app.callback([Output('cov-radio','value'),
                 Output('diag-sigma-input', 'value'),
                 Output('exp-kernel-input-a', 'value'),
@@ -1374,7 +1396,6 @@ def load_in_model(contents):
 
 
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
-
 
 
 @app.callback(Output('cov-diag-input-container', 'style'),
@@ -1435,6 +1456,9 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
               Input('generated-encounters', 'data'),
               State('ac-ids', 'value'))
 def on_generation_update_log_histograms(generated_data, ac_ids_selected):
+    if generated_data == {}:
+        return px.density_heatmap(title='AC 1: xEast vs yNorth'), px.density_heatmap(title='AC 1: Time vs zUp'), px.density_heatmap(title='AC 2: xEast vs yNorth'), px.density_heatmap(title='AC 1: Time vs zUp')
+
     df = pd.DataFrame(generated_data)
 
     df_ac_1_interp = pd.DataFrame()
@@ -1473,69 +1497,7 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
                             color_continuous_scale=colors)
     return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
 
-@app.callback([Output('gen-progress-interval', 'n_intervals'),
-                Output('gen-progress-interval','interval')],
-                Input('num-encounters-input', 'value'))
-def before_generation_set_progress_intervals(num_encounters):
-    if num_encounters is not None:
-        #i = int(num_encounters) * 100
-        i = max(int(num_encounters) / 10, 500)
-        return 0, i
 
-    return dash.no_update, dash.no_update
-
-# @app.callback([Output('animated-progress', 'value'), 
-#                 Output('animated-progress', 'children')],
-#                 Input('gen-progress-interval', 'n_intervals'),
-#                 #Input('generated-encounters','data')],
-#                 State('gen-progress-interval', 'max_intervals'))
-# def on_generation_display_progress(n, max_intervals):
-#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-#     # if ctx == 'generated-encounters':
-#     #     print('generated all encounters - should be done then')
-#     #     n = 100
-
-#     progress = min(n % 110, 100)
-#     # only add text after 5% progress to ensure text isn't squashed too much
-#     return progress, f"{progress} %" if progress >= 5 else ""
-
-# # @app.callback(Output('gen-spinner-output', 'children'),
-# #                 Input('generated-encounters', 'data'))
-# # def on_generation_display_progress(generated_data):
-# #     if generated_data:
-# #         return "something"
-# #     # only add text after 5% progress to ensure text isn't squashed too much
-# #     return ""
-
-# @app.callback(Output('gen-progress-interval', 'max_intervals'),
-#                 Input('generated-encounters','data'))
-# def after_generation_hide_progress_bar(generated_data):
-#     if generated_data != {}:
-#         return 0
-
-#     return -1
-
-
-
-# @app.callback(Output('progress-bar-div', 'style'),
-#                 [Input('generate-button', 'n_clicks'),
-#                 Input('gen-progress-interval', 'max_intervals')])
-# def on_generation_display_progress(generate_n_clicks, max_intervals):
-#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-#     on = {'display':'block'}
-#     off = {'display':'none'}
-
-#     if ctx == 'generate-button':
-#         if generate_n_clicks > 0:
-#             return on
-#     elif ctx == 'gen-progress-interval':
-#         if max_intervals == 0:
-#             return off
-
-#     return off
-    
 
 ##########################################################################################
 ##########################################################################################
