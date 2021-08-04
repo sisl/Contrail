@@ -1,3 +1,4 @@
+from logging import error
 import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
@@ -429,27 +430,8 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
         if gen_n_clicks > 0:
 
             # error checking
-            error = False
-            if memory_data == [{}]: # or memory_data == []:
-                print('Must create a nominal encounter or load a waypoint file')
-                error = True
-            if not nom_ac_ids:
-                print("Must select at least one nominal path")
-                error = True
-            if not num_encounters:
-                print('Must input number of encounters to generate')
-                error = True
-                
-            if cov_radio_value == 'cov-radio-diag':
-                if not sigma:
-                    print('Must input a sigma value.')
-                    error = True
-            elif cov_radio_value == 'cov-radio-exp':
-                
-                if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
-                    print('Must input all parameter values.')
-                    error = True
-            if error:
+            if generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_value, 
+                            sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c):
                 return {}
 
             df_memory_data = pd.DataFrame(memory_data) 
@@ -490,6 +472,30 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
 
             return generated_data
     return dash.no_update
+
+def generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_value, 
+                sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c) -> bool:
+    error = False
+    if memory_data == [{}]: # or memory_data == []:
+        print('Must create a nominal encounter or load a waypoint file')
+        error = True
+    if not nom_ac_ids:
+        print("Must select at least one nominal path")
+        error = True
+    if not num_encounters:
+        print('Must input number of encounters to generate')
+        error = True    
+    if cov_radio_value == 'cov-radio-diag':
+        if not sigma:
+            print('Must input a sigma value.')
+            error = True
+    elif cov_radio_value == 'cov-radio-exp':
+        if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
+            print('Must input all parameter values.')
+            error = True
+    
+    return error
+
 
 
 #########################################################################################
@@ -1467,16 +1473,16 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
                             color_continuous_scale=colors)
     return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
 
-# @app.callback([Output('gen-progress-interval', 'n_intervals'),
-#                 Output('gen-progress-interval','interval')],
-#                 Input('num-encounters-input', 'value'))
-# def before_generation_set_progress_intervals(num_encounters):
-#     if num_encounters is not None:
-#         #i = int(num_encounters) * 100
-#         i = max(int(num_encounters) / 10, 500)
-#         return 0, i
+@app.callback([Output('gen-progress-interval', 'n_intervals'),
+                Output('gen-progress-interval','interval')],
+                Input('num-encounters-input', 'value'))
+def before_generation_set_progress_intervals(num_encounters):
+    if num_encounters is not None:
+        #i = int(num_encounters) * 100
+        i = max(int(num_encounters) / 10, 500)
+        return 0, i
 
-#     return dash.no_update, dash.no_update
+    return dash.no_update, dash.no_update
 
 # @app.callback([Output('animated-progress', 'value'), 
 #                 Output('animated-progress', 'children')],
@@ -1518,8 +1524,6 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
 # def on_generation_display_progress(generate_n_clicks, max_intervals):
 #     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-#     print("CTX: ", ctx)
-    
 #     on = {'display':'block'}
 #     off = {'display':'none'}
 
