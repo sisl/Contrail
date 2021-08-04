@@ -1409,7 +1409,7 @@ def load_in_model(contents):
                 if 'a' in cov.keys() and 'b' in cov.keys() and 'c' in cov.keys():
                     return 'cov-radio-exp', None, None, cov['a'], cov['b'], cov['c'], None
 
-    return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 @app.callback(Output('cov-diag-input-container', 'style'),
