@@ -25,20 +25,6 @@ import re
 from read_file import *
 import base64
 
-# from tqdm import tqdm
-
-# from rq.exceptions import NoSuchJobError
-# from rq.job import Job
-# from rq import Queue
-
-# import redis
-# import os
-# import uuid
-
-# from generate import generate_encounters
-
-
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -62,11 +48,6 @@ NM_TO_FT = 1/FT_TO_NM
 timestep = 0
 
 COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
-
-# redis_url = os.getenv("REDISTOGO_URL", "redis://localhost:8332")
-# conn = redis.from_url(redis_url)
-# queue = Queue(connection=conn)
-
 
 map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
@@ -873,7 +854,7 @@ def update_memory_data(upload_n_clicks, create_n_clicks, end_new_n_clicks, exit_
                     ac_traj = mean[str(ac)]['waypoints']
                     for waypoint in ac_traj:
                         data += [{'encounter_id':0, 'ac_id': ac, 'time':waypoint['time'], 
-                                 'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'],
+                                 'xEast':waypoint['xEast'] * FT_TO_NM, 'yNorth':waypoint['yNorth'] * FT_TO_NM,
                                  'zUp':waypoint['zUp'], 'hor_speed':0}]
 
                 return data
@@ -902,11 +883,11 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
 
     columns = [{"name": 'encounter_id', "id": 'encounter_id'},\
                 {"name": 'ac_id', "id": 'ac_id'},\
-                {"name": 'time', "id": 'time', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
-                {"name": 'xEast', "id": 'xEast', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
-                {"name": 'yNorth', "id": 'yNorth', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
-                {"name": 'zUp', "id": 'zUp','type':'numeric', 'format': {'specifier': '.3~f'}},\
-                {"name": 'hor_speed', "id": 'hor_speed', 'type':'numeric', 'format': {'specifier': '.3~f'}}]
+                {"name": 'time', "id": 'time', 'type':'numeric', 'format': {'specifier': '.2~f'}},\
+                {"name": 'xEast', "id": 'xEast', 'type':'numeric', 'format': {'specifier': '.2~f'}},\
+                {"name": 'yNorth', "id": 'yNorth', 'type':'numeric', 'format': {'specifier': '.2~f'}},\
+                {"name": 'zUp', "id": 'zUp','type':'numeric', 'format': {'specifier': '.2~f'}},\
+                {"name": 'hor_speed', "id": 'hor_speed', 'type':'numeric', 'format': {'specifier': '.2~f'}}]
 
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [], []
@@ -919,7 +900,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
         df_filtered = calculate_horizontal_speeds_df(df_filtered)
         return df_filtered.to_dict('records'),\
-                [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
+                [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.2~f'}} for i in df_filtered.columns]
     
     if ctx == 'ac-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
@@ -931,7 +912,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
             df_filtered = calculate_horizontal_speeds_df(df_filtered)
             return df_filtered.to_dict('records'),\
-                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
+                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.2~f'}} for i in df_filtered.columns]
 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
@@ -984,7 +965,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             df = pd.DataFrame(data)
             df = calculate_horizontal_speeds_df(df)
             return df.to_dict('records'),\
-                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df.columns]
+                    [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.2~f'}} for i in df.columns]
         
         return dash.no_update, dash.no_update
 
@@ -1626,8 +1607,8 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma,
                                                 'waypoints': [] }
                     for waypoint in ac_df:
                         model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
-                                                'xEast':  waypoint['xEast'],
-                                                'yNorth': waypoint['yNorth'],
+                                                'xEast':  waypoint['xEast'] * NM_TO_FT,
+                                                'yNorth': waypoint['yNorth'] * NM_TO_FT,
                                                 'zUp':    waypoint['zUp']}]
     
                 if cov_radio_val == 'cov-radio-diag':
