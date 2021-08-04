@@ -1366,7 +1366,7 @@ def reset_nominal_dropdown_values(gen_n_clicks, contents, ac_options):
             content_type, content_string = contents.split(',')
             if 'json' in content_type:
                 model = json.loads(base64.b64decode(content_string))
-                return 0, [ac for ac in range(1, model['mean']['num_ac'])]
+                return 0, [ac for ac in range(1, model['mean']['num_ac']+1)]
 
     return dash.no_update, dash.no_update
 
