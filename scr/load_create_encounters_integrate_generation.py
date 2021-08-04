@@ -26,15 +26,19 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 
-def calculate_horizontal_speeds_df(df):
+def calculate_horizontal_vertical_speeds_df(df):
     dataf = df.copy()
     hor_speeds = []
+    ver_speeds = []
     for ac_id in set(df['ac_id']):
         ac_id_data = df.loc[df['ac_id'] == ac_id]
         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
-        hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time']
+        hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time'] * 3600
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
+        ver_speed = move_over_time.zUp / move_over_time['time']
+        ver_speeds += (np.append(0.0, round(ver_speed, 4))).tolist()
     dataf.loc[:, 'horizontal_speed'] = hor_speeds
+    dataf.loc[:, 'vertical_speed'] = ver_speeds
     return dataf
 
 
@@ -185,23 +189,26 @@ app.layout = html.Div([
             
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Sigma."""), style={"margin-left": "20px"}),
-                    dcc.Input(id='diag-sigma-input', type='text', placeholder='default sigma = 0.1',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=0.1,
+                    dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
+                    dcc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05',
+                        debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05,
                         style={"margin-left": "20px"}), #, "width": "50%"}),
+                    dcc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0',
+                        debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0,
+                        style={"margin-left": "10px"}), #, "width": "50%"}),
                 ], style={"margin-left": "20px"})
             ], id='cov-diag-input-container', className  = 'row'),
 
             html.Div([
                 html.Div([
                     dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
-                    dcc.Input(id='exp-kernel-input-a', type='text', placeholder='parameter a',
+                    dcc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a',
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0,
                         style={"margin-left": "20px"}), #, "width": "30%"}),
-                    dcc.Input(id='exp-kernel-input-b', type='text', placeholder='parameter b',
+                    dcc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b',
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0,
                         style={"margin-left": "10px"}), #, "width": "30%"}),
-                    dcc.Input(id='exp-kernel-input-c', type='text', placeholder='parameter c',
+                    dcc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c',
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0,
                         style={"margin-left": "10px"}), #, "width": "30%"}),
                 ], style={"margin-left": "20px"}),
@@ -305,36 +312,42 @@ app.layout = html.Div([
                  html.Div([
                      html.Div(dcc.Graph(id='editable-graph-xy-slider', 
                               figure=px.line(title='xEast vs yNorth'),
-                              style={'width': '480px', 'height': '500px', 'display':'inline-block', 'margin-left': "15px"}, 
-                              className='six columns')),
+                              style={'width': '490px', 'height': '500px', 'display':'inline-block', 'margin-left': "10px"}, 
+                              )),
                      html.Div(dcc.Graph(id='editable-graph-tdistxy-slider', 
                               figure=px.line(title='Time vs Horizontal Distance'),
-                              style={'width': '600px', 'height': '500px', 'display':'inline-block', 'margin-left': "115px"},
-                              className='ten columns')),
-                     html.Div(dcc.Graph(id='editable-graph-tspeed-slider', 
+                              style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "70px"},
+                              )),
+                     html.Div(dcc.Graph(id='editable-graph-tspeedxy-slider', 
                               figure=px.line(title='Time vs Horizontal Speed'), 
-                              style={'width': '600px', 'height': '500px', 'display':'inline-block'}, #, 'margin-left': "0px"})),
-                              className='ten columns'))
+                              style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "-40px"}, 
+                              ))
                  ], className='row'),
                  
                  html.Div([
-                     html.Div(dcc.Graph(id='editable-graph-tz-slider', 
+                    html.Div(dcc.Graph(id='editable-graph-tz-slider', 
                               figure=px.line(title='Time vs zUp'), 
-                              style={'width': '600px', 'height': '500px', 'display':'inline-block', 'margin-left': "15px"},
+                              style={'width': '600px', 'height': '500px', 'display':'inline-block', 'margin-left': "10px"},
                               className='six columns')),
-                     html.Div(dcc.Graph(id='editable-graph-tdistz-slider', 
+                    html.Div(dcc.Graph(id='editable-graph-tdistz-slider', 
                               figure=px.line(title='Time vs Vertical Distance'), 
-                              style={'width': '600px', 'height': '500px', 'display':'inline-block'}, #, 'margin-left': "0px"})),
-                              className='two columns'))
+                              style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "-40px"}, 
+                              className='two columns')),
+                    html.Div(dcc.Graph(id='editable-graph-tspeedz-slider', 
+                              figure=px.line(title='Time vs Vertical Speed'), 
+                              style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "-40px"}, 
+                              className='ten columns'))
                  ], className='row'),
              ], style={'display': 'block'}),
 
     # initialize tab-2 graphs
-    html.Div(id = 'tab-2-graphs', children=[
-        dcc.Graph(id='editable-graph-xyz-slider', 
-                  figure=px.line_3d(title='xEast vs yNorth vs zUp'))
-    ]), 
-    
+    html.Div(id = 'tab-2-graphs', 
+            children=[
+                html.Div(dcc.Graph(id='editable-graph-xyz-slider', 
+                        figure=px.line_3d(title='xEast vs yNorth vs zUp')), 
+                        style={'width': '800px', 'height': '800px', 'margin-left':'10px'})
+            ], className='row'),
+
     # initialize tab-3 graphs
     html.Div(id = 'tab-3-graphs', 
              children = [
@@ -343,7 +356,7 @@ app.layout = html.Div([
                             dl.TileLayer(), 
                             dl.LayerGroup(id='polyline-layer', children=[]),
                             dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
-#                         zoom=11.5, center=(40.63993, -73.77869), 
+                        # zoom=11.5, center=(40.63993, -73.77869), 
                         doubleClickZoom=False,
                         style={'width': '1500px', 'height': '750px', 'margin-bottom': '50px',
                                'autosize': True, 'display': "block"})
@@ -354,16 +367,17 @@ app.layout = html.Div([
              children = [
                 html.Div([
                     html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
-                            style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
+                        style={'width': '490px', 'height': '500px', 'display':'inline-block', 'margin-left':'10px'})),
                     html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
-                          style={'width': '700px', 'height': '500px', 'display':'inline-block'})), #, 'margin-left':'50px'}))
-                    ], className='row', style={'margin-left':'25px'}),
+                        style={'width': '600px', 'height': '500px', 'display':'inline-block'})), #, 'margin-left':'20px'}))
+                ], className='row'),
+
                 html.Div([
                     html.Div(dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap(title='AC 2: xEast vs yNorth'),
-                          style={'width': '480px', 'height': '500px', 'display':'inline-block'})),
+                        style={'width': '490px', 'height': '500px', 'display':'inline-block', 'margin-left':'10px'})),
                     html.Div(dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap(title='AC 2: Time vs zUp'),
-                          style={'width': '700px', 'height': '500px', 'display':'inline-block'})) #, 'margin-left':'50px'}))
-                    ], className='row', style={'margin-left':'25px'})
+                        style={'width': '600px', 'height': '500px', 'display':'inline-block'})) #, 'margin-left':'20px'}))
+                ], className='row') #, style={'margin-left':'20px'})
              ], style={'display': 'block'}),
 
     
@@ -403,13 +417,14 @@ print('\n*****START OF CODE*****\n')
               [State('nominal-path-enc-ids', 'value'),
                State('nominal-path-ac-ids', 'value'),
                State('cov-radio', 'value'),
-               State('diag-sigma-input', 'value'),
+               State('diag-sigma-input-hor', 'value'),
+               State('diag-sigma-input-ver', 'value'),
                State('exp-kernel-input-a', 'value'),
                State('exp-kernel-input-b', 'value'),
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
                State('memory-data', 'data')])
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
+def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
@@ -428,11 +443,10 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                 error = True
                 
             if cov_radio_value == 'cov-radio-diag':
-                if not sigma:
-                    print('Must input a sigma value.')
+                if not sigma_hor or not sigma_ver:
+                    print('Must input all pamater values.')
                     error = True
             elif cov_radio_value == 'cov-radio-exp':
-                
                 if not exp_kernel_a or not exp_kernel_b or not exp_kernel_c:
                     print('Must input all pamater values.')
                     error = True
@@ -456,9 +470,9 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                 ac_time = [waypoint['time'] for waypoint in ac_df]
                 
                 if cov_radio_value == 'cov-radio-diag':
-                    cov = [ [sigma, 0, 0], 
-                            [0, sigma, 0], 
-                            [0, 0, sigma] ]
+                    cov = [ [sigma_hor, 0, 0], 
+                            [0, sigma_hor, 0], 
+                            [0, 0, sigma_ver] ]
                     waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
                     generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
                                         'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
@@ -498,12 +512,16 @@ def interpolate_df_time(df, ac_ids_selected):
         df_ac_interp['zUp'] = PchipInterpolator(df_ac['time'], df_ac['zUp'])(df_ac_interp['time'])
         if 'horizontal_speed' in df_ac.columns:
             df_ac_interp['horizontal_speed'] = PchipInterpolator(df_ac['time'], df_ac['horizontal_speed'])(df_ac_interp['time'])
-        
+        if 'vertical_speed' in df_ac.columns:
+            df_ac_interp['vertical_speed'] = PchipInterpolator(df_ac['time'], df_ac['vertical_speed'])(df_ac_interp['time'])
+
         df_interp = df_interp.append(df_ac_interp, ignore_index=True)   
 
         if 'horizontal_speed' in df_ac.columns:
-            min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), min(df_ac['horizontal_speed'])])
-            max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), max(df_ac_interp['horizontal_speed'])])
+            min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), \
+                min(df_ac['horizontal_speed']), min(df_ac['vertical_speed'])])
+            max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), \
+                max(df_ac_interp['horizontal_speed']), max(df_ac_interp['vertical_speed'])])
         else:
             min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp'])])
             max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp'])])
@@ -515,7 +533,8 @@ def interpolate_df_time(df, ac_ids_selected):
               Output('slider', 'value'),
               Output('editable-graph-xy-slider', 'figure'),
               Output('editable-graph-tz-slider', 'figure'),
-              Output('editable-graph-tspeed-slider', 'figure'),
+              Output('editable-graph-tspeedxy-slider', 'figure'),
+              Output('editable-graph-tspeedz-slider', 'figure'),
               Output('editable-graph-xyz-slider', 'figure'),
               Output('editable-graph-tdistxy-slider', 'figure'),
               Output('editable-graph-tdistz-slider', 'figure'),
@@ -530,7 +549,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
     if data is None:
         return dash.no_update
     if data == [] or encounter_id_selected is None or encounter_id_selected == [] or ac_ids_selected == []:
-        return 'Time: ', 0, {}, {}, {}, {}, {}, {}, 0, 100
+        return 'Time: ', 0, {}, {}, {}, {}, {}, {}, {}, 0, 100
     
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     if ctx == 'editable-table' or ctx == 'slider':
@@ -545,7 +564,8 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
         # plot 2D/3D slider graphs
         fig_xy = px.line(title='xEast vs yNorth')
         fig_tz = px.line(title='Time vs zUp')
-        fig_tspeed = px.line(title='Time vs Horizontal Speed')
+        fig_tspeedxy = px.line(title='Time vs Horizontal Speed')
+        fig_tspeedz = px.line(title='Time vs Vertical Speed')
         fig_xyz = px.line_3d(title='xEast vs yNorth vs zUp')
         fig_tdistxy = px.line(title='Time vs Horizontal Distance')
         fig_tdistz = px.line(title='Time vs Vertical Distance')
@@ -557,7 +577,9 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id))
             fig_tz.add_scatter(x=df_ac_interp['time'], y=df_ac_interp['zUp'], 
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id), showlegend=False)
-            fig_tspeed.add_scatter(x=df_ac_interp['time'], y=df_ac_interp['horizontal_speed'], 
+            fig_tspeedxy.add_scatter(x=df_ac_interp['time'], y=df_ac_interp['horizontal_speed'], 
+                               mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id), showlegend=False)
+            fig_tspeedz.add_scatter(x=df_ac_interp['time'], y=df_ac_interp['vertical_speed'], 
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id), showlegend=False)
             fig_xyz.add_scatter3d(x=df_ac_interp['xEast'], y=df_ac_interp['yNorth'], z=df_ac_interp['zUp'],
                                mode='lines', marker={'color':COLOR_LIST[i]}, name='AC '+str(ac_id))
@@ -567,7 +589,9 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
                                mode='markers', marker={'size':10, 'color':COLOR_LIST[i]}, showlegend=False)
             fig_tz.add_scatter(x=df_ac_slider['time'], y=df_ac_slider['zUp'],
                                mode='markers', marker={'size':10, 'color':COLOR_LIST[i]}, showlegend=False)
-            fig_tspeed.add_scatter(x=df_ac_slider['time'], y=df_ac_slider['horizontal_speed'],
+            fig_tspeedxy.add_scatter(x=df_ac_slider['time'], y=df_ac_slider['horizontal_speed'],
+                               mode='markers', marker={'size':10, 'color':COLOR_LIST[i]}, showlegend=False)
+            fig_tspeedz.add_scatter(x=df_ac_slider['time'], y=df_ac_slider['vertical_speed'],
                                mode='markers', marker={'size':10, 'color':COLOR_LIST[i]}, showlegend=False)
             fig_xyz.add_scatter3d(x=df_ac_slider['xEast'], y=df_ac_slider['yNorth'], z=df_ac_slider['zUp'],
                                mode='markers', marker={'size':7, 'color':COLOR_LIST[i]}, showlegend=False)           
@@ -590,10 +614,9 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
             fig_tdistz.add_scatter(x=df_dist_slider['time'], y=df_dist_slider['dist_z'], 
                                     mode='markers', marker={'size':10, 'color':'gray'}, showlegend=False)  
 
-
         # update layout of graphs
         if min_values_list == [] and max_values_list == []:
-            return 'Time: ', 0, {}, {}, {}, {}, {}, {}, 0, 100
+            return 'Time: ', 0, {}, {}, {}, {}, {}, {}, {}, 0, 100
 
         min_values = np.min(np.array(min_values_list), axis=0)
         max_values = np.max(np.array(max_values_list), axis=0)
@@ -607,9 +630,12 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
         fig_tz.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
             yaxis_title='zUp (ft)', yaxis_range=[min_values[3]-50, max_values[3]+50])
-        fig_tspeed.update_layout(
+        fig_tspeedxy.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
-            yaxis_title='Speed (NM/s)', yaxis_range=[min_values[4]-0.005, max_values[4]+0.005])
+            yaxis_title='Speed (kt)', yaxis_range=[min_values[4]-10, max_values[4]+10])
+        fig_tspeedz.update_layout(
+            xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
+            yaxis_title='Speed (ft/s)', yaxis_range=[min_values[5]-5, max_values[5]+5])
         fig_xyz.update_layout(
             scene = {'xaxis': {'title':'xEast (NM)', 
                                'range':[min(min_values[1],min_values[2])-0.2, max(max_values[1], max_values[2])+0.2]},
@@ -618,8 +644,14 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected):
                     'zaxis': {'title':'zUp (ft)',
                               'range':[min_values[3]-50, max_values[3]+50]}},
             width=800, height=800, margin=dict(l=0, r=0, b=50, t=100, pad=0))
+        fig_tdistxy.update_layout(
+            xaxis_title = 'Time (s)', 
+            yaxis_title = 'Distance (NM)'),
+        fig_tdistz.update_layout(
+            xaxis_title = 'Time (s)', 
+            yaxis_title = 'Distance (ft)'),
 
-        return 'Time: {} (s)'.format(t_value), t_value, fig_xy, fig_tz, fig_tspeed, fig_xyz, fig_tdistxy, fig_tdistz, min_values[0], max_values[0]
+        return 'Time: {} (s)'.format(t_value), t_value, fig_xy, fig_tz, fig_tspeedxy, fig_tspeedz, fig_xyz, fig_tdistxy, fig_tdistz, min_values[0], max_values[0]
 
 
 ##########################################################################################
@@ -845,7 +877,9 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
                 {"name": 'xEast', "id": 'xEast', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
                 {"name": 'yNorth', "id": 'yNorth', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
                 {"name": 'zUp', "id": 'zUp','type':'numeric', 'format': {'specifier': '.3~f'}},\
-                {"name": 'hor_speed', "id": 'hor_speed', 'type':'numeric', 'format': {'specifier': '.3~f'}}]
+                {"name": 'horizontal_speed', "id": 'horizontal_speed', 'type':'numeric', 'format': {'specifier': '.3~f'}},\
+                {"name": 'vertical_speed', "id": 'horizontal_speed', 'type':'numeric', 'format': {'specifier': '.3~f'}},
+                ]
 
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [], []
@@ -856,7 +890,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         
         df = pd.DataFrame(memory_data)
         df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-        df_filtered = calculate_horizontal_speeds_df(df_filtered)
+        df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
         return df_filtered.to_dict('records'),\
                 [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
     
@@ -868,7 +902,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
             # AC IDs have been updated or loaded in
             df = pd.DataFrame(memory_data)
             df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
-            df_filtered = calculate_horizontal_speeds_df(df_filtered)
+            df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
             return df_filtered.to_dict('records'),\
                     [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df_filtered.columns]
 
@@ -899,7 +933,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
                                                      ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
                                                      ell=pm.Ellipsoid('wgs84'), deg=True)
                 marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
-                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'hor_speed': 0}  
+                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'horizontal_speed': 0}  
                 data.append(marker_dict)
             else:
                 # an already existing marker was dragged
@@ -921,7 +955,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, a
         
         elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
             df = pd.DataFrame(data)
-            df = calculate_horizontal_speeds_df(df)
+            df = calculate_horizontal_vertical_speeds_df(df)
             return df.to_dict('records'),\
                     [{"name": i, "id": i, 'type':'numeric', 'format': {'specifier': '.3~f'}} for i in df.columns]
         
@@ -951,7 +985,7 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
     
     elif ctx == 'end-new-button' and end_new_n_clicks > 0:
         encounter_value = 0
-#         if encounter_value is not None:
+        # if encounter_value is not None:
         new_option = {'value': encounter_value, 'label': 'Encounter '+ str(encounter_value)}
         if options is None or options == []:
             options = [new_option]
@@ -1301,6 +1335,8 @@ def reset_nominal_dropdown_values(gen_n_clicks):
     return dash.no_update, dash.no_update
 
 
+##########################################################################################
+##########################################################################################
 @app.callback(Output('cov-diag-input-container', 'style'),
               Output('cov-exp-kernel-input-container', 'style'),
               Input('cov-radio', 'value'))
@@ -1359,7 +1395,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
               Input('generated-encounters', 'data'),
               State('ac-ids', 'value'),
               )
-def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
+def on_generation_update_log_histogram(generated_data, ac_ids_selected):
     df = pd.DataFrame(generated_data)
 
     df_ac_1_interp = pd.DataFrame()
@@ -1368,10 +1404,11 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
         
         df_enc_interp, _, _ = interpolate_df_time(df_enc, [1])
         df_ac_1_interp = df_ac_1_interp.append(df_enc_interp, ignore_index=True)
+        nbin_time = len(df_ac_1_interp['time'])
 
     viridis = px.colors.sequential.gray
     
-    fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=200, nbinsy=200, 
+    fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
                             title='AC 1: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
@@ -1380,7 +1417,7 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
                                 [1./100, viridis[7]],
                                 [1./10, viridis[9]],
                                 [1., viridis[11]]])
-    fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
+    fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=nbin_time, nbinsy=500, 
                             title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
@@ -1396,7 +1433,7 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
         df_enc_interp, _, _ = interpolate_df_time(df_enc, [2])
         df_ac_2_interp = df_ac_2_interp.append(df_enc_interp, ignore_index=True)   
 
-    fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=200, nbinsy=200, 
+    fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
                             title='AC 2: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
@@ -1405,7 +1442,7 @@ def on_generation_update_log_histogram_ac_1_xy(generated_data, ac_ids_selected):
                                 [1./100, viridis[7]],
                                 [1./10, viridis[9]],
                                 [1., viridis[11]]])
-    fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=50, nbinsy=500, 
+    fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=nbin_time, nbinsy=500, 
                             title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'},
                             color_continuous_scale=[
                                 [0, viridis[0]],
@@ -1517,14 +1554,15 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
                 Input('save-filename-button', 'n_clicks'),
                 [State('generated-encounters', 'data'),
                 State('cov-radio', 'value'),
-                State('diag-sigma-input', 'value'),
+                State('diag-sigma-input-hor', 'value'),
+                State('diag-sigma-input-ver', 'value'),
                 State('exp-kernel-input-a', 'value'),
                 State('exp-kernel-input-b', 'value'),
                 State('exp-kernel-input-c', 'value'),
                 State('save-json-filename', 'value'),
                 State('file-checklist', 'value')],
                 prevent_initial_call=True)
-def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma, a, b, c, json_filename, files_to_save):
+def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save):
 
     if save_n_clicks > 0:
         if generated_data:
@@ -1550,7 +1588,8 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma,
                 if cov_radio_val == 'cov-radio-diag':
                     model_json['covariance'] = {
                         'type': 'diagonal',
-                        'sigma': sigma}
+                        'sigma_hor': sigma_hor,
+                        'sigma_ver': sigma_ver}
 
                 elif cov_radio_val == 'cov-radio-exp':
                     model_json['covariance'] = {
