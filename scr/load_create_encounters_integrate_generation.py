@@ -666,7 +666,7 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                     ac_traj = mean[str(ac)]['waypoints']
                     for waypoint in ac_traj:
                         data += [{'encounter_id':0, 'ac_id': ac, 'time':waypoint['time'], 
-                                 'xEast':waypoint['xEast'] * FT_TO_NM, 'yNorth':waypoint['yNorth'] * FT_TO_NM,
+                                 'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'],
                                  'zUp':waypoint['zUp'], 'horizontal_speed':0, 'vertical_speed':0}]  ##NEED CHANGE : speeds
                 return data
 
@@ -1693,8 +1693,8 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_
                                                 'waypoints': [] }
                     for waypoint in ac_df:
                         model_json['mean'][i+1]['waypoints'] += [{'time':  waypoint['time'], 
-                                                'xEast':  waypoint['xEast'] * NM_TO_FT,
-                                                'yNorth': waypoint['yNorth'] * NM_TO_FT,
+                                                'xEast':  waypoint['xEast'],
+                                                'yNorth': waypoint['yNorth'],
                                                 'zUp':    waypoint['zUp']}]
     
                 if cov_radio_val == 'cov-radio-diag':
