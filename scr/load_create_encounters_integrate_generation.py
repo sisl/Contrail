@@ -694,10 +694,7 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                State('session', 'data')])
 def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    # print('\n###update_data_table### ctx:', ctx)
 
-    # if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
-    #     return [], columns
     if ctx == 'load-waypoints' and upload_n_clicks > 0:
         return [], columns
         
@@ -1626,11 +1623,12 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
                 df = pd.DataFrame(generated_data)
 
                 # num encounters and num ac ids
-                np.array(len(nom_enc_ids), dtype=np.uint32).tofile(file)
+                num_enc = len(nom_enc_ids) - 1
+                np.array(num_enc, dtype=np.uint32).tofile(file)
                 np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
 
-                for enc in nom_enc_ids:
-                    df_enc = df.loc[df['encounter_id'] == enc['value']]
+                for enc in range(1, len(nom_enc_ids)+1):
+                    df_enc = df.loc[df['encounter_id'] == enc]
                     
                     # write initial waypoints to file first
                     df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
