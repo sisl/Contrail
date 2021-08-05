@@ -394,7 +394,7 @@ app.layout = html.Div([
                         #     style={"margin-left": "5px", "margin-top": "15px", 'font-size': '1em', 'display':'inline-block'}),
                         html.Div(id='zUp-title', children='Set zUp (ft):',
                             style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
-                        dcc.Input(id='create-mode-zUp-input', type='text', placeholder='12ft',
+                        dcc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
                             debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0,
                             style={'margin-left': '15px', 'margin-top':'10px','display':'block'}),
                         html.Button('Save Nominal Path', id='end-new-button', n_clicks=0,
@@ -723,10 +723,11 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                State('editable-table', 'columns'),
                State('ac-index', 'value'),
                State('time-interval-input', 'value'),
+               State('create-mode-zUp-input', 'value'),
                State('memory-data', 'data'),
                State('session', 'data')])
 def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
-                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, interval, memory_data, ref_data):
+                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, interval, zUp_input, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'load-waypoints' and upload_n_clicks > 0:
@@ -778,7 +779,7 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             pass
             
         elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
-            if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt'] or not interval:
+            if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt'] or not interval or not zUp_input:
                 return dash.no_update, dash.no_update
             
             if len(data) != len(current_markers):
@@ -794,11 +795,11 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                 # we add each marker to the data as it is created 
                 # so we only have to grab last marker in the list
                 pos = current_markers[-1]['props']['position']
-                xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt']*FT_TO_M, 
+                xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], zUp_input*FT_TO_M, 
                                                      ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
                                                      ell=pm.Ellipsoid('wgs84'), deg=True)
                 marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
-                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp*M_TO_FT, 'horizontal_speed': 0, 'vertical_speed': 0}  
+                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp_input, 'horizontal_speed': 0, 'vertical_speed': 0}  
                 data.append(marker_dict)
             else:
                 # an already existing marker was dragged
@@ -809,13 +810,13 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                 # is explicitly changed.
                 for i, data_point in enumerate(data):
                     pos = current_markers[i]['props']['position']
-                    xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt']*FT_TO_M, 
+                    xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], zUp_input*FT_TO_M, 
                                                          ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
                                                          ell=pm.Ellipsoid('wgs84'), deg=True)
                     data_point['xEast'] = xEast*M_TO_NM
                     data_point['yNorth'] = yNorth*M_TO_NM
-                    data_point['zUp'] = zUp*M_TO_FT
-            #timestep += 1
+                    data_point['zUp'] = zUp_input #*M_TO_FT
+
             return data, columns
         
         elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
@@ -1325,17 +1326,26 @@ def reset_ref_point_value(set_n_clicks, clear_n_clicks, children):
                Output('clear-ref-button', 'disabled'),
                Output('set-ref-button', 'disabled')],
               [Input('create-mode', 'n_clicks'),
+              Input('create-new-button', 'n_clicks'),
+              Input('end-new-button', 'n_clicks'),
                Input('exit-create-mode', 'n_clicks'),
                Input('load-waypoints-button', 'n_clicks')])
-def disable_ref_inputs(create_n_clicks, exit_create_n_clicks, upload_n_clicks):
+def disable_ref_inputs(create_n_clicks, start_new_n_clicks, end_new_n_clicks, exit_create_n_clicks, upload_n_clicks):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return False, False, False
-    else:
-        if create_n_clicks > 0:
+    if ctx == 'create-new-button':
+        if start_new_n_clicks > 0:
             return True, True, True
-        if exit_create_n_clicks > 0:
+    elif ctx == 'end-new-button':
+        if end_new_n_clicks > 0:
             return False, False, False
+
+    # if create_n_clicks > 0:
+    #     return True, True, True
+    # if exit_create_n_clicks > 0:
+    #     return False, False, False
+        
     return dash.no_update, dash.no_update, dash.no_update
 
 
