@@ -144,10 +144,10 @@ app.layout = html.Div([
                     width={"size": 2, "order": 3}),
 
             dbc.Col([
-                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary", className="mr-1"),
+                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary", className="mr-1", style={'margin-left':'130px'}),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')],
-                    width={"size": 3, "order": 4, 'offset':2}),
+                    width={"size": 3, "order": 12, 'offset':2}),
         ],
         align='start',
         no_gutters=True
@@ -164,7 +164,7 @@ app.layout = html.Div([
             dbc.Col(dbc.Button('Create Mode', id='create-mode', n_clicks=0, style={'margin-left':'15px'}),
                     width={"size": 'auto', "order": 1}),
 
-            dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0),
+            dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'}),
                     width={"size": 'auto', "order": 1})
             ],
             align='start'
@@ -187,29 +187,44 @@ app.layout = html.Div([
 
     dbc.Card(
         dbc.CardBody([
-            dbc.Row([
-                dbc.Col(html.H5("xEast vs yNorth", className="card-title", style={'text-align':'center'}), width=4),
-                dbc.Col(html.H4("Time vs Horizontal Distance", className="card-title", style={'text-align':'center'}), width=4),
-                dbc.Col(html.H4("Time vs Horizontal Speed", className="card-title", style={'text-align':'center'}), width=4),
-            ], align='center', justify='center'),
-            dbc.Row([
-                dbc.Col(dcc.Graph(id='editable-graph-xy-slider', figure=px.line())),
-                dbc.Col(dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())),
-                dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
-                ]),
-            html.Br(),
-            dbc.Row([
-                dbc.Col(html.H5("Time vs zUp", className="card-title", style={'text-align':'center'}), width=4),
-                dbc.Col(html.H4("Time vs Vertical Distance", className="card-title", style={'text-align':'center'}), width=4),
-                dbc.Col(html.H4("Time vs Vertical Speed", className="card-title", style={'text-align':'center'}), width=4),
-            ], align='center', justify='center'),
-            dbc.Row([
-                dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')),
-                dbc.Col(dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')),
-                dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
-                ])
-        ])
+            dbc.Container([
+                dbc.Row([
+                    dbc.Col(width=2),
+                    dbc.Col(html.H5("xEast vs yNorth", className="card-title", style={'text-align':'center', 'color':'white'})),
+                    dbc.Col(html.H5("Time vs Horizontal Distance", className="card-title", style={'text-align':'center', 'color':'white'})),
+                    dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title", style={'text-align':'center', 'color':'white'})),
+                ],justify='center'),
+                dbc.Row([
+                    dbc.Col(width=2),
+                    dbc.Col(dcc.Graph(id='editable-graph-xy-slider', figure=px.line())),
+                    dbc.Col(dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())),
+                    dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
+                    ])
+                ],
+                fluid=True)
+            ]),
+            color='primary'    
+    ),
 
+    dbc.Card(
+        dbc.CardBody([
+            dbc.Container([
+                dbc.Row([
+                    dbc.Col(width=2),
+                    dbc.Col(html.H5("Time vs zUp", className="card-title", style={'text-align':'center', 'color':'white'})),
+                    dbc.Col(html.H5("Time vs Vertical Distance", className="card-title", style={'text-align':'center', 'color':'white'})),
+                    dbc.Col(html.H5("Time vs Vertical Speed", className="card-title", style={'text-align':'center', 'color':'white'})),
+                ], align='center', justify='center'),
+                dbc.Row([
+                    dbc.Col(width=2),
+                    dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')),
+                    dbc.Col(dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')),
+                    dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
+                    ])
+            ],
+            fluid=True)
+        ]),
+        color='primary'  
     ),
 
     # pop-up window for generation
