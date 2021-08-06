@@ -185,47 +185,139 @@ app.layout = html.Div([
 
     html.Br(),
 
-    dbc.Card(
-        dbc.CardBody([
-            dbc.Container([
-                dbc.Row([
-                    dbc.Col(width=2),
-                    dbc.Col(html.H5("xEast vs yNorth", className="card-title", style={'text-align':'center', 'color':'white'})),
-                    dbc.Col(html.H5("Time vs Horizontal Distance", className="card-title", style={'text-align':'center', 'color':'white'})),
-                    dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title", style={'text-align':'center', 'color':'white'})),
-                ],justify='center'),
-                dbc.Row([
-                    dbc.Col(width=2),
-                    dbc.Col(dcc.Graph(id='editable-graph-xy-slider', figure=px.line())),
-                    dbc.Col(dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())),
-                    dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
-                    ])
-                ],
-                fluid=True)
-            ]),
-            color='primary'    
-    ),
+    dbc.Container([
+        dbc.Row([
+            #dbc.Col(width=2),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        dbc.Row([
+                            dbc.Col(html.H5("xEast vs yNorth", className="card-title", style={'text-align':'center', 'color':'white'}))
+                        ],justify='center'),
 
-    dbc.Card(
-        dbc.CardBody([
-            dbc.Container([
-                dbc.Row([
-                    dbc.Col(width=2),
-                    dbc.Col(html.H5("Time vs zUp", className="card-title", style={'text-align':'center', 'color':'white'})),
-                    dbc.Col(html.H5("Time vs Vertical Distance", className="card-title", style={'text-align':'center', 'color':'white'})),
-                    dbc.Col(html.H5("Time vs Vertical Speed", className="card-title", style={'text-align':'center', 'color':'white'})),
-                ], align='center', justify='center'),
-                dbc.Row([
-                    dbc.Col(width=2),
-                    dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')),
-                    dbc.Col(dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')),
-                    dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id='editable-graph-xy-slider', figure=px.line()))
+                        ],justify='center')
                     ])
-            ],
-            fluid=True)
+                ], color='primary')
+            ),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        dbc.Row([
+                            dbc.Col(html.H5("Time vs Horizontal Distance", className="card-title", style={'text-align':'center', 'color':'white'}))
+                        ],justify='center'),
+
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line()))
+                        ],justify='center')
+                    ])
+                ], color='primary')
+            ),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        dbc.Row([
+                            dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title", style={'text-align':'center', 'color':'white'}))
+                        ],justify='center'),
+
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
+                        ],justify='center')
+                    ])
+                ], color='primary')
+            )
         ]),
-        color='primary'  
-    ),
+    ], fluid=True),
+
+    html.Br(),
+
+    dbc.Container([
+        dbc.Row([
+            #dbc.Col(width=2),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        dbc.Row([
+                            dbc.Col(html.H5("Time vs zUp", className="card-title", style={'text-align':'center', 'color':'white'}))
+                        ],justify='center'),
+
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns'))
+                        ],justify='center')
+                    ])
+                ], color='primary')
+            ),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        dbc.Row([
+                            dbc.Col(html.H5("Time vs Vertical Distance", className="card-title", style={'text-align':'center', 'color':'white'}))
+                        ],justify='center'),
+
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns'))
+                        ],justify='center')
+                    ])
+                ], color='primary')
+            ),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        dbc.Row([
+                            dbc.Col(html.H5("Time vs Vertical Speed", className="card-title", style={'text-align':'center', 'color':'white'}))
+                        ],justify='center'),
+
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
+                        ],justify='center')
+                    ])
+                ], color='primary')
+            )
+        ]),
+    ], fluid=True),
+
+    # dbc.Card(
+    #     dbc.CardBody([
+    #         dbc.Container([
+    #             dbc.Row([
+    #                 dbc.Col(width=2),
+    #                 dbc.Col(html.H5("xEast vs yNorth", className="card-title", style={'text-align':'center', 'color':'white'})),
+    #                 dbc.Col(html.H5("Time vs Horizontal Distance", className="card-title", style={'text-align':'center', 'color':'white'})),
+    #                 dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title", style={'text-align':'center', 'color':'white'})),
+    #             ],justify='center'),
+    #             dbc.Row([
+    #                 dbc.Col(width=2),
+    #                 dbc.Col(dcc.Graph(id='editable-graph-xy-slider', figure=px.line())),
+    #                 dbc.Col(dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())),
+    #                 dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
+    #                 ])
+    #             ],
+    #             fluid=True)
+    #         ]),
+    #         color='primary'    
+    # ),
+
+    # dbc.Card(
+    #     dbc.CardBody([
+    #         dbc.Container([
+    #             dbc.Row([
+    #                 dbc.Col(width=2),
+    #                 dbc.Col(html.H5("Time vs zUp", className="card-title", style={'text-align':'center', 'color':'white'})),
+    #                 dbc.Col(html.H5("Time vs Vertical Distance", className="card-title", style={'text-align':'center', 'color':'white'})),
+    #                 dbc.Col(html.H5("Time vs Vertical Speed", className="card-title", style={'text-align':'center', 'color':'white'})),
+    #             ], align='center', justify='center'),
+    #             dbc.Row([
+    #                 dbc.Col(width=2),
+    #                 dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')),
+    #                 dbc.Col(dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')),
+    #                 dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
+    #                 ])
+    #         ],
+    #         fluid=True)
+    #     ]),
+    #     color='primary'  
+    # ),
 
     # pop-up window for generation
     html.Div(id='gen-modal-div', children=[
@@ -518,7 +610,7 @@ app.layout = html.Div([
     #          ], style={'display': 'block'}),
 
     
-    # # slider bar
+    # slider bar
     # html.Div([
     #     html.Div(id='slider-drag-output', children='Time: ',
     #         style={'margin-left':'35px', 'margin-right': '15px', 'font-size': 15}),
@@ -527,10 +619,10 @@ app.layout = html.Div([
     # ], style={'margin-bottom':'10px'}, className='row'), #style={'justifyContent':'center'}, 
 
     
-    # # style
+    # # # style
     # html.Br(), html.Br(),
     
-    # # waypoints data table
+    # # # waypoints data table
     # html.Div([
     #     dash_table.DataTable(
     #         id = 'editable-table',
@@ -562,38 +654,38 @@ print('\n*****START OF CODE*****\n')
 #########################################################################################
 #########################################################################################
 
-# def interpolate_df_time(df, ac_ids_selected):
-#     df_interp = pd.DataFrame()
-#     min_values_list, max_values_list = [], []
+def interpolate_df_time(df, ac_ids_selected):
+    df_interp = pd.DataFrame()
+    min_values_list, max_values_list = [], []
 
-#     for ac_id in ac_ids_selected:
-#         df_ac = df.loc[df['ac_id'] == ac_id]
-#         df_ac = df_ac.apply(pd.to_numeric, errors='coerce').fillna(0).sort_values('time')
-#         # print('df_ac[time]', df_ac['time'])
+    for ac_id in ac_ids_selected:
+        df_ac = df.loc[df['ac_id'] == ac_id]
+        df_ac = df_ac.apply(pd.to_numeric, errors='coerce').fillna(0).sort_values('time')
+        # print('df_ac[time]', df_ac['time'])
 
-#         df_ac_interp = pd.DataFrame()
-#         df_ac_interp['time'] = np.arange(int(min(df_ac['time'])), int(max(df_ac['time'])+1))
-#         df_ac_interp['ac_id'] = [ac_id]*len(df_ac_interp['time'])
-#         df_ac_interp['xEast'] = PchipInterpolator(df_ac['time'], df_ac['xEast'])(df_ac_interp['time'])
-#         df_ac_interp['yNorth'] = PchipInterpolator(df_ac['time'], df_ac['yNorth'])(df_ac_interp['time'])
-#         df_ac_interp['zUp'] = PchipInterpolator(df_ac['time'], df_ac['zUp'])(df_ac_interp['time'])
-#         if 'horizontal_speed' in df_ac.columns:
-#             df_ac_interp['horizontal_speed'] = PchipInterpolator(df_ac['time'], df_ac['horizontal_speed'])(df_ac_interp['time'])
-#         if 'vertical_speed' in df_ac.columns:
-#             df_ac_interp['vertical_speed'] = PchipInterpolator(df_ac['time'], df_ac['vertical_speed'])(df_ac_interp['time'])
+        df_ac_interp = pd.DataFrame()
+        df_ac_interp['time'] = np.arange(int(min(df_ac['time'])), int(max(df_ac['time'])+1))
+        df_ac_interp['ac_id'] = [ac_id]*len(df_ac_interp['time'])
+        df_ac_interp['xEast'] = PchipInterpolator(df_ac['time'], df_ac['xEast'])(df_ac_interp['time'])
+        df_ac_interp['yNorth'] = PchipInterpolator(df_ac['time'], df_ac['yNorth'])(df_ac_interp['time'])
+        df_ac_interp['zUp'] = PchipInterpolator(df_ac['time'], df_ac['zUp'])(df_ac_interp['time'])
+        if 'horizontal_speed' in df_ac.columns:
+            df_ac_interp['horizontal_speed'] = PchipInterpolator(df_ac['time'], df_ac['horizontal_speed'])(df_ac_interp['time'])
+        if 'vertical_speed' in df_ac.columns:
+            df_ac_interp['vertical_speed'] = PchipInterpolator(df_ac['time'], df_ac['vertical_speed'])(df_ac_interp['time'])
 
-#         df_interp = df_interp.append(df_ac_interp, ignore_index=True)   
+        df_interp = df_interp.append(df_ac_interp, ignore_index=True)   
 
-#         if 'horizontal_speed' in df_ac.columns:
-#             min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), \
-#                 min(df_ac['horizontal_speed']), min(df_ac['vertical_speed'])])
-#             max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), \
-#                 max(df_ac_interp['horizontal_speed']), max(df_ac_interp['vertical_speed'])])
-#         else:
-#             min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp'])])
-#             max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp'])])
+        if 'horizontal_speed' in df_ac.columns:
+            min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp']), \
+                min(df_ac['horizontal_speed']), min(df_ac['vertical_speed'])])
+            max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp']), \
+                max(df_ac_interp['horizontal_speed']), max(df_ac_interp['vertical_speed'])])
+        else:
+            min_values_list.append([min(df_ac_interp['time']), min(df_ac_interp['xEast']), min(df_ac_interp['yNorth']), min(df_ac_interp['zUp'])])
+            max_values_list.append([max(df_ac_interp['time']), max(df_ac_interp['xEast']), max(df_ac_interp['yNorth']), max(df_ac_interp['zUp'])])
             
-#     return df_interp, min_values_list, max_values_list
+    return df_interp, min_values_list, max_values_list
     
     
 # @app.callback(Output('slider-drag-output', 'children'),
