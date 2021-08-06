@@ -378,31 +378,34 @@ app.layout = html.Div([
                             style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1.2em'}),
                     html.Br(), html.Hr(style={'margin-left':'15px'}), html.Br(),
 
-                    html.Div([
-                        html.Button('Start New Nominal Path', id='create-new-button', n_clicks=0,
+                    html.Button('Start New Nominal Path', id='create-new-button', n_clicks=0,
                                 style={"margin-left": "15px", "margin-bottom":"10px", 'color': 'green','display':'none'}), 
+
+                    html.Div(id='create-mode-nom-path-div', children=[
                         # dcc.Input(id="encounter-index", type="number", placeholder="Enter encounter ID", debounce=False, min=1, 
                         #         style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'}),
-                        dcc.Input(id="ac-index", type="number", placeholder="Enter AC ID", debounce=False, min=1, 
-                                style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'}),
+                        html.Div(id='ac-input-title', children='Input AC ID:',
+                            style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
+                        dcc.Input(id="ac-index", type="number", placeholder="AC ID", debounce=False, min=1, 
+                                style={"margin-left": "15px", 'margin-top':'5px'}),#, "margin-bottom":"10px"}),#, 'display':'none'}),
                         html.Div(id='time-interval-title', children='Set Time Interval (s):',
                             style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
                         dcc.Input(id='time-interval-input', type='number', placeholder='1.0s',
                             debounce=True, pattern=u"^(\d+\.?\d?)$", value=1.0,
-                            style={'margin-left': '15px', 'margin-top':'10px','display':'block'}),
+                            style={'margin-left': '15px', 'margin-top':'5px'}), #,'display':'none'}),
                         # html.Div(id='interval-units', children='s',
                         #     style={"margin-left": "5px", "margin-top": "15px", 'font-size': '1em', 'display':'inline-block'}),
                         html.Div(id='zUp-title', children='Set zUp (ft):',
                             style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
                         dcc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
                             debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0,
-                            style={'margin-left': '15px', 'margin-top':'10px','display':'block'}),
+                            style={'margin-left': '15px', 'margin-top':'5px'}),#,'display':'none'}),
                         html.Button('Save Nominal Path', id='end-new-button', n_clicks=0,
-                                style={"margin-left": "15px", "margin-top":"15px", "margin-bottom":"10px", 'color': 'green', 'display':'none'})
-                    ], style={"margin-left": "1px"}),
+                                style={"margin-left": "15px", "margin-top":"15px", "margin-bottom":"10px", 'color': 'green', 'display':'block'})
+                    ], style={"margin-left": "1px", 'display':'none'}),
 
                     
-                    ], style={'display':'inline-block', 'margin-top':'15px'}),
+                ], style={'display':'inline-block', 'margin-top':'15px'}),
 
                 
 
@@ -730,6 +733,9 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                       create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, interval, zUp_input, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
+    # print('\n--update_data_table--')
+    # print('ctx: ', ctx)
+
     if ctx == 'load-waypoints' and upload_n_clicks > 0:
         return [], columns
         
@@ -819,10 +825,12 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
 
             return data, columns
         
-        elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
-            df = pd.DataFrame(data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
-            df = calculate_horizontal_vertical_speeds_df(df)
-            return df.to_dict('records'), columns
+        elif ctx == 'end-new-button':
+            if end_new_n_clicks > 0: 
+                if data != []:
+                    df = pd.DataFrame(data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
+                    df = calculate_horizontal_vertical_speeds_df(df)
+                    return df.to_dict('records'), columns
         
         return dash.no_update, dash.no_update
 
@@ -877,6 +885,9 @@ def toggle_data_table_buttons(data):
               [State('encounter-ids', 'options')])
 def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, options):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    # print('\n--update_encounter_dropdown--')
+    # print('ctx: ', ctx)
     
     if ctx == 'memory-data':
         if memory_data == [{}]: #or memory_data == []
@@ -913,22 +924,34 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
                State('editable-table', 'data'),
                State('memory-data', 'data')])
 def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, data, memory_data):
-    if not encounter_id_selected and ac_value is None:
-        return dash.no_update
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    
+    # print('\n--update_ac_dropdown--')
+    # print('ctx: ', ctx)
+    # print(encounter_id_selected)
+
+    # if not encounter_id_selected and ac_value is None:
+    #     return dash.no_update
     
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
-        return []    
+        return []  
+
     elif ctx == 'encounter-ids':
-        if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0:
+        if encounter_id_selected == []:
+            return []
+        else:
+        #if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0:
             df = pd.DataFrame(memory_data)
             df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
             ac_ids = df_filtered['ac_id'].unique()
             dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in ac_ids]
             return dropdown_options
     
-    elif ctx == 'create-mode' and create_n_clicks > 0 and start_new_n_clicks == 0 and end_new_n_clicks == 0:
-        return []  
+    elif ctx == 'create-mode':
+        if create_n_clicks > 0 and start_new_n_clicks == 0 and end_new_n_clicks == 0:
+            return []  
+
     elif ctx == 'end-new-button' and end_new_n_clicks > 0:
         if ac_value is not None:
             new_option = {'value': ac_value, 'label': 'AC '+ str(ac_value)}
@@ -959,6 +982,9 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
                State('memory-data', 'data')])
 def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, generate_n_clicks, ref_data, ac_value, ac_selected, memory_data): #encounter_value, 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    # print('\n--update_dropdowns_value--')
+    # print('ctx: ', ctx)
     
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return [], []
@@ -1007,16 +1033,15 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
 def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, upload_n_clicks, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if create_n_clicks > 0:        
-        if ctx == 'create-mode' and start_new_n_clicks == 0:
-            return True, True
-        elif ctx == 'create-new-button' and start_new_n_clicks > 0:
-            return True, True
-        elif ctx == 'end-new-button' and end_new_n_clicks > 0:
-            return False, False
-    elif exit_create_n_clicks > 0:
+         
+    # if ctx == 'create-mode' and start_new_n_clicks == 0:
+    #     return True, True
+    if ctx == 'create-new-button' and start_new_n_clicks > 0:
+        return True, True
+    elif ctx == 'end-new-button' and end_new_n_clicks > 0:
         return False, False
-    
+    # elif exit_create_n_clicks > 0:
+    #     return False, False
     elif ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return False, False
         
@@ -1063,21 +1088,18 @@ def creative_mode_switch_tabs(n_clicks):
                Output('exit-create-mode', 'n_clicks'),
                Output('create-new-button', 'n_clicks'),
                Output('end-new-button', 'n_clicks'),
-               Output('exit-create-mode', 'style'),
                Output('create-new-button', 'style'),
-               Output('end-new-button', 'style'),
-               Output('ac-index', 'style')],
+               Output('exit-create-mode', 'style'),
+               Output('create-mode-nom-path-div', 'style')],
               [Input('load-waypoints-button', 'n_clicks'),
                Input('create-mode', 'n_clicks'), 
                Input('exit-create-mode', 'n_clicks'),
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks')],
-              [State('exit-create-mode', 'style'),
-               State('create-new-button', 'style'),
-               State('end-new-button', 'style'),
-               State('ac-index', 'style')])
-def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks,\
-                       exit_create_style, start_new_style, end_new_style, ac_style):
+              [State('create-new-button', 'style'),
+               State('exit-create-mode', 'style'),
+               State('create-mode-nom-path-div', 'style')])
+def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, start_new_style, exit_create_style, create_mode_div_style):
     reset_create_clicks, reset_exit_create_clicks = create_n_clicks, exit_create_n_clicks
     reset_start_new_clicks, reset_end_new_clicks = start_new_n_clicks, end_new_n_clicks
 
@@ -1086,29 +1108,38 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
         if ctx == 'create-mode':
             reset_exit_create_clicks = 0 
             exit_create_style['display'], start_new_style['display'] = 'block', 'block'
+            # exit_create_style['display'] = 'block'
 
         if ctx == 'create-new-button' and start_new_n_clicks > 0:
             reset_end_new_clicks = 0
-            ac_style['display'], end_new_style['display'] = 'block', 'block'
+            # ac_style['display'], end_new_style['display'] = 'block', 'block'
+            # interval_style['display'], zUp_style['display'] = 'block', 'block'
+            create_mode_div_style['display'] = 'block'
             
         if ctx == 'end-new-button' and end_new_n_clicks > 0:
             reset_start_new_clicks = 0
-            ac_style['display'], end_new_style['display'] = 'none', 'none'
+            # ac_style['display'], end_new_style['display'] = 'none', 'none'
+            # interval_style['display'], zUp_style['display'] = 'none', 'none'
+            create_mode_div_style['display'] = 'none'
             
         if ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
             reset_create_clicks = 0
             reset_start_new_clicks, reset_end_new_clicks = 0, 0
-            exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
-            ac_style['display'] = 'none'  
+            # exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
+            # ac_style['display'], interval_style['display'], zUp_style['display'] = 'none', 'none', 'none'
+            start_new_style['display'], exit_create_style['display'] = 'none', 'none'
+            create_mode_div_style['display'] = 'none'
+            
             
         if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
             reset_create_clicks, reset_exit_create_clicks = 0, 0
             reset_start_new_clicks, reset_end_new_clicks = 0, 0
-            exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
-            ac_style['display'] = 'none'  
+            # exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
+            # ac_style['display'], interval_style['display'], zUp_style['display'] = 'none', 'none', 'none'
+            start_new_style['display'], exit_create_style['display'] = 'none', 'none'
+            create_mode_div_style['display'] = 'none'
             
-    return reset_create_clicks, reset_exit_create_clicks, reset_start_new_clicks, reset_end_new_clicks,\
-           exit_create_style, start_new_style, end_new_style, ac_style
+    return reset_create_clicks, reset_exit_create_clicks, reset_start_new_clicks, reset_end_new_clicks, start_new_style, exit_create_style, create_mode_div_style
 
 # @app.callback(Output(),
 #                 Input('time-interval-input','value'))
