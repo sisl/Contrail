@@ -147,11 +147,11 @@ app.layout = html.Div([
                     ]),
                 width={"size": 'auto', "order": 1}),
 
-            dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="secondary", className="mr-1"), #, style={'margin-left':'15px'}), 
+            dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning", className="mr-1"), #, style={'margin-left':'15px'}), 
                 width={'size':'auto', 'order':2}),
 
             dbc.Col([
-                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary", className="mr-1"), #, style={'margin-left':'130px'}),
+                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="success", className="mr-1"), #, style={'margin-left':'130px'}),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')],
                     width={"size": 'auto', "order": 3}), #, 'offset':5}),
@@ -183,7 +183,6 @@ app.layout = html.Div([
 
     dbc.Container(
         dbc.Row([
-            #dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="secondary", className="mr-1", style={'margin-left':'15px'}))
             dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID", multi=False), #, style={'margin-left':'4px'}),
                     width={"size": 2, "order": 1}),
 
@@ -217,7 +216,7 @@ app.layout = html.Div([
                                 children=[
                                     dcc.Tab(id='tab1', label='2d Graphs', value='tab-1'),
                                     dcc.Tab(id='tab2', label='3d Graph', value='tab-2'),
-                                    dcc.Tab(id='tab3', label='Map', value='tab-3'),
+                                    #dcc.Tab(id='tab3', label='Map', value='tab-3'),
                                     dcc.Tab(id='tab4', label='Log Histogram', value='tab-4'),
                                 ],
                                 value='tab-1'),
@@ -245,7 +244,7 @@ app.layout = html.Div([
                                 ])
                             ], color='primary',
                                 style={'width':'30rem', 'height':'33rem'}),
-                            width='auto'),
+                        width='auto'),
 
                         dbc.Col(
                             dbc.Card([
@@ -260,7 +259,7 @@ app.layout = html.Div([
                                 ])
                             ], color='primary',
                                 style={'width':'30rem', 'height':'33rem'}),
-                            width='auto')
+                        width='auto')
                     ], no_gutters=True),
 
                     html.Br(),
@@ -280,6 +279,7 @@ app.layout = html.Div([
                             ], color='primary',
                             style={'width':'30rem', 'height':'33rem'}),
                         width='auto'),
+                        
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
@@ -346,7 +346,7 @@ app.layout = html.Div([
                                     ],justify='center')
                                 ])
                             ], color='primary',
-                                style={'width':'60rem', 'height':'60rem'}),
+                                style={'width':'60rem', 'height':'48rem'}),
                     ], no_gutters=True)
                 ], style={'display':'none'})
 
@@ -362,7 +362,7 @@ app.layout = html.Div([
                                     #dbc.Col(html.H5("", className="card-title", style={'text-align':'center', 'color':'white'}), width='auto'),
                                     dbc.Col(dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='light')),
                                     dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'})),
-                                    dbc.Col(dbc.Button('Set Ref Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="mr-1", style={'margin-bottom':'5px', 'width':'145px'}), width='auto')
+                                    dbc.Col(dbc.Button('Set Ref Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="mr-1", style={'margin-bottom':'5px', 'width':'130px'}), width='auto')
                                 ],align='right'),
 
                                 dbc.Row([
@@ -371,7 +371,7 @@ app.layout = html.Div([
                                                 dl.LayerGroup(id='polyline-layer', children=[]),
                                                 dl.LayerGroup(id='marker-layer', children=[], attribution='off')], 
                                                 doubleClickZoom=False,
-                                                style={'display':'block', 'width':'593px', 'height':'450px'}))
+                                                style={'display':'block', 'width':'605px', 'height':'450px'}))
                                 ],justify='center'),
 
                                 dbc.Row([
@@ -379,7 +379,7 @@ app.layout = html.Div([
                                         dbc.CardBody([
                                             dbc.Row([
                                                 dbc.Col([
-                                                    dbc.Button('Start New Nominal Path', id='create-new-button', n_clicks=0, color='success',
+                                                    dbc.Button('Start New Nominal Path', id='create-new-button', n_clicks=0, color='success',# outline=True,
                                                         style={'display':'none'}), 
                                                 ], width=4),
                                                 dbc.Col([
@@ -421,11 +421,16 @@ app.layout = html.Div([
                 dbc.Row([
                     dbc.Card([
                         dbc.CardBody([
-                            dbc.Button('Update Speeds', id='update-speeds-button', n_clicks=0, color='light', style={'margin-left':'15px', 'display':'inline-block'}),
-                            dbc.Button('Add Rows', id='add-rows-button', n_clicks=0, color='light', style={'margin-left':'15px', 'display': 'inline-block'}),
-                            dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, 
-                                style={'margin-left': '10px', 'display':'none', 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),
-                            html.Div([dash_table.DataTable(
+                            dbc.Row([
+                                dbc.Col(dbc.Button('Update Speeds', id='update-speeds-button', n_clicks=0, color='light'),
+                                    width=3),
+                                dbc.Col(dbc.Button('Add Rows', id='add-rows-button', n_clicks=0, color='light'),
+                                    width=3),
+                                dbc.Col(dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, color='light', style={'display':'none'}),
+                                    width=3), #, 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),)
+                            ], align='right'),
+                            dbc.Row([
+                                html.Div([dash_table.DataTable(
                                     id = 'editable-table',
                                     columns = [
                                         {"name": 'Encounter ID', "id": 'encounter_id', 'editable': True, 'type':'numeric'},  # 'sortable': True
@@ -442,6 +447,8 @@ app.layout = html.Div([
                                     style_table={'width': '100px', 'display': "block"},
                                     style_cell={'fontSize':11})], 
                                 style={'margin-top':'10px'})
+                            ])
+
                         ]),
                     ], color='primary',
                        style={'width':'41rem', 'height':'30rem'})
@@ -547,28 +554,38 @@ app.layout = html.Div([
             
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
-                    dcc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05,
-                        style={"margin-left": "20px"}), #, "width": "50%"}),
-                    dcc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0,
-                        style={"margin-left": "10px"}), #, "width": "50%"}),
+                    dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                    dbc.Row([
+                        dbc.Col(dbc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05',
+                        debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
+                        width=2),
+                        dbc.Col(dbc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0',
+                        debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
+                        width=2)
+                    ], 
+                    no_gutters=True,
+                    style={'margin-left':'20px'})
+
                 ], style={"margin-left": "20px"})
             ], id='cov-diag-input-container', style={"display":"none"}, className  = 'row'),
 
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
-                    dcc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0,
-                        style={"margin-left": "20px"}), #, "width": "30%"}),
-                    dcc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0,
-                        style={"margin-left": "10px"}), #, "width": "30%"}),
-                    dcc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0,
-                        style={"margin-left": "10px"}), #, "width": "30%"}),
+                    dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                    dbc.Row([
+                        dbc.Col(dbc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a',
+                            debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
+                            width=2),
+                        dbc.Col(dbc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b',
+                            debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
+                            width=2),
+                        dbc.Col(dbc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c',
+                            debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
+                            width=2)
+                    ], 
+                    no_gutters=True,
+                    style={"margin-left": "20px"})
+
                 ], style={"margin-left": "20px"}),
             ], id='cov-exp-kernel-input-container', style={"display":"block"}, className  = 'row'), #, "margin-bottom":"10px"})
 
@@ -576,10 +593,10 @@ app.layout = html.Div([
             # number of encounter sets to generate
             html.Br(),
             dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
-            dcc.Input(id='num-encounters-input', type='text', placeholder='',
+            dbc.Input(id='num-encounters-input', type='text', placeholder='',
                 debounce=True,# value=100,
                 pattern=u"^(\d+)$",
-                style={"margin-left": "25px", "width": "40%"}),
+                style={"margin-left": "20px", "width": "40%"}),
             
             
             # generation progress bar
@@ -608,30 +625,30 @@ app.layout = html.Div([
             dbc.ModalHeader("Save Generated Encounter Set", style={'font-size':'1000px'}), # className='w-100'),
             html.Br(),
             html.Div([
-                dcc.Markdown(("""Select Files to Save: """), style={'font-size': '1.5em', "margin-left": "5px"}),
+                dcc.Markdown(("""Select Files to Save: """), style={'font-size': '1em', "margin-left": "5px"}),
                 dcc.Checklist(id='file-checklist', options=[
                     {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
                     {'label': 'Model (.json)', 'value': 'json-item'}],
                     value=['dat-item'],
                     inputStyle={"margin-right": "8px"},
-                    labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1.5em'},
+                    labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1em'},
                     style={"margin-left": "10px"}),
             ], style={"margin-left": "20px"}, className  = 'row'),
             html.Br(),
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1.5em"}),
+                    dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1em"}),
                     dcc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
                         debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
-                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
+                        style={"margin-left": "20px", "width": "70%", "font-size":"1em"}),
                 ], style={"margin-left": "20px"})
             ], id='save-dat-div', className  = 'row', style={'display':'none'}),
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1.5em", "margin-top":"5px"}),
+                    dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1em", "margin-top":"5px"}),
                     dcc.Input(id='save-json-filename', type='text', placeholder='filename.json',
                         debounce=True, pattern=u"\w+\.json", value='generation_model.json',
-                        style={"margin-left": "20px", "width": "70%", "font-size":"1.5em"}),
+                        style={"margin-left": "20px", "width": "70%", "font-size":"1em"}),
                 ], style={"margin-left": "20px", "margin-top":"15px"})
             ], id='save-json-div', className='row', style={'display':'none'}),
             html.Br(),
@@ -648,126 +665,8 @@ app.layout = html.Div([
         fade=True,
         style={"max-width": "none", "width": "50%"})
     ]),
-    
-    # # main tabs for navigating webpage
-    # html.Div([
-    #     dcc.Tabs(id="tabs",
-    #             children=[
-    #                 dcc.Tab(id='tab1', label='2d Graphs', value='tab-1'),
-    #                 dcc.Tab(id='tab2', label='3d Graph', value='tab-2'),
-    #                 dcc.Tab(id='tab3', label='Map', value='tab-3'),
-    #                 dcc.Tab(id='tab4', label='Log Histogram', value='tab-4'),
-    #             ],
-    #             value='tab-1'),
-    #     html.Div(id='tabs-content', children = None)
-    # ])
 
 
-
-    # # initialize tab-1 graphs
-    # html.Div(id = "tab-1-graphs", 
-    #          children=[
-    #              html.Div([
-    #                  html.Div(dcc.Graph(id='editable-graph-xy-slider', 
-    #                           figure=px.line(title='xEast vs yNorth'),
-    #                           style={'width': '490px', 'height': '500px', 'display':'inline-block', 'margin-left': "10px"}, 
-    #                           )),
-    #                  html.Div(dcc.Graph(id='editable-graph-tdistxy-slider', 
-    #                           figure=px.line(title='Time vs Horizontal Distance'),
-    #                           style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "70px"},
-    #                           )),
-    #                  html.Div(dcc.Graph(id='editable-graph-tspeedxy-slider', 
-    #                           figure=px.line(title='Time vs Horizontal Speed'), 
-    #                           style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "-40px"}, 
-    #                           ))
-    #              ], className='row'),
-                 
-    #              html.Div([
-    #                 html.Div(dcc.Graph(id='editable-graph-tz-slider', 
-    #                           figure=px.line(title='Time vs zUp'), 
-    #                           style={'width': '600px', 'height': '500px', 'display':'inline-block', 'margin-left': "10px"},
-    #                           className='six columns')),
-    #                 html.Div(dcc.Graph(id='editable-graph-tdistz-slider', 
-    #                           figure=px.line(title='Time vs Vertical Distance'), 
-    #                           style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "-40px"}, 
-    #                           className='two columns')),
-    #                 html.Div(dcc.Graph(id='editable-graph-tspeedz-slider', 
-    #                           figure=px.line(title='Time vs Vertical Speed'), 
-    #                           style={'width': '580px', 'height': '500px', 'display':'inline-block', 'margin-left': "-40px"}, 
-    #                           className='ten columns'))
-    #              ], className='row'),
-    #          ], style={'display': 'block'}),
-
-    # # initialize tab-2 graphs
-    # html.Div(id = 'tab-2-graphs', 
-    #         children=[
-    #             html.Div(dcc.Graph(id='editable-graph-xyz-slider', 
-    #                     figure=px.line_3d(title='xEast vs yNorth vs zUp')), 
-    #                     style={'width': '800px', 'height': '800px', 'margin-left':'10px'})
-    #         ], className='row'),
-
-    # # initialize tab-3 graphs
-    # html.Div(id = 'tab-3-graphs', 
-    #          children = [
-                # html.Div([dl.Map(id='map',
-                #         children=[
-                #             dl.TileLayer(), 
-                #             dl.LayerGroup(id='polyline-layer', children=[]),
-                #             dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
-                #         doubleClickZoom=False,
-    #                     style={'width': '1200px', 'height': '700px',
-    #                            'margin-left':'25px', 'margin-top':'15px', 'margin-bottom': '50px',
-    #                            'display':'inline-block'}),
-                
-    #             # reference point input
-    #             html.Div(id='map-info-div', children = [
-    #                 dcc.Input(id='ref-point-input', type='text', 
-    #                         placeholder='lat/lng/alt: 0.0/0.0/0.0',
-    #                         debounce=True,
-    #                         pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
-    #                         style={"margin-left": "15px", 'display':'inline-block'}),
-    #                 html.Button('Set Reference Point', id='set-ref-button', n_clicks=0,
-    #                         style={"margin-left": "15px", 'display':'inline-block'}),
-    #                 html.Button('Clear', id='clear-ref-button', n_clicks=0,
-    #                         style={"margin-left": "15px", 'display':'inline-block'}),
-                    # html.Div(id='ref-point-output', children=[],
-                    #         style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1.2em'}),
-    #                 html.Br(), html.Hr(style={'margin-left':'15px'}), html.Br(),
-
-    #                 html.Button('Start New Nominal Path', id='create-new-button', n_clicks=0,
-    #                             style={"margin-left": "15px", "margin-bottom":"10px", 'color': 'green','display':'none'}), 
-
-                    # html.Div(id='create-mode-nom-path-div', children=[
-                    #     # dcc.Input(id="encounter-index", type="number", placeholder="Enter encounter ID", debounce=False, min=1, 
-                    #     #         style={"margin-left": "15px", "margin-bottom":"10px", 'display':'none'}),
-                    #     html.Div(id='ac-input-title', children='Input AC ID:',
-                    #         style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
-                    #     dcc.Input(id="ac-index", type="number", placeholder="AC ID", debounce=False, min=1, 
-                    #             style={"margin-left": "15px", 'margin-top':'5px'}),#, "margin-bottom":"10px"}),#, 'display':'none'}),
-                    #     html.Div(id='time-interval-title', children='Set Time Interval (s):',
-                    #         style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
-                    #     dcc.Input(id='time-interval-input', type='number', placeholder='1.0s',
-                    #         debounce=True, pattern=u"^(\d+\.?\d?)$", value=1.0,
-                    #         style={'margin-left': '15px', 'margin-top':'5px'}), #,'display':'none'}),
-                    #     # html.Div(id='interval-units', children='s',
-                    #     #     style={"margin-left": "5px", "margin-top": "15px", 'font-size': '1em', 'display':'inline-block'}),
-                    #     html.Div(id='zUp-title', children='Set zUp (ft):',
-                    #         style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
-                    #     dcc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
-                    #         debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0,
-                    #         style={'margin-left': '15px', 'margin-top':'5px'}),#,'display':'none'}),
-                    #     html.Button('Save Nominal Path', id='end-new-button', n_clicks=0,
-                    #             style={"margin-left": "15px", "margin-top":"15px", "margin-bottom":"10px", 'color': 'green', 'display':'block'})
-                    # ], style={"margin-left": "1px", 'display':'none'}),
-
-                    
-    #             ], style={'display':'inline-block', 'margin-top':'15px'}),
-
-                
-
-    #             ], className='row'),
-
-    #          ], style={'display': 'block'}),
 
     # # initialize tab-4 graphs
     # html.Div(id = 'tab-4-graphs', 
@@ -803,39 +702,6 @@ app.layout = html.Div([
         no_gutters=True), 
         fluid=True
     ),
-    # html.Div([
-    #     html.Div(id='slider-drag-output', children='Time: ',
-    #         style={'margin-left':'35px', 'margin-right': '15px', 'font-size': 15}),
-    #     html.Div([dcc.Slider(id='slider', value=0, step=1) #, #marks=?
-    #              ], id='slider-container', style={'width': '800px'})
-    # ], style={'margin-bottom':'10px'}, className='row'), #style={'justifyContent':'center'}, 
-
-
-    
-    # # # style
-    # html.Br(), html.Br(),
-    
-    # # # waypoints data table
-    # html.Div([
-    #     dash_table.DataTable(
-    #         id = 'editable-table',
-    #         columns = [
-    #             {"name": 'encounter_id', "id": 'encounter_id', 'editable': True, 'type':'numeric'},  # 'sortable': True
-    #             {"name": 'ac_id', "id": 'ac_id', 'editable': True, 'type':'numeric'},
-    #             {"name": 'time', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-    #             {"name": 'xEast', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-    #             {"name": 'yNorth', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-    #             {"name": 'zUp', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
-    #             {"name": 'horizontal_speed', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-    #             {"name": 'vertical_speed', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
-    #         editable = True,
-    #         row_deletable = True,
-    #         style_table={'width': '1000px', 'display': "block"}), 
-    #     html.Button('Update Speeds', id='update-speeds-button', n_clicks=0, style={'margin-left':'15px', 'display':'block'}),
-    #     html.Button('Add Rows', id='add-rows-button', n_clicks=0, style={'margin-left':'15px', 'display': 'block'}),
-    #     html.Button('DONE', id='done-add-rows-button', n_clicks=0, 
-    #         style={'margin-left': '10px', 'display':'none', 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'})
-    # ], className='row', style={'margin-left':'12px'}),
 
     # style
     html.Br(), html.Br(),
@@ -918,13 +784,13 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
             t_value = np.min(np.array(min_values_list), axis=0)[0]
 
         # plot 2D/3D slider graphs
-        fig_xy = px.line(title='xEast vs yNorth')
-        fig_tz = px.line(title='Time vs zUp')
-        fig_tspeedxy = px.line(title='Time vs Horizontal Speed')
-        fig_tspeedz = px.line(title='Time vs Vertical Speed')
-        fig_xyz = px.line_3d(title='xEast vs yNorth vs zUp')
-        fig_tdistxy = px.line(title='Time vs Horizontal Distance')
-        fig_tdistz = px.line(title='Time vs Vertical Distance')
+        fig_xy = px.line()#title='xEast vs yNorth')
+        fig_tz = px.line()#title='Time vs zUp')
+        fig_tspeedxy = px.line()#title='Time vs Horizontal Speed')
+        fig_tspeedz = px.line()#title='Time vs Vertical Speed')
+        fig_xyz = px.line_3d()#title='xEast vs yNorth vs zUp')
+        fig_tdistxy = px.line()#title='Time vs Horizontal Distance')
+        fig_tdistz = px.line()#title='Time vs Vertical Distance')
     
         df_x = None; df_y = None
         for i, ac_id in enumerate(ac_ids_selected):
@@ -976,22 +842,28 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
 
         min_values = np.min(np.array(min_values_list), axis=0)
         max_values = np.max(np.array(max_values_list), axis=0)
+
+        margin = dict(l=50, r=20, b=50, t=20, pad=0)
     
         fig_xy.update_layout(# title_font_family="Times New Roman",
             xaxis_title = 'xEast (NM)', xaxis_range = [min(min_values[1],min_values[2])-0.2, 
                                                        max(max_values[1], max_values[2])+0.2],
             yaxis_title = 'yNorth (NM)', yaxis_range = [min(min_values[1],min_values[2])-0.2, 
                                                        max(max_values[1], max_values[2])+0.2],
-            width=490)        
+            #width=490,
+            margin=margin)        
         fig_tz.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
-            yaxis_title='zUp (ft)', yaxis_range=[min_values[3]-50, max_values[3]+50])
+            yaxis_title='zUp (ft)', yaxis_range=[min_values[3]-50, max_values[3]+50],
+            margin=margin)
         fig_tspeedxy.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
-            yaxis_title='Speed (kt)', yaxis_range=[min_values[4]-10, max_values[4]+10])
+            yaxis_title='Speed (kt)', yaxis_range=[min_values[4]-10, max_values[4]+10],
+            margin=margin)
         fig_tspeedz.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
-            yaxis_title='Speed (ft/s)', yaxis_range=[min_values[5]-5, max_values[5]+5])
+            yaxis_title='Speed (ft/s)', yaxis_range=[min_values[5]-5, max_values[5]+5],
+            margin=margin)
         fig_xyz.update_layout(
             scene = {'xaxis': {'title':'xEast (NM)', 
                                'range':[min(min_values[1],min_values[2])-0.2, max(max_values[1], max_values[2])+0.2]},
@@ -999,13 +871,15 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
                               'range':[min(min_values[1],min_values[2])-0.2, max(max_values[1], max_values[2])+0.2]},
                     'zaxis': {'title':'zUp (ft)',
                               'range':[min_values[3]-50, max_values[3]+50]}},
-            width=800, height=800, margin=dict(l=0, r=0, b=50, t=100, pad=0))
+            width=920, height=700, margin=dict(l=0, r=0, b=30, t=20, pad=0))
         fig_tdistxy.update_layout(
             xaxis_title = 'Time (s)', 
-            yaxis_title = 'Distance (NM)'),
+            yaxis_title = 'Distance (NM)',
+            margin=margin),
         fig_tdistz.update_layout(
             xaxis_title = 'Time (s)', 
-            yaxis_title = 'Distance (ft)'),
+            yaxis_title = 'Distance (ft)',
+            margin=margin),
 
         return 'Time: {} (s)'.format(t_value), t_value, fig_xy, fig_tz, fig_tspeedxy, fig_tspeedz, fig_xyz, fig_tdistxy, fig_tdistz, min_values[0], max_values[0]
 
@@ -1428,12 +1302,12 @@ def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start
 
 # ##########################################################################################
 # ##########################################################################################
-@app.callback(Output('tabs', 'value'),
-              Input('create-mode', 'n_clicks'))
-def creative_mode_switch_tabs(n_clicks):
-    if n_clicks > 0:
-        return 'tab-3'
-    return dash.no_update
+# @app.callback(Output('tabs', 'value'),
+#               Input('create-mode', 'n_clicks'))
+# def creative_mode_switch_tabs(n_clicks):
+#     if n_clicks > 0:
+#         return 'tab-3'
+    # return dash.no_update
     
     
 # @app.callback([Output('tab1','disabled'),
