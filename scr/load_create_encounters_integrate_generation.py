@@ -356,14 +356,19 @@ app.layout = html.Div([
             # map, create mode & data table
             dbc.Col([
                 dbc.Row([
-                        dbc.Card([
+                        dbc.Card(id='map-create-card', children=[
                             dbc.CardBody([
                                 dbc.Row([
                                     #dbc.Col(html.H5("", className="card-title", style={'text-align':'center', 'color':'white'}), width='auto'),
-                                    dbc.Col(dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='light')),
-                                    dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'})),
-                                    dbc.Col(dbc.Button('Set Ref Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="mr-1", style={'margin-bottom':'5px', 'width':'130px'}), width='auto')
-                                ],align='right'),
+                                    dbc.Col(dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='light'),
+                                        width={'size':'auto'}),
+                                    dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'}),
+                                        width={'size':3, 'offset':0}),
+                                    dbc.Col(dbc.Button('Set Ref Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="mr-1", style={'margin-bottom':'5px', 'width':'130px'}), 
+                                        width={'size':'auto', 'offset':3})
+                                ], 
+                                align='left',
+                                no_gutters=True),
 
                                 dbc.Row([
                                     dbc.Col(dl.Map(id='map', children=[
@@ -376,6 +381,8 @@ app.layout = html.Div([
 
                                 dbc.Row([
                                     dbc.Card(id='create-mode-card', children=[
+                                        html.H5("CREATE MODE", className="card-title", style={'text-align':'center', 'color':'primary', 'margin-top':'5px'}),
+                                        html.Hr(),
                                         dbc.CardBody([
                                             dbc.Row([
                                                 dbc.Col([
@@ -407,12 +414,12 @@ app.layout = html.Div([
                                             ])
                                         ])
                                     ], color='light',
-                                    style={'width':'38rem', 'height':'15rem', 'margin-left':'15px', 'margin-top':'15px'})
+                                       style={'width':'38rem', 'height':'17rem', 'margin-left':'15px', 'margin-top':'15px', 'display':'none'})
                                 ], align='center')
                             ]),
                         ],
                         color='primary',
-                        style={'width':'41rem', 'height':'50rem'})
+                        style={'width':'41rem', 'height':'33rem'})
                 ]),
 
                 html.Br(),
@@ -428,24 +435,27 @@ app.layout = html.Div([
                                     width=3),
                                 dbc.Col(dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, color='light', style={'display':'none'}),
                                     width=3), #, 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),)
-                            ], align='right'),
+                            ], 
+                            align='right',
+                            no_gutters=True),
+
                             dbc.Row([
                                 html.Div([dash_table.DataTable(
                                     id = 'editable-table',
                                     columns = [
-                                        {"name": 'Encounter ID', "id": 'encounter_id', 'editable': True, 'type':'numeric'},  # 'sortable': True
+                                      #{"name": 'Encounter ID', "id": 'encounter_id', 'editable': True, 'type':'numeric'},  # 'sortable': True
                                         {"name": 'AC ID', "id": 'ac_id', 'editable': True, 'type':'numeric'},
-                                        {"name": 'Time (s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'xEast (NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'yNorth (NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'zUp (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'Horizontal Speed', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'Vertical Speed', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
+                                        {"name": 'Time\n(s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                        {"name": 'xEast\n(NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                        {"name": 'yNorth\n(NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                        {"name": 'zUp\n(ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                        {"name": 'Horizontal Speed\n(kt/s)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                        {"name": 'Vertical Speed\n(kt/s)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
                                     editable = True,
                                     row_deletable = True,
                                     data=[], #{'encounter_id':None, 'ac_id':None, 'time':None, 'xEast':None, 'yNorth':None, 'zUp':None, 'horizontal_speed':None, 'vertical_speed':None}],
-                                    style_table={'width': '100px', 'display': "block"},
-                                    style_cell={'fontSize':11})], 
+                                    style_table={'width': '630px', 'display': "block", 'margin-left':'10px'},
+                                    style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
                                 style={'margin-top':'10px'})
                             ])
 
@@ -978,9 +988,6 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                       create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, interval, zUp_input, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    # print('\n--update_data_table--')
-    # print('ctx: ', ctx)
-
     if ctx == 'load-waypoints' and upload_n_clicks > 0:
         return [], columns
         
@@ -1091,7 +1098,7 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                Input('tabs','value')]) 
 def toggle_data_table_buttons(add_rows_n_clicks, done_add_rows_n_clicks, active_tab):
 
-    table_on = {'width': '1000px', 'margin-left': "15px", 'display': "block"}
+    table_on = {'width': '630px', 'margin-left': "10px", 'display': "block"}
     speeds_button_on = {'margin-left':'15px', 'display':'block'}
     add_row_button_on = {'margin-left':'15px', 'display': 'block'}
     done_button_on = {'margin-left':'10px', 'display':'block', 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}
@@ -1336,7 +1343,9 @@ def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start
                Output('create-new-button', 'style'),
                Output('exit-create-mode', 'style'),
                Output('create-mode-nom-path-div', 'style'),
-               Output('end-new-button', 'style')],
+               Output('end-new-button', 'style'),
+               Output('create-mode-card', 'style'),
+               Output('map-create-card', 'style')],
               [Input('load-waypoints-button', 'n_clicks'),
                Input('create-mode', 'n_clicks'), 
                Input('exit-create-mode', 'n_clicks'),
@@ -1345,8 +1354,10 @@ def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start
               [State('create-new-button', 'style'),
                State('exit-create-mode', 'style'),
                State('create-mode-nom-path-div', 'style'),
-               State('end-new-button', 'style')])
-def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, start_new_style, exit_create_style, create_mode_div_style, end_new_style):
+               State('end-new-button', 'style'),
+               State('create-mode-card', 'style'),
+               State('map-create-card', 'style')])
+def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, start_new_style, exit_create_style, create_mode_div_style, end_new_style, create_card_style, map_create_style):
     reset_create_clicks, reset_exit_create_clicks = create_n_clicks, exit_create_n_clicks
     reset_start_new_clicks, reset_end_new_clicks = start_new_n_clicks, end_new_n_clicks
 
@@ -1355,6 +1366,9 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
         if ctx == 'create-mode':
             reset_exit_create_clicks = 0 
             exit_create_style['display'], start_new_style['display'] = 'block', 'block'
+            create_card_style['display'] = 'block'
+            map_create_style['height']  = '51rem'
+            
             # exit_create_style['display'] = 'block'
 
         if ctx == 'create-new-button' and start_new_n_clicks > 0:
@@ -1363,6 +1377,8 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
             # interval_style['display'], zUp_style['display'] = 'block', 'block'
             create_mode_div_style['display'] = 'block'
             end_new_style['display'] = 'block'
+            create_card_style['display'] = 'block'
+            #map_create_style['height']  = '50rem'
             
         if ctx == 'end-new-button' and end_new_n_clicks > 0:
             reset_start_new_clicks = 0
@@ -1370,6 +1386,8 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
             # interval_style['display'], zUp_style['display'] = 'none', 'none'
             create_mode_div_style['display'] = 'none'
             end_new_style['display'] = 'none'
+            #create_card_style['display'] = 'none'
+            #map_create_style['height']  = '33rem'
             
         if ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
             reset_create_clicks = 0
@@ -1379,6 +1397,8 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
             start_new_style['display'], exit_create_style['display'] = 'none', 'none'
             create_mode_div_style['display'] = 'none'
             end_new_style['display'] = 'none'
+            create_card_style['display'] = 'none'
+            map_create_style['height']  = '33rem'
             
             
         if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
@@ -1389,8 +1409,11 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
             start_new_style['display'], exit_create_style['display'] = 'none', 'none'
             create_mode_div_style['display'] = 'none'
             end_new_style['display'] = 'none'
+            create_card_style['display'] = 'none'
+            map_create_style['height']  = '33rem'
             
-    return reset_create_clicks, reset_exit_create_clicks, reset_start_new_clicks, reset_end_new_clicks, start_new_style, exit_create_style, create_mode_div_style, end_new_style
+    return reset_create_clicks, reset_exit_create_clicks, reset_start_new_clicks, reset_end_new_clicks,\
+            start_new_style, exit_create_style, create_mode_div_style, end_new_style, create_card_style, map_create_style
 
 
 @app.callback(Output('ac-index', 'value'),
