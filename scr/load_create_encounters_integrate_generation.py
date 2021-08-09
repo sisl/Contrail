@@ -1,5 +1,6 @@
 from logging import error, lastResort
 from types import new_class
+from typing import Container
 import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
@@ -67,6 +68,15 @@ colors = {
             'header':'#004e64'
 
             }
+
+
+two_d_graph_layout = go.Layout(margin=go.layout.Margin(
+                                                    l=0, #left margin
+                                                    r=0, #right margin
+                                                    b=0, #bottom margin
+                                                    t=0 #top margin
+    )
+)
 
 load_save_row = dbc.Row([
                     dbc.Col(dcc.Upload(id='load-waypoints', children = 
@@ -199,8 +209,8 @@ app.layout = html.Div([
                             dbc.Col(dcc.Graph(id='editable-graph-xy-slider', figure=px.line()))
                         ],justify='center')
                     ])
-                ], color='primary')
-            ),
+                ], color='primary'),
+            width=4, style={'height':'450px'}),
             dbc.Col(
                 dbc.Card([
                     dbc.CardBody([
@@ -212,21 +222,40 @@ app.layout = html.Div([
                             dbc.Col(dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line()))
                         ],justify='center')
                     ])
-                ], color='primary')
-            ),
+                ], color='primary'),
+            width=4),
+            # dbc.Col(
+            #     dbc.Card([
+            #         dbc.CardBody([
+            #             dbc.Row([
+            #                 dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title", style={'text-align':'center', 'color':'white'}))
+            #             ],justify='center'),
+
+            #             dbc.Row([
+            #                 dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
+            #             ],justify='center')
+            #         ])
+            #     ], color='primary')
+            # )
             dbc.Col(
                 dbc.Card([
                     dbc.CardBody([
                         dbc.Row([
-                            dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title", style={'text-align':'center', 'color':'white'}))
-                        ],justify='center'),
+                            dbc.Col(html.H5("", className="card-title", style={'text-align':'center', 'color':'white'}), width=8),
+                            dbc.Col(dbc.Button('Set Ref Point', id='set-ref-point', n_clicks=0, outline=False, color="light", className="mr-1", style={'margin-bottom':'5px', 'width':'145px'}), width=3)
+                        ],align='right'),
 
                         dbc.Row([
-                            dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
+                            dbc.Col(dl.Map(id='map', children=[
+                                        dl.TileLayer(), 
+                                        dl.LayerGroup(id='polyline-layer', children=[]),
+                                        dl.LayerGroup(id='marker-layer', children=[], attribution='off')], 
+                                        doubleClickZoom=False,
+                                        style={'display':'block', 'width':'490px', 'height':'450px'}))
                         ],justify='center')
                     ])
-                ], color='primary')
-            )
+                ], color='primary'),
+            width=4)
         ]),
     ], fluid=True),
 
@@ -246,8 +275,8 @@ app.layout = html.Div([
                             dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns'))
                         ],justify='center')
                     ])
-                ], color='primary')
-            ),
+                ], color='primary'),
+            width=4),
             dbc.Col(
                 dbc.Card([
                     dbc.CardBody([
@@ -259,8 +288,42 @@ app.layout = html.Div([
                             dbc.Col(dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns'))
                         ],justify='center')
                     ])
-                ], color='primary')
-            ),
+                ], color='primary'),
+            width=4)
+            # dbc.Col(
+            #     dbc.Card([
+            #         dbc.CardBody([
+            #             dbc.Row([
+            #                 dbc.Col(html.H5("Time vs Vertical Speed", className="card-title", style={'text-align':'center', 'color':'white'}))
+            #             ],justify='center'),
+
+            #             dbc.Row([
+            #                 dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
+            #             ],justify='center')
+            #         ])
+            #     ], color='primary')
+            # )
+        ]),
+    ], fluid=True),
+
+    html.Br(),
+
+    dbc.Container([
+        dbc.Row([
+            #dbc.Col(width=2),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        dbc.Row([
+                            dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title", style={'text-align':'center', 'color':'white'}))
+                        ],justify='center'),
+
+                        dbc.Row([
+                            dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
+                        ],justify='center')
+                    ])
+                ], color='primary'),
+            width=4),
             dbc.Col(
                 dbc.Card([
                     dbc.CardBody([
@@ -272,10 +335,12 @@ app.layout = html.Div([
                             dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
                         ],justify='center')
                     ])
-                ], color='primary')
-            )
+                ], color='primary'),
+            width=4)
         ]),
     ], fluid=True),
+
+
 
     # dbc.Card(
     #     dbc.CardBody([
@@ -531,12 +596,12 @@ app.layout = html.Div([
     # # initialize tab-3 graphs
     # html.Div(id = 'tab-3-graphs', 
     #          children = [
-    #             html.Div([dl.Map(id='map',
-    #                     children=[
-    #                         dl.TileLayer(), 
-    #                         dl.LayerGroup(id='polyline-layer', children=[]),
-    #                         dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
-    #                     doubleClickZoom=False,
+                # html.Div([dl.Map(id='map',
+                #         children=[
+                #             dl.TileLayer(), 
+                #             dl.LayerGroup(id='polyline-layer', children=[]),
+                #             dl.LayerGroup(id='marker-layer', children=[], attribution='off')],
+                #         doubleClickZoom=False,
     #                     style={'width': '1200px', 'height': '700px',
     #                            'margin-left':'25px', 'margin-top':'15px', 'margin-bottom': '50px',
     #                            'display':'inline-block'}),
@@ -609,14 +674,25 @@ app.layout = html.Div([
     #             ], className='row') #, style={'margin-left':'20px'})
     #          ], style={'display': 'block'}),
 
+    html.Br(),
     
     # slider bar
+    dbc.Container(
+        dbc.Row([
+            dbc.Col([
+                html.Div(id='slider-drag-output', children='Time: ', style={'margin-left':'35px', 'margin-right': '15px', 'font-size': 15}),
+                html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
+            ], width={'size':3, 'order':1, 'offset':0})
+            ], align='left'
+        )
+    ),
     # html.Div([
     #     html.Div(id='slider-drag-output', children='Time: ',
     #         style={'margin-left':'35px', 'margin-right': '15px', 'font-size': 15}),
     #     html.Div([dcc.Slider(id='slider', value=0, step=1) #, #marks=?
     #              ], id='slider-container', style={'width': '800px'})
     # ], style={'margin-bottom':'10px'}, className='row'), #style={'justifyContent':'center'}, 
+
 
     
     # # # style
@@ -818,72 +894,72 @@ def interpolate_df_time(df, ac_ids_selected):
 
 
 # ##########################################################################################
-# ##########################################################################################
-# def parse_contents(contents, filename):
-#     content_type, content_string = contents.split(',')
-#     decoded = base64.b64decode(content_string)
-#     if '.dat' in filename:
-#         [encounters, num_ac, num_encounters] = load_waypoints(filename)
-#         encounters_df = waypoints_to_df(encounters, num_encounters, num_ac)
-#         return encounters_df
+##########################################################################################
+def parse_contents(contents, filename):
+    content_type, content_string = contents.split(',')
+    decoded = base64.b64decode(content_string)
+    if '.dat' in filename:
+        [encounters, num_ac, num_encounters] = load_waypoints(filename)
+        encounters_df = waypoints_to_df(encounters, num_encounters, num_ac)
+        return encounters_df
        
     
-# @app.callback(Output('memory-data', 'data'),
-#               [Input('load-waypoints-button', 'n_clicks'),
-#                Input('load-waypoints', 'contents'),
-#                Input('create-mode', 'n_clicks'),
-#                Input('end-new-button', 'n_clicks'),
-#                Input('exit-create-mode', 'n_clicks'),
-#                Input('generated-encounters', 'data'),
-#                Input('load-model', 'contents')],
-#               [State('load-waypoints', 'filename'),
-#                State('editable-table', 'data')])
-# def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks, exit_create_n_clicks, generated_data, model_contents, filename, data):
-#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+@app.callback(Output('memory-data', 'data'),
+              [Input('load-waypoints-button', 'n_clicks'),
+               Input('load-waypoints', 'contents'),
+               Input('create-mode', 'n_clicks'),
+               Input('end-new-button', 'n_clicks'),
+               Input('exit-create-mode', 'n_clicks'),
+               Input('generated-encounters', 'data'),
+               Input('load-model', 'contents')],
+              [State('load-waypoints', 'filename'),
+               State('editable-table', 'data')])
+def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks, exit_create_n_clicks, generated_data, model_contents, filename, data):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-#     if ctx == 'create-mode' and create_n_clicks > 0:
-#         return [{}]
-#     elif ctx == 'end-new-button' and end_new_n_clicks > 0:  ## NEED TO FIX (ctx == 'exit-create-mode' ?)
-#         return data  ## NEED TO FIX
+    if ctx == 'create-mode' and create_n_clicks > 0:
+        return [{}]
+    elif ctx == 'end-new-button' and end_new_n_clicks > 0:  ## NEED TO FIX (ctx == 'exit-create-mode' ?)
+        return data  ## NEED TO FIX
     
-#     # elif ctx == 'load-waypoints-button' and upload_n_clicks > 0:
-#     #     return [{}]
-#     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
-#         if waypoints_contents is None or not filename:
-#             return [{}]
+    # elif ctx == 'load-waypoints-button' and upload_n_clicks > 0:
+    #     return [{}]
+    elif ctx == 'load-waypoints' and upload_n_clicks > 0:
+        if waypoints_contents is None or not filename:
+            return [{}]
 
-#         df = parse_contents(waypoints_contents, filename) 
+        df = parse_contents(waypoints_contents, filename) 
 
-#         if 0 in set(df['encounter_id']):
-#             df['encounter_id'] += 1
-#         if 0 in set(df['ac_id']):
-#             df['ac_id'] += 1
+        if 0 in set(df['encounter_id']):
+            df['encounter_id'] += 1
+        if 0 in set(df['ac_id']):
+            df['ac_id'] += 1
         
-#         df['xEast'] = df['xEast'] * FT_TO_NM  #np.around(df['xEast'] * FT_TO_NM, decimals=4)
-#         df['yNorth'] = df['yNorth'] * FT_TO_NM  #np.around(df['yNorth'] * FT_TO_NM, decimals=4)
-#         return df.to_dict('records')
+        df['xEast'] = df['xEast'] * FT_TO_NM  #np.around(df['xEast'] * FT_TO_NM, decimals=4)
+        df['yNorth'] = df['yNorth'] * FT_TO_NM  #np.around(df['yNorth'] * FT_TO_NM, decimals=4)
+        return df.to_dict('records')
 
-#     elif ctx == 'generated-encounters':
-#         if data is not None:
-#             return generated_data
+    elif ctx == 'generated-encounters':
+        if data is not None:
+            return generated_data
 
-#     elif ctx == 'load-model':
-#         if model_contents is not None:
-#             content_type, content_string = model_contents.split(',')
+    elif ctx == 'load-model':
+        if model_contents is not None:
+            content_type, content_string = model_contents.split(',')
         
-#             if 'json' in content_type:
-#                 data = []
-#                 model = json.loads(base64.b64decode(content_string))
-#                 mean = model['mean']
-#                 for ac in range(1, mean['num_ac']+1):
-#                     ac_traj = mean[str(ac)]['waypoints']
-#                     for waypoint in ac_traj:
-#                         data += [{'encounter_id':0, 'ac_id': ac, 'time':waypoint['time'], 
-#                                  'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'],
-#                                  'zUp':waypoint['zUp'], 'horizontal_speed':0, 'vertical_speed':0}]  ##NEED CHANGE : speeds
-#                 return data
+            if 'json' in content_type:
+                data = []
+                model = json.loads(base64.b64decode(content_string))
+                mean = model['mean']
+                for ac in range(1, mean['num_ac']+1):
+                    ac_traj = mean[str(ac)]['waypoints']
+                    for waypoint in ac_traj:
+                        data += [{'encounter_id':0, 'ac_id': ac, 'time':waypoint['time'], 
+                                 'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'],
+                                 'zUp':waypoint['zUp'], 'horizontal_speed':0, 'vertical_speed':0}]  ##NEED CHANGE : speeds
+                return data
 
-#     return dash.no_update
+    return dash.no_update
 
 
 # @app.callback([Output('editable-table', 'data'),
