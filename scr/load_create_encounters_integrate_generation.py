@@ -138,6 +138,7 @@ app.layout = html.Div([
 
     html.Br(),
 
+    #load waypoints, gen and save buttons
     dbc.Container(
         dbc.Row([
             dbc.Col(
@@ -163,24 +164,10 @@ app.layout = html.Div([
 
     ),
 
-
     html.Br(),
 
-    # dbc.Container(
-    #     dbc.Row([
-    #         # dbc.Col(dbc.Button('Create Mode', id='create-mode', n_clicks=0, style={'margin-left':'15px'}),
-    #         #         width={"size": 'auto', "order": 1}),
 
-    #         dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'}),
-    #                 width={"size": 'auto', "order": 1})
-    #         ],
-    #         align='start'
-    #     ),
-    #     fluid=True,
-    # ),
-
-    # html.Br(),
-
+    # Encounter and AC ID dropdown menus
     dbc.Container(
         dbc.Row([
             dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID", multi=False), #, style={'margin-left':'4px'}),
@@ -229,8 +216,7 @@ app.layout = html.Div([
                 
                 html.Div(id='tab-1-graphs', children= [
                         
-                    dbc.Row([
-                        
+                    dbc.Row([ 
                         dbc.Col(
                             dbc.Card([
                                 dbc.CardBody([
@@ -348,121 +334,198 @@ app.layout = html.Div([
                             ], color='primary',
                                 style={'width':'60rem', 'height':'48rem'}),
                     ], no_gutters=True)
-                ], style={'display':'none'})
+                ], style={'display':'none'}),
 
+                html.Div(id='tab-4-graphs', children=[
+                    dbc.Row([
+                        dbc.Col(
+                            dbc.Card([
+                                dbc.CardBody([
+                                    dbc.Row([
+                                        dbc.Col(html.H5("AC 1: xEast vs yNorth", className="card-title", style={'text-align':'center', 'color':'white'}))
+                                    ],justify='center'),
+
+                                    dbc.Row([
+                                        dbc.Col(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())) #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]}
+                                    ],justify='center')
+                                ])
+                            ], color='primary',
+                            style={'width':'30rem', 'height':'33rem'}),
+                        width='auto'),
+
+                        dbc.Col(
+                            dbc.Card([
+                                dbc.CardBody([
+                                    dbc.Row([
+                                        dbc.Col(html.H5("AC 1: Time vs zUp", className="card-title", style={'text-align':'center', 'color':'white'}))
+                                    ],justify='center'),
+
+                                    dbc.Row([
+                                        dbc.Col(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap()))
+                                    ],justify='center')
+                                ])
+                            ], color='primary',
+                            style={'width':'30rem', 'height':'33rem'}),
+                        width='auto')
+
+                    ], no_gutters=True),
+
+                    html.Br(),
+
+                    dbc.Row([
+                        dbc.Col(
+                            dbc.Card([
+                                dbc.CardBody([
+                                    dbc.Row([
+                                        dbc.Col(html.H5("AC 2: xEast vs yNorth", className="card-title", style={'text-align':'center', 'color':'white'}))
+                                    ],justify='center'),
+
+                                    dbc.Row([
+                                        dbc.Col(dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())) #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
+                                    ],justify='center')
+                                ])
+                            ], color='primary',
+                            style={'width':'30rem', 'height':'33rem'}),
+                        width='auto'),
+
+                        dbc.Col(
+                            dbc.Card([
+                                dbc.CardBody([
+                                    dbc.Row([
+                                        dbc.Col(html.H5("AC 2: Time vs zUp", className="card-title", style={'text-align':'center', 'color':'white'}))
+                                    ],justify='center'),
+
+                                    dbc.Row([
+                                        dbc.Col(dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap()))
+                                    ],justify='center')
+                                ])
+                            ], color='primary',
+                            style={'width':'30rem', 'height':'33rem'}),
+                        width='auto')
+
+                    ], no_gutters=True)
+
+                ], style={'display':'none'})
 
             ], width='auto'),
 
             # map, create mode & data table
+            
             dbc.Col([
-                dbc.Row([
-                        dbc.Card(id='map-create-card', children=[
-                            dbc.CardBody([
-                                dbc.Row([
-                                    #dbc.Col(html.H5("", className="card-title", style={'text-align':'center', 'color':'white'}), width='auto'),
-                                    dbc.Col(dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='light'),
-                                        width={'size':'auto'}),
-                                    dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'}),
-                                        width={'size':3, 'offset':0}),
-                                    dbc.Col(dbc.Button('Set Ref Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="mr-1", style={'margin-bottom':'5px', 'width':'130px'}), 
-                                        width={'size':'auto', 'offset':3})
-                                ], 
-                                align='left',
-                                no_gutters=True),
+                html.Div(id='map-create-mode-div', children=[
+                    dbc.Row([
+                            dbc.Card(id='map-create-card', children=[
+                                dbc.CardBody([
+                                    dbc.Row([
+                                        #dbc.Col(html.H5("", className="card-title", style={'text-align':'center', 'color':'white'}), width='auto'),
+                                        dbc.Col(dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='light'),
+                                            width={'size':'auto'}),
+                                        dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'}),
+                                            width={'size':3, 'offset':0}),
+                                        dbc.Col(dbc.Button('Set Ref Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="mr-1", style={'margin-bottom':'5px', 'width':'130px'}), 
+                                            width={'size':'auto', 'offset':3})
+                                    ], 
+                                    align='left',
+                                    no_gutters=True),
 
-                                dbc.Row([
-                                    dbc.Col(dl.Map(id='map', children=[
-                                                dl.TileLayer(), 
-                                                dl.LayerGroup(id='polyline-layer', children=[]),
-                                                dl.LayerGroup(id='marker-layer', children=[], attribution='off')], 
-                                                doubleClickZoom=False,
-                                                style={'display':'block', 'width':'605px', 'height':'450px'}))
-                                ],justify='center'),
+                                    dbc.Row([
+                                        dbc.Col(dl.Map(id='map', children=[
+                                                    dl.TileLayer(), 
+                                                    dl.LayerGroup(id='polyline-layer', children=[]),
+                                                    dl.LayerGroup(id='marker-layer', children=[], attribution='off')], 
+                                                    doubleClickZoom=False,
+                                                    style={'display':'block', 'width':'605px', 'height':'450px'}))
+                                    ],justify='center'),
 
-                                dbc.Row([
-                                    dbc.Card(id='create-mode-card', children=[
-                                        html.H5("CREATE MODE", className="card-title", style={'text-align':'center', 'color':'primary', 'margin-top':'5px'}),
-                                        html.Hr(),
-                                        dbc.CardBody([
-                                            dbc.Row([
-                                                dbc.Col([
-                                                    dbc.Button('Start New Nominal Path', id='create-new-button', n_clicks=0, color='success',# outline=True,
-                                                        style={'display':'none'}), 
-                                                ], width=4),
-                                                dbc.Col([
-                                                    html.Div(id='create-mode-nom-path-div', children=[
-                                                        html.Div(id='ac-input-title', children='Input AC ID:'),
-                                                            #style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
-                                                        dbc.Input(id="ac-index", type="number", placeholder="AC ID", debounce=False, min=1), 
-                                                                #style={"margin-left": "15px", 'margin-top':'5px'}),#, "margin-bottom":"10px"}),#, 'display':'none'}),
-                                                        html.Div(id='time-interval-title', children='Set Time Interval (s):'),
-                                                            #style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
-                                                        dbc.Input(id='time-interval-input', type='number', placeholder='1.0s',
-                                                            debounce=True, pattern=u"^(\d+\.?\d?)$", value=1.0),
-                                                            #style={'margin-left': '15px', 'margin-top':'5px'}), #,'display':'none'}),
-                                                        html.Div(id='zUp-title', children='Set zUp (ft):'),
-                                                            #style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
-                                                        dbc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
-                                                            debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0),
-                                                            #style={'margin-left': '15px', 'margin-top':'5px'}),#,'display':'none'}),
-                                                    ], style={'display':'none'}),
-                                                ], width=4),
-                                                dbc.Col([
-                                                    dbc.Button('Save Nominal Path', id='end-new-button', n_clicks=0, style={'display':'none'}),
-                                                                #style={"margin-left": "15px", "margin-top":"15px", "margin-bottom":"10px", 'color': 'green', 'display':'block'})
-                                                ], width=4)
+                                    dbc.Row([
+                                        dbc.Card(id='create-mode-card', children=[
+                                            html.H5("CREATE MODE", className="card-title", style={'text-align':'center', 'color':'primary', 'margin-top':'5px'}),
+                                            html.Hr(),
+                                            dbc.CardBody([
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Button('Start New Nominal Path', id='create-new-button', n_clicks=0, color='success',# outline=True,
+                                                            style={'display':'none'}), 
+                                                    ], width=4),
+                                                    dbc.Col([
+                                                        html.Div(id='create-mode-nom-path-div', children=[
+                                                            html.Div(id='ac-input-title', children='Input AC ID:'),
+                                                                #style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
+                                                            dbc.Input(id="ac-index", type="number", placeholder="AC ID", debounce=False, min=1), 
+                                                                    #style={"margin-left": "15px", 'margin-top':'5px'}),#, "margin-bottom":"10px"}),#, 'display':'none'}),
+                                                            html.Div(id='time-interval-title', children='Set Time Interval (s):'),
+                                                                #style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
+                                                            dbc.Input(id='time-interval-input', type='number', placeholder='1.0s',
+                                                                debounce=True, pattern=u"^(\d+\.?\d?)$", value=1.0),
+                                                                #style={'margin-left': '15px', 'margin-top':'5px'}), #,'display':'none'}),
+                                                            html.Div(id='zUp-title', children='Set zUp (ft):'),
+                                                                #style={"margin-left": "15px", "margin-top": "15px", 'font-size': '1em'}),
+                                                            dbc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
+                                                                debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0),
+                                                                #style={'margin-left': '15px', 'margin-top':'5px'}),#,'display':'none'}),
+                                                        ], style={'display':'none'}),
+                                                    ], width=4),
+                                                    dbc.Col([
+                                                        dbc.Button('Save Nominal Path', id='end-new-button', n_clicks=0, style={'display':'none'}),
+                                                                    #style={"margin-left": "15px", "margin-top":"15px", "margin-bottom":"10px", 'color': 'green', 'display':'block'})
+                                                    ], width=4)
+                                                ])
                                             ])
-                                        ])
-                                    ], color='light',
-                                       style={'width':'38rem', 'height':'17rem', 'margin-left':'15px', 'margin-top':'15px', 'display':'none'})
-                                ], align='center')
-                            ]),
-                        ],
-                        color='primary',
-                        style={'width':'41rem', 'height':'33rem'})
-                ]),
+                                        ], color='light',
+                                        style={'width':'38rem', 'height':'17rem', 'margin-left':'15px', 'margin-top':'15px', 'display':'none'})
+                                    ], align='center')
+                                ]),
+                            ],
+                            color='primary',
+                            style={'width':'41rem', 'height':'33rem'}
+                        )
+                    ])
+                ], style={'display':'block'}),
 
                 html.Br(),
 
-                # data table
-                dbc.Row([
-                    dbc.Card([
-                        dbc.CardBody([
-                            dbc.Row([
-                                dbc.Col(dbc.Button('Update Speeds', id='update-speeds-button', n_clicks=0, color='light'),
-                                    width=3),
-                                dbc.Col(dbc.Button('Add Rows', id='add-rows-button', n_clicks=0, color='light'),
-                                    width=3),
-                                dbc.Col(dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, color='light', style={'display':'none'}),
-                                    width=3), #, 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),)
-                            ], 
-                            align='right',
-                            no_gutters=True),
+                html.Div(id='data-table-div', children =[
+                    dbc.Row([
+                        dbc.Card(id='data-table-card', children=[
+                            dbc.CardBody([
+                                dbc.Row([
+                                    dbc.Col(dbc.Button('Update Speeds', id='update-speeds-button', n_clicks=0, color='light'),
+                                        width=3),
+                                    dbc.Col(dbc.Button('Add Rows', id='add-rows-button', n_clicks=0, color='light'),
+                                        width=3),
+                                    dbc.Col(dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, color='light', style={'display':'none'}),
+                                        width=3), #, 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),)
+                                ], 
+                                align='right',
+                                no_gutters=True),
 
-                            dbc.Row([
-                                html.Div([dash_table.DataTable(
-                                    id = 'editable-table',
-                                    columns = [
-                                      #{"name": 'Encounter ID', "id": 'encounter_id', 'editable': True, 'type':'numeric'},  # 'sortable': True
-                                        {"name": 'AC ID', "id": 'ac_id', 'editable': True, 'type':'numeric'},
-                                        {"name": 'Time\n(s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'xEast\n(NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'yNorth\n(NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'zUp\n(ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'Horizontal Speed\n(kt/s)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                        {"name": 'Vertical Speed\n(kt/s)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
-                                    editable = True,
-                                    row_deletable = True,
-                                    data=[], #{'encounter_id':None, 'ac_id':None, 'time':None, 'xEast':None, 'yNorth':None, 'zUp':None, 'horizontal_speed':None, 'vertical_speed':None}],
-                                    style_table={'width': '630px', 'display': "block", 'margin-left':'10px'},
-                                    style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
-                                style={'margin-top':'10px'})
-                            ])
+                                dbc.Row([
+                                    html.Div([dash_table.DataTable(
+                                        id = 'editable-table',
+                                        columns = [
+                                        #{"name": 'Encounter ID', "id": 'encounter_id', 'editable': True, 'type':'numeric'},  # 'sortable': True
+                                            {"name": 'AC ID', "id": 'ac_id', 'editable': True, 'type':'numeric'},
+                                            {"name": 'Time (s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                            {"name": 'xEast (NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                            {"name": 'yNorth (NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                            {"name": 'zUp   (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                            {"name": 'Horizontal Speed (kt)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                            {"name": 'Vertical Speed (ft/min)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
+                                        editable = True,
+                                        row_deletable = True,
+                                        data=[], #{'encounter_id':None, 'ac_id':None, 'time':None, 'xEast':None, 'yNorth':None, 'zUp':None, 'horizontal_speed':None, 'vertical_speed':None}],
+                                        style_table={'width': '39rem', 'height': '35rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'},
+                                        style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
+                                    style={'margin-top':'10px'})
+                                ])
 
-                        ]),
-                    ], color='primary',
-                       style={'width':'41rem', 'height':'30rem'})
-                ])
+                            ]),
+                        ], 
+                        color='primary',
+                        style={'width':'41rem', 'height':'10rem'})
+                    ])
+                ], style={'display':'block'})
+
             ], width='auto')
         ], no_gutters=False)
     ], fluid=True),
@@ -676,42 +739,24 @@ app.layout = html.Div([
         style={"max-width": "none", "width": "50%"})
     ]),
 
-
-
-    # # initialize tab-4 graphs
-    # html.Div(id = 'tab-4-graphs', 
-    #          children = [
-    #             html.Div([
-    #                 html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
-    #                     style={'width': '490px', 'height': '500px', 'display':'inline-block', 'margin-left':'10px'})),
-    #                 html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
-    #                     style={'width': '600px', 'height': '500px', 'display':'inline-block'})), #, 'margin-left':'20px'}))
-    #             ], className='row'),
-
-    #             html.Div([
-    #                 html.Div(dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap(title='AC 2: xEast vs yNorth'),
-    #                     style={'width': '490px', 'height': '500px', 'display':'inline-block', 'margin-left':'10px'})),
-    #                 html.Div(dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap(title='AC 2: Time vs zUp'),
-    #                     style={'width': '600px', 'height': '500px', 'display':'inline-block'})) #, 'margin-left':'20px'}))
-    #             ], className='row') #, style={'margin-left':'20px'})
-    #          ], style={'display': 'block'}),
-
     html.Br(),
     
     # slider bar
-    dbc.Container(
-        dbc.Row([
-            dbc.Col([
-                html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
-            ], width={'size':1, 'order':1}),
-            dbc.Col([
-                html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
-            ], width={'size':'auto', 'order':2})
-        ], 
-        align='start',
-        no_gutters=True), 
-        fluid=True
-    ),
+    html.Div(id='slider-bar-div', children=[
+        dbc.Container(
+            dbc.Row([
+                dbc.Col([
+                    html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
+                ], width={'size':1, 'order':1}),
+                dbc.Col([
+                    html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
+                ], width={'size':'auto', 'order':2})
+            ], 
+            align='start',
+            no_gutters=True), 
+            fluid=True
+        )
+    ]),
 
     # style
     html.Br(), html.Br(),
@@ -1092,31 +1137,48 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                Output('add-rows-button', 'style'),
                Output('done-add-rows-button', 'style'),
                Output('add-rows-button', 'n_clicks'),
-               Output('done-add-rows-button', 'n_clicks')],
+               Output('done-add-rows-button', 'n_clicks'),
+               Output('data-table-div', 'style')],
               [Input('add-rows-button', 'n_clicks'),
                Input('done-add-rows-button', 'n_clicks'),
                Input('tabs','value')]) 
 def toggle_data_table_buttons(add_rows_n_clicks, done_add_rows_n_clicks, active_tab):
 
-    table_on = {'width': '630px', 'margin-left': "10px", 'display': "block"}
+    table_on = {'width': '39rem', 'height': '35rem', 'margin-left': "10px", 'display': "block", 'overflowY': 'scroll'}
     speeds_button_on = {'margin-left':'15px', 'display':'block'}
     add_row_button_on = {'margin-left':'15px', 'display': 'block'}
     done_button_on = {'margin-left':'10px', 'display':'block', 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}
     off = {'display': "none"}
+    on = {'display': "block"}
     reset_add_rows_n_clicks, reset_done_add_rows_n_clicks = add_rows_n_clicks, done_add_rows_n_clicks
 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]   
 
     if ctx == 'tabs':
         if active_tab == 'tab-4':
-            return off, off, off, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks
-        return table_on, speeds_button_on, add_row_button_on, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks
+            return off, off, off, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks, off
+        return table_on, speeds_button_on, add_row_button_on, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks, on
     if ctx == 'add-rows-button' and add_rows_n_clicks > 0:
-        return table_on, off, add_row_button_on, done_button_on, reset_add_rows_n_clicks, 0
+        return table_on, off, add_row_button_on, done_button_on, reset_add_rows_n_clicks, 0, on
     if ctx == 'done-add-rows-button' and done_add_rows_n_clicks > 0:
-        return table_on, speeds_button_on, add_row_button_on, off, 0, reset_done_add_rows_n_clicks
+        return table_on, speeds_button_on, add_row_button_on, off, 0, reset_done_add_rows_n_clicks, on
 
     return dash.no_update
+
+@app.callback(Output('data-table-card', 'style'),
+                Input('editable-table', 'data'),
+                [State('data-table-card', 'style'),
+                State('editable-table', 'style_table')],
+                preventInitialCallback=True)
+def adjust_height_of_data_table_card(data, card_style, table_style):
+    if len(data) != 0:
+        if 'height' in table_style.keys():
+            val = table_style['height'].split('r')[0]
+            new_height = int(val) + 5
+            card_style['height'] = str(new_height) + 'rem'
+
+    return card_style
+
 
 
 @app.callback(Output('update-speeds-button', 'disabled'),
@@ -1892,50 +1954,54 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
     return dash.no_update
 
 
-# @app.callback(Output('log-histogram-ac-1-xy', 'figure'),
-#               Output('log-histogram-ac-1-tz', 'figure'),
-#               Output('log-histogram-ac-2-xy', 'figure'),
-#               Output('log-histogram-ac-2-tz', 'figure'),
-#               Input('generated-encounters', 'data'),
-#               State('ac-ids', 'value'))
-# def on_generation_update_log_histograms(generated_data, ac_ids_selected):
-#     if generated_data == {}:
-#         return px.density_heatmap(title='AC 1: xEast vs yNorth'), px.density_heatmap(title='AC 1: Time vs zUp'), \
-#             px.density_heatmap(title='AC 2: xEast vs yNorth'), px.density_heatmap(title='AC 2: Time vs zUp')
+@app.callback(Output('log-histogram-ac-1-xy', 'figure'),
+              Output('log-histogram-ac-1-tz', 'figure'),
+              Output('log-histogram-ac-2-xy', 'figure'),
+              Output('log-histogram-ac-2-tz', 'figure'),
+              Input('generated-encounters', 'data'),
+              State('ac-ids', 'value'))
+def on_generation_update_log_histograms(generated_data, ac_ids_selected):
+    if generated_data == {}:
+        return px.density_heatmap(), px.density_heatmap(), \
+            px.density_heatmap(), px.density_heatmap()
 
-#     df = pd.DataFrame(generated_data)
+    df = pd.DataFrame(generated_data)
 
-#     df_ac_1_interp = pd.DataFrame()
-#     df_ac_2_interp = pd.DataFrame()
-#     for enc_id in set(df['encounter_id']):
-#         df_enc = df.loc[df['encounter_id'] == enc_id]
+    df_ac_1_interp = pd.DataFrame()
+    df_ac_2_interp = pd.DataFrame()
+    print('testing')
+    for enc_id in set(df['encounter_id']):
+        print(enc_id)
+        df_enc = df.loc[df['encounter_id'] == enc_id]
         
-#         df_enc_ac1_interp, _, _ = interpolate_df_time(df_enc, [1])
-#         df_ac_1_interp = df_ac_1_interp.append(df_enc_ac1_interp, ignore_index=True)
-#         df_enc_ac2_interp, _, _ = interpolate_df_time(df_enc, [2])
-#         df_ac_2_interp = df_ac_2_interp.append(df_enc_ac2_interp, ignore_index=True)   
+        df_enc_ac1_interp, _, _ = interpolate_df_time(df_enc, [1])
+        df_ac_1_interp = df_ac_1_interp.append(df_enc_ac1_interp, ignore_index=True)
+        df_enc_ac2_interp, _, _ = interpolate_df_time(df_enc, [2])
+        df_ac_2_interp = df_ac_2_interp.append(df_enc_ac2_interp, ignore_index=True)   
 
-#     viridis = px.colors.sequential.gray #Blues
-#     colors = viridis
-#     # colors = [  [0, viridis[0]],
-#     #             [1./10000, viridis[3]],
-#     #             [1./1000, viridis[5]],
-#     #             [1./100, viridis[7]],
-#     #             [1./10, viridis[9]],
-#     #             [1., viridis[11]]   ]
+    print("that took a while")
+
+    viridis = px.colors.sequential.gray #Blues
+    colors = viridis
+    # colors = [  [0, viridis[0]],
+    #             [1./10000, viridis[3]],
+    #             [1./1000, viridis[5]],
+    #             [1./100, viridis[7]],
+    #             [1./10, viridis[9]],
+    #             [1., viridis[11]]   ]
     
-#     fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
-#                             title='AC 1: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
-#     fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=100, nbinsy=100, 
-#                             # nbinsx=nbin_time_ac_1, nbinsy=nbin_zUp_ac_1, 
-#                             title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
+    fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
+                            title='AC 1: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
+    fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=100, nbinsy=100, 
+                            # nbinsx=nbin_time_ac_1, nbinsy=nbin_zUp_ac_1, 
+                            title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
 
-#     fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
-#                             title='AC 2: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
-#     fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=100, nbinsy=100,
-#                             # nbinsx=nbin_time_ac_2, nbinsy=nbin_zUp_ac_2, 
-#                             title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
-#     return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
+    fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
+                            title='AC 2: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
+    fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=100, nbinsy=100,
+                            # nbinsx=nbin_time_ac_2, nbinsy=nbin_zUp_ac_2, 
+                            title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
+    return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
 
 
 # ##########################################################################################
@@ -2105,9 +2171,9 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_
 # ##########################################################################################
 # ##########################################################################################
 @app.callback([Output('tab-1-graphs', 'style'), 
-              Output('tab-2-graphs', 'style')], 
+              Output('tab-2-graphs', 'style'), 
               #Output('tab-3-graphs', 'style'),
-              #Output('tab-4-graphs','style')],            
+              Output('tab-4-graphs','style')],            
               Input('tabs', 'value'))
 def render_content(active_tab):
     # easy on-off toggle for rendering content
@@ -2115,13 +2181,13 @@ def render_content(active_tab):
     off = {'display': 'none'}
     
     if active_tab == 'tab-1':
-        return on, off#, off, off
+        return on, off, off #, off
     elif active_tab == 'tab-2':
-        return off, on#, off, off
+        return off, on, off #, off
     elif active_tab == 'tab-3':
-        return off, off#, on, off
+        return off, off, off # on, off
     elif active_tab == 'tab-4':
-        return off, off#, off, on
+        return off, off, on #, on
     
     if not active_tab:
         return "No tab actively selected"
@@ -2129,13 +2195,27 @@ def render_content(active_tab):
         return "invalid tab"
 
     
-# @app.callback([Output('slider-drag-output', 'hidden'),
-#               Output('slider-container', 'hidden')],
-#               Input('tabs','value'))
-# def toggle_slider(active_tab):
-#     if active_tab == 'tab-3' or active_tab == 'tab-4':
-#         return True, True
-#     return False, False
+@app.callback([Output('slider-drag-output', 'hidden'),
+              Output('slider-container', 'hidden')],
+              Input('tabs','value'))
+def toggle_slider(active_tab):
+    if active_tab == 'tab-3' or active_tab == 'tab-4':
+        return True, True
+    return False, False
+
+@app.callback(Output('map-create-mode-div', 'style'),
+                Input('tabs', 'value'))
+def toggle_map_create_mode_div(active_tab):
+    on = {'display': 'block'}
+    off = {'display': 'none'}
+
+    if active_tab == 'tab-1' or active_tab == 'tab-2':
+        return on
+    elif active_tab == 'tab-4':
+        return off
+
+    return on
+
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=8332)

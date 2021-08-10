@@ -590,8 +590,8 @@ pre code {
 }
 
 .no-gutters {
-  margin-right: 3px;
-  margin-left: 3px;
+  margin-right: 0px;
+  margin-left: 0px;
 }
 
 .no-gutters > .col,
