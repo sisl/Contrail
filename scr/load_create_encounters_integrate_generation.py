@@ -29,8 +29,6 @@ import re
 from read_file import *
 import base64
 
-#external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
-#external_stylesheets = [dbc.themes.FLATLY]
 app = dash.Dash(__name__)
 
 
@@ -125,15 +123,12 @@ app.layout = html.Div([
                     dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="success", className="ml-2"), #, style={'margin-left':'130px'}),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')],
-                    width={"size": 'auto', "order": 3}), #, 'offset':5}),
-
-            
+                    width={"size": 'auto', "order": 3}),
         ],
         align='start',
         no_gutters=True
         ),
         fluid=True
-
     ),
 
     html.Br(),
@@ -179,21 +174,11 @@ app.layout = html.Div([
 
     dbc.Container([
         dbc.Row([
-            #dbc.Col(width=2),
             dbc.Col(className='', children=[  
                 
                 dbc.Container([
                     # navigation tabs
                     dbc.Row([
-
-                        # dbc.ListGroup(id='tabs', children=[
-                            
-                        #     dbc.ListGroupItem(id='tab1', children="2d Graphs", active=True),
-                        #     dbc.ListGroupItem(id='tab2', children="3d Graph"),
-                        #     dbc.ListGroupItem(id='tab4', children="Log Histograms"),
-                        # ], horizontal=True,
-                        #    className="mb-2", style={'width':'100%'})
-
                         html.Div([
                             dbc.Tabs(id="tabs",
                                     children=[
@@ -207,7 +192,7 @@ app.layout = html.Div([
                     ],
                     no_gutters=True),
                 
-                    dbc.Row(className='', children=[
+                    dbc.Row([
                         dbc.Col(className='col-scrollable', children=[
                             html.Div(id='tab-1-graphs', children= [
                                 dbc.Container([    
@@ -439,47 +424,33 @@ app.layout = html.Div([
                     html.Br(),
                     dbc.Row([
                         dbc.Col([
-                                html.Div(id='slider-bar-div', children=[
-                                    dbc.Container(
-                                        dbc.Row([
-                                            dbc.Col([
-                                                html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
-                                            ], width={'size':1, 'order':1}),
-                                            dbc.Col([
-                                                html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
-                                            ], width={'size':'auto', 'order':2})
-                                        ], 
-                                        align='start',
-                                        no_gutters=True
-                                    ), 
-                                    fluid=True)
-                                ]),
+                            html.Div(id='slider-bar-div', children=[
+                                dbc.Container(
+                                    dbc.Row([
+                                        dbc.Col([
+                                            html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
+                                        ], width={'size':1, 'order':1}),
+                                        dbc.Col([
+                                            html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
+                                        ], width={'size':'auto', 'order':2})
+                                    ], 
+                                    align='start',
+                                    no_gutters=True
+                                ), 
+                                fluid=True)
+                            ]),
                         ])
                     ])
                 ], 
                 fluid=True),
             ], 
             width='auto'),
-            #style={'margin-left':'-20px'}),
             
             dbc.Col(className='pl-3', children=[
                 html.Div(id='map-create-mode-div', children=[
                     dbc.Row([
                             dbc.Card(id='map-create-card', children=[
                                 dbc.CardBody([
-                                    # dbc.Row([
-                                    #     #dbc.Col(html.H5("", className="card-title", style={'text-align':'center', 'color':'white'}), width='auto'),
-                                    #     # dbc.Col(dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='light'),
-                                    #     #     width={'size':'auto'}),
-                                    #     # dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none'}),
-                                    #     #     width={'size':3, 'offset':0}),
-                                    #     dbc.Col(dbc.Button('Set Reference Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="mr-0", style={'margin-bottom':'5px', 'width':'130px'}), 
-                                    #         width={'size':'auto', 'offset':0})
-                                    # ], 
-                                    # align='left',
-                                    # no_gutters=True,
-                                    # style={'height':'1rem'}),
-
                                     dbc.Row([
                                         dbc.Col(dl.Map(id='map', children=[
                                                     dl.TileLayer(), 
@@ -495,35 +466,13 @@ app.layout = html.Div([
                                             dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none', 'margin-top':'10px'})
                                         ],
                                         width={'size':'auto'}),
-                                        # dbc.Col(dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none', 'margin-top':'10px'}),
-                                        #     width={'size':5, 'offset':0}),
-                                        # dbc.Col(dbc.Button('Set Reference Point', id='set-ref-point', n_clicks=0, outline=False, color='light', className="pl-0", style={'margin-top':'10px', 'width':'130px'}), 
-                                        #     width={'size':'auto', 'offset':0}),
                                         dbc.Card(id='create-mode-card', children=[
-                                            # html.H5("CREATE MODE", className="card-title", style={'text-align':'center', 'color':'primary', 'margin-top':'5px'}),
-                                            # html.Hr(),
                                             dbc.CardBody([
                                                 dbc.Row([
                                                     dbc.Col([
                                                         dbc.Button('Start New Nominal Path', id='create-new-button', className='ml-2', n_clicks=0, color='primary',# outline=True,
                                                             style={'display':'none'}), 
-                                                    ], width=5),
-
-                                                    # dbc.Col([
-                                                    #     html.Div(id='create-mode-nom-path-div', children=[
-                                                    #         html.Div(id='ac-input-title', children='Input AC ID:'),
-                                                    #         dbc.Input(id="ac-index", type="number", placeholder="AC ID", debounce=False, min=1), 
-                                                    #         html.Div(id='time-interval-title', children='Set Time Interval (s):'),
-                                                    #         dbc.Input(id='time-interval-input', type='number', placeholder='1.0s',
-                                                    #             debounce=True, pattern=u"^(\d+\.?\d?)$", value=1.0),
-                                                    #         html.Div(id='zUp-title', children='Set zUp (ft):'),
-                                                    #         dbc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
-                                                    #             debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0),
-                                                    #     ], style={'display':'none'}),
-                                                    # ]), 
-                                                    # align='start',
-                                                    # width=3),
-
+                                                    ], width=5),                                                  
                                                     dbc.Col([dbc.Button('Save Nominal Path', id='end-new-button', className='ml-4', n_clicks=0, color='primary', style={'display':'none'})
                                                     ], width=4)
                                                 ],
@@ -573,7 +522,6 @@ app.layout = html.Div([
                                     html.Div([dash_table.DataTable(
                                         id = 'editable-table',
                                         columns = [
-                                        #{"name": 'Encounter ID', "id": 'encounter_id', 'editable': True, 'type':'numeric'},  # 'sortable': True
                                             {"name": 'AC ID', "id": 'ac_id', 'editable': True, 'type':'numeric'},
                                             {"name": 'Time (s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
                                             {"name": 'xEast (NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
@@ -583,25 +531,11 @@ app.layout = html.Div([
                                             {"name": 'Vertical Speed (ft/min)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
                                         editable = True,
                                         row_deletable = True,
-                                        data=[], #{'encounter_id':None, 'ac_id':None, 'time':None, 'xEast':None, 'yNorth':None, 'zUp':None, 'horizontal_speed':None, 'vertical_speed':None}],
+                                        data=[], 
                                         style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, #'height': '35rem',
                                         style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
-                                    ) #style={'margin-top':'10px'})
+                                    )
                                 ]),
-                                #html.Hr(style={'background-color':'#fff'}),
-                                # dbc.Container(className='container-m-0', children=[
-                                #     dbc.Row([
-                                #         dbc.Col(dbc.Button('Add Row', id='add-rows-button', n_clicks=0, color='light'),
-                                #             width=3),
-                                #         dbc.Col(dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, color='light', style={'display':'none'}),
-                                #             width=3),
-                                #         dbc.Col(className='ml-7', children=[
-                                #                 dbc.Button('Update Speeds', id='update-speeds-button', n_clicks=0, color='light'),
-                                #             ], width=3), #, 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),)
-                                #     ], 
-                                #     align='left',
-                                #     no_gutters=True)
-                                # ])
                             ]),
                             dbc.CardFooter([
                                 dbc.Button('Add Row', id='add-rows-button', className='ml-0', n_clicks=0, color='light'),
@@ -623,23 +557,6 @@ app.layout = html.Div([
         style={'margin-left':'-10px'})
     ], 
     fluid=True),
-    
-    # slider bar
-    # html.Div(id='slider-bar-div', children=[
-    #     dbc.Container(
-    #         dbc.Row([
-    #             dbc.Col([
-    #                 html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
-    #             ], width={'size':1, 'order':1}),
-    #             dbc.Col([
-    #                 html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
-    #             ], width={'size':'auto', 'order':2})
-    #         ], 
-    #         align='start',
-    #         no_gutters=True
-    #     ), 
-    #     fluid=True)
-    # ]),
 
     # pop up window for setting reference point
     html.Div(id='ref-modal-div', children=[
@@ -656,12 +573,7 @@ app.layout = html.Div([
                             debounce=True,
                             pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
                             style={"margin-left": "15px"}),
-                        ])
-                        # dbc.Row([
-                        #     html.Div(id='ref-point-output-2', children=['Reference Point: '],
-                        #         style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1em', 'display':'block'}),
-                        # ])
-                        
+                        ]) 
                     ], width=10),
                     dbc.Col([
                         dbc.Button('Clear', id='clear-ref-button', color='danger', n_clicks=0)
@@ -673,7 +585,6 @@ app.layout = html.Div([
             html.Br(),
             dbc.ModalFooter(children= [
                 dbc.Button("CLOSE", id="close-ref-modal-button"),
-                #dbc.Spinner(size='md', spinnerClassName='ml-auto', children=[html.Div(id='gen-spinner-output', children='nothin')]), #html.Div(id='gen-spinner-output')),
                 dbc.Button("SET REF POINT", id="set-ref-button", color='success', className="ml-auto")
                 ]
             ),
@@ -683,7 +594,6 @@ app.layout = html.Div([
         centered=True,  # Vertically center modal 
         keyboard=True,  # Close modal when escape is pressed
         fade=False)
-        #style={"max-width": "none", "width": "50%"})
     ]),
 
 
@@ -780,7 +690,6 @@ app.layout = html.Div([
                 debounce=True,# value=100,
                 pattern=u"^(\d+)$",
                 style={"margin-left": "20px", "width": "40%"}),
-            
             
             # generation progress bar
             html.Br(),
