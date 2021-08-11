@@ -693,13 +693,13 @@ app.layout = html.Div([
             dbc.ModalHeader("Generate an Encounter Set"),
 
             html.Br(),
+            html.Br(),
             html.Div([
                 html.Label([
                     dcc.Upload(id='load-model', children = 
                             dbc.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
                 ])
-            ], style={"margin-left": "20px", 'display':'inline-block'}),
-            html.Br(),
+            ], style={"margin-left": "20px", 'display':'inline-block', 'margin-top':'15px'}),
             dcc.Markdown(("---")),
             html.Br(),
             
