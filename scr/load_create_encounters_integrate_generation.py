@@ -163,7 +163,8 @@ app.layout = html.Div([
                     ],
                     color='light',
                     style={'width':'40.3rem', 'height':'3rem'})
-                ])
+                ], style={'visibility':'visible'}),
+                html.Div(id='something', children='')
             ],
             width={"size": 'auto', "order": 4, 'offset':2},
             align='right')  
@@ -328,7 +329,7 @@ app.layout = html.Div([
 
                             html.Div(id='tab-2-graphs', children=[
                                 dbc.Row([
-                                    dbc.Col(className='pr-4', children=[
+                                    dbc.Col(className='pr-3', children=[
                                         dbc.Card([
                                                 dbc.CardBody([
                                                     dbc.Row([
@@ -341,7 +342,7 @@ app.layout = html.Div([
                                                 ])
                                             ], 
                                             color='primary',
-                                            style={'width':'60.5rem', 'height':'48rem'}
+                                            style={'width':'60.5rem', 'height':'39rem'}
                                         )
                                     ])
                                 ], 
@@ -569,17 +570,6 @@ app.layout = html.Div([
                         dbc.Card(id='data-table-card', children=[
                             dbc.CardBody([
                                 dbc.Row([
-                                    dbc.Col(dbc.Button('Update Speeds', id='update-speeds-button', n_clicks=0, color='light'),
-                                        width=3),
-                                    dbc.Col(dbc.Button('Add Rows', id='add-rows-button', n_clicks=0, color='light'),
-                                        width=3),
-                                    dbc.Col(dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, color='light', style={'display':'none'}),
-                                        width=3), #, 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),)
-                                ], 
-                                align='right',
-                                no_gutters=True),
-
-                                dbc.Row([
                                     html.Div([dash_table.DataTable(
                                         id = 'editable-table',
                                         columns = [
@@ -594,15 +584,34 @@ app.layout = html.Div([
                                         editable = True,
                                         row_deletable = True,
                                         data=[], #{'encounter_id':None, 'ac_id':None, 'time':None, 'xEast':None, 'yNorth':None, 'zUp':None, 'horizontal_speed':None, 'vertical_speed':None}],
-                                        style_table={'width': '38.5rem', 'height': '35rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'},
+                                        style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, #'height': '35rem',
                                         style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
-                                    style={'margin-top':'10px'})
-                                ])
-
+                                    ) #style={'margin-top':'10px'})
+                                ]),
+                                #html.Hr(style={'background-color':'#fff'}),
+                                # dbc.Container(className='container-m-0', children=[
+                                #     dbc.Row([
+                                #         dbc.Col(dbc.Button('Add Row', id='add-rows-button', n_clicks=0, color='light'),
+                                #             width=3),
+                                #         dbc.Col(dbc.Button('DONE', id='done-add-rows-button', n_clicks=0, color='light', style={'display':'none'}),
+                                #             width=3),
+                                #         dbc.Col(className='ml-7', children=[
+                                #                 dbc.Button('Update Speeds', id='update-speeds-button', n_clicks=0, color='light'),
+                                #             ], width=3), #, 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}),)
+                                #     ], 
+                                #     align='left',
+                                #     no_gutters=True)
+                                # ])
+                            ]),
+                            dbc.CardFooter([
+                                dbc.Button('Add Row', id='add-rows-button', className='ml-0', n_clicks=0, color='light'),
+                                dbc.Button('DONE', id='done-add-rows-button', className='ml-1', n_clicks=0, color='light', style={'display':'none'}),
+                                dbc.Button('Update Speeds', id='update-speeds-button', className='ml-4', n_clicks=0, color='light')
                             ]),
                         ], 
                         color='primary',
-                        style={'width':'40.3rem', 'height':'10rem'})
+                        style={'width':'40.3rem', 'height':'9rem'}),
+                        
                     ])
                 ], style={'display':'block'})
 
@@ -1008,7 +1017,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
                               'range':[min(min_values[1],min_values[2])-0.2, max(max_values[1], max_values[2])+0.2]},
                     'zaxis': {'title':'zUp (ft)',
                               'range':[min_values[3]-50, max_values[3]+50]}},
-            width=920, height=700, margin=dict(l=0, r=0, b=30, t=20, pad=0))
+            width=930, height=565, margin=dict(l=0, r=0, b=80, t=0, pad=10))
         fig_tdistxy.update_layout(
             xaxis_title = 'Time (s)', 
             yaxis_title = 'Distance (NM)',
@@ -1213,9 +1222,35 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
         
         return dash.no_update, dash.no_update
 
+@app.callback(Output('editable-table','style_table'),
+                [Input('editable-table','data'),
+                Input('tabs','active_tab'),
+                State('editable-table','style_table')])
+def toggle_data_table_height(data, active_tab, table_style):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]   
+    #table_on = {'width': '38rem', 'margin-left': "10px", 'display': "block", 'overflowY': 'scroll'}
+    #off = {'display': "none"}
+    
+    if ctx == 'tabs':
+        if active_tab == 'tab-4':
+            table_style['display'] = 'none'
+        else:
+            table_style['display'] = 'block'
 
-@app.callback([Output('editable-table','style_table'),
-               Output('update-speeds-button', 'style'),
+        return table_style
+
+    elif ctx == 'editable-table':
+        height = 3 + (len(data) * 2)
+        
+        print('height: ', height)
+        table_style['height'] = str(height) + 'rem' if height < 25 else '25rem'
+        return table_style
+
+    return dash.no_update
+
+
+@app.callback(#[Output('editable-table','style_table'),
+               [Output('update-speeds-button', 'style'),
                Output('add-rows-button', 'style'),
                Output('done-add-rows-button', 'style'),
                Output('add-rows-button', 'n_clicks'),
@@ -1223,13 +1258,14 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                Output('data-table-div', 'style')],
               [Input('add-rows-button', 'n_clicks'),
                Input('done-add-rows-button', 'n_clicks'),
-               Input('tabs','active_tab')]) 
-def toggle_data_table_buttons(add_rows_n_clicks, done_add_rows_n_clicks, active_tab):
+               Input('tabs','active_tab')])
+               #State('editable-table','data')) 
+def toggle_data_table_buttons(add_rows_n_clicks, done_add_rows_n_clicks, active_tab): #, data):
 
-    table_on = {'width': '39rem', 'height': '35rem', 'margin-left': "10px", 'display': "block", 'overflowY': 'scroll'}
-    speeds_button_on = {'margin-left':'15px', 'display':'block'}
-    add_row_button_on = {'margin-left':'15px', 'display': 'block'}
-    done_button_on = {'margin-left':'10px', 'display':'block', 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}
+    #table_on = {'width': '39rem', 'height': str(len(data) * 2) + 'rem', 'margin-left': "10px", 'display': "block", 'overflowY': 'scroll'}
+    speeds_button_on = {'margin-left':'15px', 'display':'inline-block'}
+    add_row_button_on = {'margin-left':'15px', 'display': 'inline-block'}
+    done_button_on = {'margin-left':'10px', 'display':'inline-block', 'color':'white', 'background-color': '#5cb85c', 'border-color': '#5cb85c'}
     off = {'display': "none"}
     on = {'display': "block"}
     reset_add_rows_n_clicks, reset_done_add_rows_n_clicks = add_rows_n_clicks, done_add_rows_n_clicks
@@ -1238,26 +1274,30 @@ def toggle_data_table_buttons(add_rows_n_clicks, done_add_rows_n_clicks, active_
 
     if ctx == 'tabs':
         if active_tab == 'tab-4':
-            return off, off, off, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks, off
-        return table_on, speeds_button_on, add_row_button_on, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks, on
+            return off, off, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks, off
+        return speeds_button_on, add_row_button_on, off, reset_add_rows_n_clicks, reset_done_add_rows_n_clicks, on
     if ctx == 'add-rows-button' and add_rows_n_clicks > 0:
-        return table_on, off, add_row_button_on, done_button_on, reset_add_rows_n_clicks, 0, on
+        return  off, add_row_button_on, done_button_on, reset_add_rows_n_clicks, 0, on
     if ctx == 'done-add-rows-button' and done_add_rows_n_clicks > 0:
-        return table_on, speeds_button_on, add_row_button_on, off, 0, reset_done_add_rows_n_clicks, on
+        return speeds_button_on, add_row_button_on, off, 0, reset_done_add_rows_n_clicks, on
 
-    return dash.no_update
+    # if ctx == 'editable-table':
+    #     table_on['height'] = str(len(data) * 2) + 'rem'
+    #     return table_on, speeds_button_on, add_row_button_on, off, dash.no_update, dash.no_update, on
+
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 @app.callback(Output('data-table-card', 'style'),
-                Input('editable-table', 'data'),
-                [State('data-table-card', 'style'),
-                State('editable-table', 'style_table')],
+                Input('editable-table','style_table'),
+                [State('data-table-card', 'style')],
                 preventInitialCallback=True)
-def adjust_height_of_data_table_card(data, card_style, table_style):
-    if len(data) != 0:
-        if 'height' in table_style.keys():
-            val = table_style['height'].split('r')[0]
-            new_height = int(val) + 5
-            card_style['height'] = str(new_height) + 'rem'
+def adjust_height_of_data_table_card(table_style, card_style):
+    if 'height' in table_style.keys():
+        val = table_style['height'].split('r')[0]
+        print('val: ', val)
+        new_height = int(val) + 6
+        print('new_height: ', new_height)
+        card_style['height'] = str(new_height) + 'rem'
 
     return card_style
 
@@ -1290,7 +1330,7 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
             return []
         df = pd.DataFrame(memory_data)
         encounter_ids = df['encounter_id'].unique()
-        options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id))} for encounter_id in encounter_ids]
+        options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in encounter_ids]
         return options
     elif ctx == 'create-mode' and create_n_clicks > 0:
         if memory_data is not [{}]: #and memory_data != []
@@ -1299,7 +1339,7 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
     elif ctx == 'end-new-button' and end_new_n_clicks > 0:
         encounter_value = 0
         # if encounter_value is not None:
-        new_option = {'value': encounter_value, 'label': 'Encounter '+ str(encounter_value)}
+        new_option = {'value': encounter_value, 'label': 'Encounter '+ str(encounter_value) if encounter_value != 0 else 'Nominal Path'}
         if options is None or options == []:
             options = [new_option]
         elif new_option not in options:
@@ -1776,8 +1816,9 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
             ref_data['ref_alt'] = None
             return 'Reference Point: ', ref_data
 
-    ref = 'Reference Point: ', ref_data['ref_lat'], chr(176), "/ ", ref_data['ref_long'], chr(176), '/ ', ref_data['ref_alt'], 'ft'
-    
+    lat, lng, alt = ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']
+    ref = f'Reference Point: {lat:.2f}{chr(176)}/{lng:.2f}{chr(176)}/{alt:.2f}ft'
+
     return ref, ref_data
 
 
@@ -2077,16 +2118,16 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
     #             [1., viridis[11]]   ]
     
     fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
-                            title='AC 1: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
+                            labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
     fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=100, nbinsy=100, 
                             # nbinsx=nbin_time_ac_1, nbinsy=nbin_zUp_ac_1, 
-                            title='AC 1: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
+                            labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
 
     fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
-                            title='AC 2: xEast vs yNorth', labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
+                            labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
     fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=100, nbinsy=100,
                             # nbinsx=nbin_time_ac_2, nbinsy=nbin_zUp_ac_2, 
-                            title='AC 2: Time vs zUp', labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
+                            labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
     return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
 
 
@@ -2303,6 +2344,20 @@ def toggle_map_create_mode_div(active_tab):
         return off
 
     return on
+
+@app.callback(Output('ref-card-div', 'style'),
+                Input('tabs', 'active_tab'),
+                State('ref-card-div', 'style'))
+def toggle_map_create_mode_div(active_tab, style):
+    on = {'display': 'block'}
+    off = {'display': 'none'}
+
+    if active_tab == 'tab-1' or active_tab == 'tab-2':
+        style['visibility'] = 'visible'
+    elif active_tab == 'tab-4':
+        style['visibility'] = 'hidden'
+
+    return style
 
 # @app.callback(Output('map-table-col', 'className'),
 #                 Input('tabs','active_tab'))

@@ -67,7 +67,7 @@ body {
   line-height: 1.5;
   color: #212529;
   text-align: left;
-  background-color: #fff;
+  background-color: rgb(255, 255, 255);
 }
 
 [tabindex="-1"]:focus:not(:focus-visible) {
@@ -564,6 +564,14 @@ br {
   margin-left: auto;
 }
 
+.container-m-0 {
+  width: 100%;
+  padding-right: 0px;
+  padding-left: 0px;
+  margin-right: 0px;
+  margin-left: 0px;
+}
+
 @media (min-width: 576px) {
   .container, .container-sm {
     max-width: 540px;
@@ -640,7 +648,7 @@ br {
   flex-grow: 1;
   max-width: 100%;
   /* width: 80rem; */
-  height: 38rem;
+  height: 39rem;
   margin-left: 0;
   /* background-color: #35353642; */
 }
