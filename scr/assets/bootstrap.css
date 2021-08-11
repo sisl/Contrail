@@ -543,7 +543,7 @@ pre code {
 br {
   display: block; /* makes it have a width */
   content: ""; /* clears default height */
-  margin-top: 1%; /* change this to whatever height you want it */
+  margin-top: .5%; /* change this to whatever height you want it */
 }
 
 .pre-scrollable {
@@ -639,7 +639,9 @@ br {
   flex-basis: 0;
   flex-grow: 1;
   max-width: 100%;
-  height: 43rem;
+  /* width: 80rem; */
+  height: 38rem;
+  margin-left: 0;
   /* background-color: #35353642; */
 }
 
@@ -4450,6 +4452,7 @@ input[type="button"].btn-block {
   border-radius: 0.25rem;
 }
 
+
 /* .card-small-graphs {
   position: relative;
   display: flex;
@@ -4489,6 +4492,12 @@ input[type="button"].btn-block {
 .card > .card-header + .list-group,
 .card > .list-group + .card-footer {
   border-top: 0;
+}
+
+.card-body-m-0 {
+  flex: 1 1 auto;
+  min-height: 1px;
+  padding: 0rem;
 }
 
 .card-body {
@@ -7728,7 +7737,7 @@ button.bg-dark:focus {
 
 .ml-7,
 .mx-7 {
-  margin-left: 8.5rem !important;
+  margin-left: 8rem !important;
 }
 
 .ml-6,
