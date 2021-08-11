@@ -26,8 +26,11 @@ import re
 from read_file import *
 import base64
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP] 
+
+app = dash.Dash(__name__, external_scripts=external_scripts, external_stylesheets=external_stylesheets)
 
 
 def calculate_horizontal_vertical_speeds_df(df):
@@ -39,7 +42,7 @@ def calculate_horizontal_vertical_speeds_df(df):
         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
         hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time'] * 3600
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
-        ver_speed = move_over_time.zUp / move_over_time['time']
+        ver_speed = move_over_time.zUp / move_over_time['time'] * 60
         ver_speeds += (np.append(0.0, round(ver_speed, 4))).tolist()
     dataf.loc[:, 'horizontal_speed'] = hor_speeds
     dataf.loc[:, 'vertical_speed'] = ver_speeds
@@ -116,7 +119,7 @@ app.layout = html.Div([
                     style={"margin-left": "15px", 'display':'inline-block'}),
             html.Div(id='ref-point-output', children=[],
                     style={"margin-left": "15px", "margin-top": "10px", 'font-size': '1.2em'})
-            ], style={"margin-left": "175px"}
+            ], style={"margin-left": "175px", "display":"none"}
         ),
     ],  className  = 'row'),
     
@@ -194,30 +197,55 @@ app.layout = html.Div([
             dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
                 dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
-                dcc.RadioItems(id='cov-radio', options=[
-                    {'label': 'Diagonal', 'value': 'cov-radio-diag'},
-                    {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
-                    value='cov-radio-exp',
+                dcc.RadioItems(id='cov-radio', 
+                    options=[{'label': 'Diagonal', 'value': 'cov-radio-diag'},
+                             {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
+                    # value='cov-radio-exp',
                     inputStyle={"margin-right": "5px"},
                     labelStyle={'display': 'inline-block', "margin-right": "10px"},
                     style={"margin-left": "15px"}),
+                
+                html.Span(
+                    "?",
+                    id="popover-target",
+                    style={"textAlign": "center", "font-size": "12px", 'font-weight': "bold",
+                            "border-radius": "90%", "height": "16px", "width": "16px", "color": "white", "background-color": "#727272", 
+                            "cursor": "pointer", "display": "inline-block"
+                    }, className="dot"),
+                dbc.Popover(
+                    children=[dbc.PopoverBody("")],
+                    id="popover-content",
+                    style={"display": "none"},
+                    trigger="click", # is_open=False,
+                    target="popover-target", placement="right"),
+                
             ], style={"margin-left": "20px"}, className  = 'row'),
+
             
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
+                    dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                    html.Div([
+                        html.H5('$\sigma_h$', style={"margin-left": "10px", "color": "#3273F6"}),
+                        html.H5('$\sigma_v$', style={"margin-left": "135px", "color": "#3273F6"}),
+                        ], className= 'row', style={"margin-left": "20px"}),
                     dcc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05',
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05,
-                        style={"margin-left": "20px"}), #, "width": "50%"}),
+                        style={"margin-left": "20px"}), #, "width":"80px"}),
                     dcc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0',
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0,
-                        style={"margin-left": "10px"}), #, "width": "50%"}),
-                ], style={"margin-left": "20px"})
+                        style={"margin-left": "10px"}) #, "width": "80px"}),
+                ], style={"margin-left": "20px"}) 
             ], id='cov-diag-input-container', style={"display":"none"}, className  = 'row'),
 
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Parameters."""), style={"margin-left": "20px"}),
+                    dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                    html.Div([
+                        html.H5('$l$', style={"margin-left": "10px", "color": "#3273F6"}),
+                        html.H5('$w_h$', style={"margin-left": "140px", "color": "#3273F6"}),
+                        html.H5('$w_v$', style={"margin-left": "135px", "color": "#3273F6"}),
+                         ], className= 'row', style={"margin-left": "20px"}),
                     dcc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a',
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0,
                         style={"margin-left": "20px"}), #, "width": "30%"}),
@@ -228,7 +256,7 @@ app.layout = html.Div([
                         debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0,
                         style={"margin-left": "10px"}), #, "width": "30%"}),
                 ], style={"margin-left": "20px"}),
-            ], id='cov-exp-kernel-input-container', style={"display":"block"}, className  = 'row'), #, "margin-bottom":"10px"})
+            ], id='cov-exp-kernel-input-container', style={"display":"none"}, className  = 'row'), #, "margin-bottom":"10px"}
 
             
             # number of encounter sets to generate
@@ -382,7 +410,7 @@ app.layout = html.Div([
     html.Div(id = 'tab-4-graphs', 
              children = [
                 html.Div([
-                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
+                    html.Div(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap(title='AC 1: xEast vs yNorth'), #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},                      
                         style={'width': '490px', 'height': '500px', 'display':'inline-block', 'margin-left':'10px'})),
                     html.Div(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap(title='AC 1: Time vs zUp'),
                         style={'width': '600px', 'height': '500px', 'display':'inline-block'})), #, 'margin-left':'20px'}))
@@ -433,7 +461,9 @@ app.layout = html.Div([
 
     # style
     html.Br(), html.Br(),
-]) 
+
+])
+
 
 print('\n*****START OF CODE*****\n')
 
@@ -585,7 +615,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
             yaxis_title='Speed (kt)', yaxis_range=[min_values[4]-10, max_values[4]+10])
         fig_tspeedz.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
-            yaxis_title='Speed (ft/s)', yaxis_range=[min_values[5]-5, max_values[5]+5])
+            yaxis_title='Speed (ft/min)', yaxis_range=[min_values[5]-5, max_values[5]+5])
         fig_xyz.update_layout(
             scene = {'xaxis': {'title':'xEast (NM)', 
                                'range':[min(min_values[1],min_values[2])-0.2, max(max_values[1], max_values[2])+0.2]},
@@ -613,8 +643,8 @@ def parse_contents(contents, filename):
         [encounters, num_ac, num_encounters] = load_waypoints(filename)
         encounters_df = waypoints_to_df(encounters, num_encounters, num_ac)
         return encounters_df
-       
-    
+
+
 @app.callback(Output('memory-data', 'data'),
               [Input('load-waypoints-button', 'n_clicks'),
                Input('load-waypoints', 'contents'),
@@ -1386,6 +1416,67 @@ def load_in_model(contents):
 
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
+      
+@app.callback(Output('popover-content', 'children'),
+              Output('popover-content', 'style'),
+              Input('cov-radio', 'value'))
+def render_popover_content(cov_radio_value):
+
+    on = {"display": "block", "width": "auto", #, "max-width": "300px",}
+          "box-shadow": "0 3px 6px 0 rgba(0, 0, 0, 0.2), 0 4px 15px 0 rgba(0, 0, 0, 0.19)"}
+    off = {"display": "none"}
+
+    if cov_radio_value == 'cov-radio-diag':
+
+        content = '$\\begin{equation*} \
+                    \Sigma = \\begin{bmatrix} \
+                        k(x_1, x\'_1) & k(x_1, y\'_1) & \\cdots  & k(x_1, z\'_n) \\\\ \
+                        k(y_1, x\'_1) & k(y_1, y\'_1) &          & \\vdots       \\\\ \
+                        \\vdots       &               & \\ddots  &               \\\\ \
+                        k(z_n, x\'_1) & \\cdots       &          & k(z_n, z\'_n) \
+                    \\end{bmatrix} \
+                    \\\\ \\quad \\\\ \
+                    \\text{For time-steps $i$ and $j$, } \\\\ \
+                    \\begin{cases} \
+                        k(x_i, x\'_j) = \sigma_h \\\\ \
+                        k(y_i, y\'_j) = \sigma_h \\\\ \
+                        k(z_i, z\'_j) = \sigma_v \\\\ \
+                        \\text{0 otherwise.} \
+                    \\end{cases} \
+            \\end{equation*}$'
+
+        popover_content = [
+            dbc.PopoverHeader("Diagonal Covariance", style={"text-align":"center"}),
+            dbc.PopoverBody(content, style={"margin-left":"10px"})]
+        return popover_content, on
+
+
+    elif cov_radio_value == 'cov-radio-exp':
+
+        content = '$\\begin{equation*} \
+                    K = \\begin{bmatrix} \
+                        k(x_1, x\'_1) & k(x_1, y\'_1) & \\cdots  & k(x_1, z\'_n) \\\\ \
+                        k(y_1, x\'_1) & k(y_1, y\'_1) &          & \\vdots       \\\\ \
+                        \\vdots       &               & \\ddots  &               \\\\ \
+                        k(z_n, x\'_1) & \\cdots       &          & k(z_n, z\'_n) \
+                    \\end{bmatrix} \
+                    \\\\ \\quad \\\\ \
+                    \\text{For time-steps $i$ and $j$, } \\\\ \
+                    \\begin{cases} \
+                        \\text{Horizontal elements: } k(x_i, x\'_j) = \\exp \\Big( \\frac{-w_h (x_i - x\'_j)^2}{2 l^2} \\Big) \\\\ \
+                        \\text{Vertical elements:   } k(z_i, z\'_j) = \\exp \\Big( \\frac{-w_v (z_i - z\'_j)^2}{2 l^2} \\Big) \\\\ \
+                        \\text{Other elements:      } k(x_i, z\'_j) = 0 \\\\ \
+                        x \\text{\'s and } y \\text{\'s are interchangable.}& \
+                    \\end{cases} \
+            \\end{equation*}$'
+
+        popover_content = [
+            dbc.PopoverHeader("Exponenetial Kernel Covariance", style={"text-align":"center"}),
+            dbc.PopoverBody(content, style={"margin-left":"10px"})]
+        return popover_content, on
+
+    return "", off
+
 
 @app.callback(Output('cov-diag-input-container', 'style'),
               Output('cov-exp-kernel-input-container', 'style'),
@@ -1531,7 +1622,6 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
             px.density_heatmap(title='AC 2: xEast vs yNorth'), px.density_heatmap(title='AC 2: Time vs zUp')
 
     df = pd.DataFrame(generated_data)
-
     df_ac_1_interp = pd.DataFrame()
     df_ac_2_interp = pd.DataFrame()
     for enc_id in set(df['encounter_id']):
