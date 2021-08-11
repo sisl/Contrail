@@ -31,6 +31,10 @@ import base64
 
 app = dash.Dash(__name__)
 
+external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
+
+app = dash.Dash(__name__, external_scripts=external_scripts)
+
 
 def calculate_horizontal_vertical_speeds_df(df):
     dataf = df.copy()
@@ -41,7 +45,7 @@ def calculate_horizontal_vertical_speeds_df(df):
         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
         hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time'] * 3600
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
-        ver_speed = move_over_time.zUp / move_over_time['time']
+        ver_speed = move_over_time.zUp / move_over_time['time'] * 60
         ver_speeds += (np.append(0.0, round(ver_speed, 4))).tolist()
     dataf.loc[:, 'horizontal_speed'] = hor_speeds
     dataf.loc[:, 'vertical_speed'] = ver_speeds
@@ -213,8 +217,31 @@ app.layout = html.Div([
                                             style=graph_card_style),
                                         ], 
                                         width='auto'),
+                                        dbc.Col([
+                                            dbc.Card([
+                                                dbc.CardBody([
+                                                    dbc.Row([
+                                                        dbc.Col(html.H5("Time vs zUp", className="card-title-1"))
+                                                    ],justify='center'),
 
-                                        dbc.Col(
+                                                    dbc.Row([
+                                                        dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns'))
+                                                    ],justify='center')
+                                                ])
+                                            ], color='primary',
+                                            style=graph_card_style),
+                                        ], width='auto'),
+
+                                    ], 
+                                    no_gutters=True)
+                                ], 
+                                fluid=True),
+
+                                html.Br(),
+
+                                dbc.Container([
+                                    dbc.Row([
+                                        dbc.Col(className='pr-2', children=[
                                             dbc.Card([
                                                 dbc.CardBody([
                                                     dbc.Row([
@@ -230,31 +257,8 @@ app.layout = html.Div([
                                             ],
                                             color='primary',
                                             style=graph_card_style
-                                        ),
-                                        width='auto')
-                                    ], 
-                                    no_gutters=True)
-                                ], 
-                                fluid=True),
-
-                                html.Br(),
-
-                                dbc.Container([
-                                    dbc.Row([
-                                        dbc.Col(className='pr-2', children=[
-                                            dbc.Card([
-                                                dbc.CardBody([
-                                                    dbc.Row([
-                                                        dbc.Col(html.H5("Time vs zUp", className="card-title-1"))
-                                                    ],justify='center'),
-
-                                                    dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns'))
-                                                    ],justify='center')
-                                                ])
-                                            ], color='primary',
-                                            style=graph_card_style),
-                                        ], width='auto'),
+                                        )],
+                                        width='auto'),
                                         
                                         dbc.Col(children=[
                                             dbc.Card([
@@ -300,7 +304,7 @@ app.layout = html.Div([
                                                     ],justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line(), className='ten columns'))
+                                                        dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line()))#, className='ten columns'))
                                                     ],justify='center')
                                                 ])
                                             ], color='primary',
@@ -636,51 +640,69 @@ app.layout = html.Div([
             dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
                 dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
-                dcc.RadioItems(id='cov-radio', options=[
-                    {'label': 'Diagonal', 'value': 'cov-radio-diag'},
-                    {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
-                    value='cov-radio-exp',
+                dcc.RadioItems(id='cov-radio', 
+                    options=[{'label': 'Diagonal', 'value': 'cov-radio-diag'},
+                             {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
+                    # value='cov-radio-exp',
                     inputStyle={"margin-right": "5px"},
                     labelStyle={'display': 'inline-block', "margin-right": "10px"},
                     style={"margin-left": "15px"}),
+                
+                html.Span(
+                    "?",
+                    id="popover-target",
+                    style={"textAlign": "center", "font-size": "12px", 'font-weight': "bold",
+                            "border-radius": "90%", "height": "16px", "width": "16px", "color": "white", "background-color": "#727272", 
+                            "cursor": "pointer", "display": "inline-block"
+                    }, className="dot"),
+                dbc.Popover(
+                    children=[dbc.PopoverBody("")],
+                    id="popover-content",
+                    style={"display": "none", 'width':'25rem'},
+                    trigger="click", # is_open=False,
+                    target="popover-target", placement="right"),
+                
             ], style={"margin-left": "20px"}, className  = 'row'),
+
             
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
-                    dbc.Row([
-                        dbc.Col(dbc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
-                        width=2),
-                        dbc.Col(dbc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0',
-                        debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
-                        width=2)
+                    #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                    dbc.Row(className='', children=[
+                        dbc.Col(className='', children=[
+                            html.H5('$\sigma_h$', style={"color": "#3273F6"}),
+                            dbc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05', debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
+                        ], width=2),
+                        dbc.Col(className='', children=[
+                            html.H5('$\sigma_v$', style={"color": "#3273F6"}),
+                            dbc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
+                        ], width=2)
                     ], 
-                    no_gutters=True,
-                    style={'margin-left':'20px'})
+                    no_gutters=False)
 
-                ], style={"margin-left": "20px"})
+                ], style={"margin-left": "35px"}) 
             ], id='cov-diag-input-container', style={"display":"none"}, className  = 'row'),
 
             html.Div([
                 html.Div([
-                    dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
-                    dbc.Row([
-                        dbc.Col(dbc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a',
-                            debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
-                            width=2),
-                        dbc.Col(dbc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b',
-                            debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
-                            width=2),
-                        dbc.Col(dbc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c',
-                            debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
-                            width=2)
+                    #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                    dbc.Row(className='', children=[
+                        dbc.Col(className='', children=[
+                            html.H5('$l$', style={"color": "#3273F6"}),
+                            dbc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
+                        ], width=2),
+                        dbc.Col(className='', children=[
+                            html.H5('$w_h$', style={"color": "#3273F6"}),
+                            dbc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
+                        ], width=2),
+                        dbc.Col(className='', children=[
+                            html.H5('$w_v$', style={"color": "#3273F6"}),
+                            dbc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
+                        ], width=2)
                     ], 
-                    no_gutters=True,
-                    style={"margin-left": "20px"})
-
-                ], style={"margin-left": "20px"}),
-            ], id='cov-exp-kernel-input-container', style={"display":"block"}, className  = 'row'), #, "margin-bottom":"10px"})
+                    no_gutters=False)
+                ], style={"margin-left": "35px"})
+            ], id='cov-exp-kernel-input-container', style={"display":"none"}, className  = 'row'), #, "margin-bottom":"10px"}
 
             
             # number of encounter sets to generate
@@ -689,7 +711,7 @@ app.layout = html.Div([
             dbc.Input(id='num-encounters-input', type='text', placeholder='',
                 debounce=True,# value=100,
                 pattern=u"^(\d+)$",
-                style={"margin-left": "20px", "width": "40%"}),
+                style={'margin-left':'20px', "width": "40%"}),
             
             # generation progress bar
             html.Br(),
@@ -760,7 +782,9 @@ app.layout = html.Div([
 
     # style
     html.Br(), html.Br(),
-]) 
+
+])
+
 
 print('\n*****START OF CODE*****\n')
 
@@ -906,7 +930,8 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
             yaxis_title = 'yNorth (NM)', yaxis_range = [min(min_values[1],min_values[2])-0.2, 
                                                        max(max_values[1], max_values[2])+0.2],
             #width=490,
-            margin=margin)        
+            margin=margin,
+            legend=dict(yanchor="top",y=0.99,xanchor="right",x=.99))        
         fig_tz.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
             yaxis_title='zUp (ft)', yaxis_range=[min_values[3]-50, max_values[3]+50],
@@ -917,7 +942,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
             margin=margin)
         fig_tspeedz.update_layout(
             xaxis_title='Time (s)', xaxis_range=[min_values[0]-2, max_values[0]+2],
-            yaxis_title='Speed (ft/s)', yaxis_range=[min_values[5]-5, max_values[5]+5],
+            yaxis_title='Speed (ft/min)', yaxis_range=[min_values[5]-5, max_values[5]+5],
             margin=margin)
         fig_xyz.update_layout(
             scene = {'xaxis': {'title':'xEast (NM)', 
@@ -948,8 +973,8 @@ def parse_contents(contents, filename):
         [encounters, num_ac, num_encounters] = load_waypoints(filename)
         encounters_df = waypoints_to_df(encounters, num_encounters, num_ac)
         return encounters_df
-       
-    
+
+
 @app.callback(Output('memory-data', 'data'),
               [Input('load-waypoints-button', 'n_clicks'),
                Input('load-waypoints', 'contents'),
@@ -1150,8 +1175,6 @@ def toggle_data_table_height(data, active_tab, table_style):
 
     elif ctx == 'editable-table':
         height = 3 + (len(data) * 2)
-        
-        print('height: ', height)
         table_style['height'] = str(height) + 'rem' if height < 25 else '25rem'
         return table_style
 
@@ -1203,9 +1226,7 @@ def toggle_data_table_buttons(add_rows_n_clicks, done_add_rows_n_clicks, active_
 def adjust_height_of_data_table_card(table_style, card_style):
     if 'height' in table_style.keys():
         val = table_style['height'].split('r')[0]
-        print('val: ', val)
         new_height = int(val) + 6
-        print('new_height: ', new_height)
         card_style['height'] = str(new_height) + 'rem'
 
     return card_style
@@ -1230,9 +1251,6 @@ def toggle_data_table_speeds_button(data):
               [State('encounter-ids', 'options')])
 def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, options):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-    # print('\n--update_encounter_dropdown--')
-    # print('ctx: ', ctx)
     
     if ctx == 'memory-data':
         if memory_data == [{}]: #or memory_data == []
@@ -1858,6 +1876,67 @@ def load_in_model(contents):
 
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
+      
+@app.callback(Output('popover-content', 'children'),
+              Output('popover-content', 'style'),
+              Input('cov-radio', 'value'))
+def render_popover_content(cov_radio_value):
+
+    on = {"display": "block", "width": "25rem", #, "max-width": "300px",}
+          "box-shadow": "0 3px 6px 0 rgba(0, 0, 0, 0.2), 0 4px 15px 0 rgba(0, 0, 0, 0.19)"}
+    off = {"display": "none"}
+
+    if cov_radio_value == 'cov-radio-diag':
+
+        content = '$\\begin{equation*} \
+                    \Sigma = \\begin{bmatrix} \
+                        k(x_1, x\'_1) & k(x_1, y\'_1) & \\cdots  & k(x_1, z\'_n) \\\\ \
+                        k(y_1, x\'_1) & k(y_1, y\'_1) &          & \\vdots       \\\\ \
+                        \\vdots       &               & \\ddots  &               \\\\ \
+                        k(z_n, x\'_1) & \\cdots       &          & k(z_n, z\'_n) \
+                    \\end{bmatrix} \
+                    \\\\ \\quad \\\\ \
+                    \\text{For time-steps $i$ and $j$, } \\\\ \
+                    \\begin{cases} \
+                        k(x_i, x\'_j) = \sigma_h \\\\ \
+                        k(y_i, y\'_j) = \sigma_h \\\\ \
+                        k(z_i, z\'_j) = \sigma_v \\\\ \
+                        \\text{0 otherwise.} \
+                    \\end{cases} \
+            \\end{equation*}$'
+
+        popover_content = [
+            dbc.PopoverHeader("Diagonal Covariance", style={"text-align":"center"}),
+            dbc.PopoverBody(content, style={"margin-left":"10px"})]
+        return popover_content, on
+
+
+    elif cov_radio_value == 'cov-radio-exp':
+
+        content = '$\\begin{equation*} \
+                    K = \\begin{bmatrix} \
+                        k(x_1, x\'_1) & k(x_1, y\'_1) & \\cdots  & k(x_1, z\'_n) \\\\ \
+                        k(y_1, x\'_1) & k(y_1, y\'_1) &          & \\vdots       \\\\ \
+                        \\vdots       &               & \\ddots  &               \\\\ \
+                        k(z_n, x\'_1) & \\cdots       &          & k(z_n, z\'_n) \
+                    \\end{bmatrix} \
+                    \\\\ \\quad \\\\ \
+                    \\text{For time-steps $i$ and $j$, } \\\\ \
+                    \\begin{cases} \
+                        \\text{Horizontal elements: } k(x_i, x\'_j) = \\exp \\Big( \\frac{-w_h (x_i - x\'_j)^2}{2 l^2} \\Big) \\\\ \
+                        \\text{Vertical elements:   } k(z_i, z\'_j) = \\exp \\Big( \\frac{-w_v (z_i - z\'_j)^2}{2 l^2} \\Big) \\\\ \
+                        \\text{Other elements:      } k(x_i, z\'_j) = 0 \\\\ \
+                        x \\text{\'s and } y \\text{\'s are interchangable.}& \
+                    \\end{cases} \
+            \\end{equation*}$'
+
+        popover_content = [
+            dbc.PopoverHeader("Exponenetial Kernel Covariance", style={"text-align":"center"}),
+            dbc.PopoverBody(content, style={"margin-left":"10px"})]
+        return popover_content, on
+
+    return "", off
+
 
 @app.callback(Output('cov-diag-input-container', 'style'),
               Output('cov-exp-kernel-input-container', 'style'),
@@ -2003,7 +2082,6 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
             px.density_heatmap(), px.density_heatmap()
 
     df = pd.DataFrame(generated_data)
-
     df_ac_1_interp = pd.DataFrame()
     df_ac_2_interp = pd.DataFrame()
     for enc_id in set(df['encounter_id']):

@@ -603,6 +603,13 @@ br {
   margin-left: -15px;
 }
 
+/* .row-gen-modal {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: 0px;
+  margin-left: 30rem;
+} */
+
 .vertical-scrollable > .col {
   position: absolute;
   top: 120px;
