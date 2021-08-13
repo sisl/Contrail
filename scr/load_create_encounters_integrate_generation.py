@@ -1099,6 +1099,7 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
         return data, columns
     elif ctx == 'done-add-rows-button' and done_add_rows_n_clicks > 0:
         df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
+        df = df.sort_values(by=['ac_id', 'time'])
         df = calculate_horizontal_vertical_speeds_df(df)
         return df.to_dict('records'), columns
 
