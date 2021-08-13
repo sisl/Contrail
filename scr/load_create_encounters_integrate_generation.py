@@ -29,8 +29,6 @@ import re
 from read_file import *
 import base64
 
-app = dash.Dash(__name__)
-
 external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
 
 app = dash.Dash(__name__, external_scripts=external_scripts)
@@ -50,6 +48,23 @@ def calculate_horizontal_vertical_speeds_df(df):
     dataf.loc[:, 'horizontal_speed'] = hor_speeds
     dataf.loc[:, 'vertical_speed'] = ver_speeds
     return dataf
+
+def populate_lat_lng_xEast_yNorth(data, ref_data):
+    for data_point in data:
+        if data_point['xEast'] and data_point['yNorth']:
+            # calculate lat long
+            data_point['lat'], data_point['long'],_ = pm.enu2geodetic(data_point['xEast']*NM_TO_M, data_point['yNorth']*NM_TO_M,
+                                         data_point['yNorth']*FT_TO_M if data_point['yNorth'] else ref_data['ref_alt']*FT_TO_M, 
+                                         ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                         ell=pm.Ellipsoid('wgs84'), deg=True)
+        
+        elif data_point['lat'] and data_point['long']:
+            x, y,_ =  pm.geodetic2enu(data_point['lat'], data_point['long'],
+                                         data_point['yNorth']*FT_TO_M if data_point['yNorth'] else ref_data['ref_alt']*FT_TO_M, 
+                                         ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                         ell=pm.Ellipsoid('wgs84'), deg=True)
+            data_point['xEast'], data_point['yNorth'] = x*M_TO_NM, y*M_TO_NM
+    return data
 
 
 M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
@@ -530,8 +545,10 @@ app.layout = html.Div([
                                             {"name": 'Time (s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
                                             {"name": 'xEast (NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
                                             {"name": 'yNorth (NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                            {"name": 'zUp   (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                            {"name": 'Horizontal Speed (kt)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                            {"name": f'latitude ({chr(176)})', "id": 'lat', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
+                                            {"name": f'longitude ({chr(176)})', "id": 'long', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
+                                            {"name": 'zUp/altitude   (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                            {"name": 'Horizontal Speed  (kt)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
                                             {"name": 'Vertical Speed (ft/min)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
                                         editable = True,
                                         row_deletable = True,
@@ -743,26 +760,54 @@ app.layout = html.Div([
                 dcc.Checklist(id='file-checklist', options=[
                     {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
                     {'label': 'Model (.json)', 'value': 'json-item'}],
-                    value=['dat-item'],
+                    #value=['dat-item'],
                     inputStyle={"margin-right": "8px"},
                     labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1em'},
                     style={"margin-left": "10px"}),
             ], style={"margin-left": "20px"}, className  = 'row'),
             html.Br(),
             html.Div([
-                html.Div([
-                    dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1em"}),
-                    dcc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
-                        debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
-                        style={"margin-left": "20px", "width": "70%", "font-size":"1em"}),
-                ], style={"margin-left": "20px"})
+                dbc.Row([
+                    dbc.Col([
+                        dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1em"}),
+                        dbc.Row([
+                            dbc.Col([
+                                dbc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
+                                    debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
+                                    style={"margin-left": "20px", "width": "100%", "font-size":"1em"})
+                            ], width=6),
+                            dbc.Col([
+                                dcc.RadioItems(id='dat-file-units', 
+                                    options=[{'label': 'ENU', 'value': 'dat-units-enu'},
+                                            {'label': 'GEO', 'value': 'dat-units-geo'}],
+                                    value='dat-units-enu',
+                                    inputStyle={"margin-right": "5px"},
+                                    labelStyle={'display': 'inline-block', "margin-right": "10px"},
+                                    style={'margin-left':'10px'})
+                            ], width=4)
+                        ]),
+                    ])
+                ], style={'margin-left':'0px'})
+                # html.Div([
+                #     dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1em"}),
+                #     dcc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
+                #         debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
+                #         style={"margin-left": "20px", "width": "70%", "font-size":"1em", 'display':'inline-block'}),
+                #     dcc.RadioItems(id='dat-file-units', 
+                #         options=[{'label': 'ENU', 'value': 'dat-units-enu'},
+                #                 {'label': 'GEO', 'value': 'dat-units-geo'}],
+                #         # value='cov-radio-exp',
+                #         inputStyle={"margin-right": "5px"},
+                #         labelStyle={'display': 'inline-block', "margin-right": "10px"},
+                #         style={"margin-left": "15px"}),
+                # ], style={"margin-left": "20px"})
             ], id='save-dat-div', className  = 'row', style={'display':'none'}),
             html.Div([
                 html.Div([
                     dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1em", "margin-top":"5px"}),
-                    dcc.Input(id='save-json-filename', type='text', placeholder='filename.json',
+                    dbc.Input(id='save-json-filename', type='text', placeholder='filename.json',
                         debounce=True, pattern=u"\w+\.json", value='generation_model.json',
-                        style={"margin-left": "20px", "width": "70%", "font-size":"1em"}),
+                        style={"margin-left": "20px", "width": "50%", "font-size":"1em"}),
                 ], style={"margin-left": "20px", "margin-top":"15px"})
             ], id='save-json-div', className='row', style={'display':'none'}),
             html.Br(),
@@ -980,21 +1025,20 @@ def parse_contents(contents, filename):
                Input('load-waypoints', 'contents'),
                Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
-               Input('exit-create-mode', 'n_clicks'),
                Input('generated-encounters', 'data'),
-               Input('load-model', 'contents')],
+               Input('load-model', 'contents'),
+               Input('session', 'data')],
               [State('load-waypoints', 'filename'),
-               State('editable-table', 'data')])
-def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks, exit_create_n_clicks, generated_data, model_contents, filename, data):
+               State('editable-table', 'data'),
+               State('memory-data', 'data')])
+def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks, generated_data, model_contents, ref_data, filename, table_data, memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-mode' and create_n_clicks > 0:
         return [{}]
-    elif ctx == 'end-new-button' and end_new_n_clicks > 0:  ## NEED TO FIX (ctx == 'exit-create-mode' ?)
-        return data  ## NEED TO FIX
+    elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
+        return table_data 
     
-    # elif ctx == 'load-waypoints-button' and upload_n_clicks > 0:
-    #     return [{}]
     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
         if waypoints_contents is None or not filename:
             return [{}]
@@ -1008,10 +1052,14 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
         
         df['xEast'] = df['xEast'] * FT_TO_NM  #np.around(df['xEast'] * FT_TO_NM, decimals=4)
         df['yNorth'] = df['yNorth'] * FT_TO_NM  #np.around(df['yNorth'] * FT_TO_NM, decimals=4)
+
+        df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
+                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                                ell=pm.Ellipsoid('wgs84'), deg=True)
         return df.to_dict('records')
 
     elif ctx == 'generated-encounters':
-        if data is not None:
+        if generated_data is not None:
             return generated_data
 
     elif ctx == 'load-model':
@@ -1025,10 +1073,27 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                 for ac in range(1, mean['num_ac']+1):
                     ac_traj = mean[str(ac)]['waypoints']
                     for waypoint in ac_traj:
+                        lat, lng, _ = pm.enu2geodetic(waypoint['xEast']*NM_TO_M, waypoint['yNorth']*NM_TO_M, waypoint['zUp']*FT_TO_M, 
+                                                        ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                                        ell=pm.Ellipsoid('wgs84'), deg=True)
                         data += [{'encounter_id':0, 'ac_id': ac, 'time':waypoint['time'], 
-                                 'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'],
+                                 'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'], 'lat':lat, 'long':lng,
                                  'zUp':waypoint['zUp'], 'horizontal_speed':0, 'vertical_speed':0}]  ##NEED CHANGE : speeds
                 return data
+
+    elif ctx == 'session':
+        # reference point has changed
+        if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']:
+            return dash.no_update
+
+        if memory_data != [{}]:
+            df = pd.DataFrame(memory_data)
+            df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
+                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                                ell=pm.Ellipsoid('wgs84'), deg=True)
+            return df.to_dict('records')
+
+
 
     return dash.no_update
 
@@ -1047,6 +1112,8 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                Input('end-new-button', 'n_clicks'),
                Input('gen-encounters-button', 'n_clicks'),
                Input('marker-layer', 'children')],
+               #Input('session', 'data'),
+               #Input('memory-data', 'data')],
               [State('editable-table', 'data'),
                State('editable-table', 'columns'),
                State('ac-index', 'value'),
@@ -1061,7 +1128,7 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
     if ctx == 'load-waypoints' and upload_n_clicks > 0:
         return [], columns
         
-    if ctx == 'encounter-ids':
+    elif ctx == 'encounter-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
             return [], columns
         else:
@@ -1071,17 +1138,29 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
             return df_filtered.to_dict('records'), columns
     
-    if ctx == 'ac-ids':
+    elif ctx == 'ac-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
-            print('Select an encounter ID.')
             return dash.no_update, dash.no_update
         else:
             # AC IDs have been updated or loaded in
             df = pd.DataFrame(memory_data)
-            # df_filtered = df.query('encounter_id in @encounter_id_selected')
             df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
             df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
+
             return df_filtered.to_dict('records'), columns 
+
+    # elif ctx == 'session':
+
+    #     if encounter_id_selected is None or encounter_id_selected == [] or ac_ids_selected == []:
+    #         return [], columns
+
+    #     df = pd.DataFrame(memory_data)
+    #     print(df['lat'])
+    #     df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
+    #     df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
+    #     print(df_filtered['lat'])
+    #     return df_filtered.to_dict('records'), columns 
+
 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
@@ -1098,64 +1177,70 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             data.append({col["id"]: '' for col in columns})
         return data, columns
     elif ctx == 'done-add-rows-button' and done_add_rows_n_clicks > 0:
+        # FIXME: we need to add an alert check here to make sure that the user
+        # inputs xEast, yNorth and zUp at least so we can calculate horizontal vertical speeds
+
+        #df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
+        #df = pd.DataFrame(data)
+        data = populate_lat_lng_xEast_yNorth(data, ref_data)
         df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
         df = df.sort_values(by=['ac_id', 'time'])
         df = calculate_horizontal_vertical_speeds_df(df)
         return df.to_dict('records'), columns
 
-    else:
-        if ctx == 'create-new-button' and start_new_n_clicks > 0:
-            pass
-            
-        elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
-            if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt'] or not interval or not zUp_input:
-                return dash.no_update, dash.no_update
-            
-            if len(data) != len(current_markers):
-                timestep = 0
-                if len(data) > 0:
-                    df = pd.DataFrame(data)
-                    if ac_value in df['ac_id'].tolist():
-                        df_ac = df.loc[df['ac_id'] == ac_value]
-                        last_timestep = max(df_ac['time'])
-                        timestep = last_timestep+interval
-                    
-                # in creative mode and user has created another marker 
-                # we add each marker to the data as it is created 
-                # so we only have to grab last marker in the list
-                pos = current_markers[-1]['props']['position']
+    elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
+        if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt'] or not interval or not zUp_input:
+            return dash.no_update, dash.no_update
+        
+        if len(data) != len(current_markers):
+            timestep = 0
+            if len(data) > 0:
+                df = pd.DataFrame(data)
+                if ac_value in df['ac_id'].tolist():
+                    df_ac = df.loc[df['ac_id'] == ac_value]
+                    last_timestep = max(df_ac['time'])
+                    timestep = last_timestep+interval
+                
+            # in creative mode and user has created another marker 
+            # we add each marker to the data as it is created 
+            # so we only have to grab last marker in the list
+            pos = current_markers[-1]['props']['position']
+            xEast, yNorth, _ = pm.geodetic2enu(pos[0], pos[1], zUp_input*FT_TO_M, 
+                                                    ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
+                                                    ell=pm.Ellipsoid('wgs84'), deg=True)
+            marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
+                            'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM,
+                            'lat':pos[0], 'long':pos[1], 'zUp': zUp_input,
+                            'horizontal_speed': 0, 'vertical_speed': 0}
+            data.append(marker_dict)
+        else:
+            # an already existing marker was dragged
+            # and therefore its position in data table needs to get updated
+
+            # FIXME: there must be a more efficient way to do this
+            # because right now I touch all data points instead of the one that
+            # is explicitly changed.
+            for i, data_point in enumerate(data):
+                pos = current_markers[i]['props']['position']
                 xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], zUp_input*FT_TO_M, 
-                                                     ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
-                                                     ell=pm.Ellipsoid('wgs84'), deg=True)
-                marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
-                               'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM, 'zUp': zUp_input, 'horizontal_speed': 0, 'vertical_speed': 0}  
-                data.append(marker_dict)
-            else:
-                # an already existing marker was dragged
-                # and therefore its position in data table needs to get updated
+                                                        ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
+                                                        ell=pm.Ellipsoid('wgs84'), deg=True)
+                data_point['xEast'] = xEast*M_TO_NM
+                data_point['yNorth'] = yNorth*M_TO_NM
+                data_point['zUp'] = zUp_input
+                data_point['lat'] = pos[0]
+                data_point['long'] = pos[1]
 
-                # FIXME: there must be a more efficient way to do this
-                # because right now I touch all data points instead of the one that
-                # is explicitly changed.
-                for i, data_point in enumerate(data):
-                    pos = current_markers[i]['props']['position']
-                    xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], zUp_input*FT_TO_M, 
-                                                         ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
-                                                         ell=pm.Ellipsoid('wgs84'), deg=True)
-                    data_point['xEast'] = xEast*M_TO_NM
-                    data_point['yNorth'] = yNorth*M_TO_NM
-                    data_point['zUp'] = zUp_input #*M_TO_FT
-
-            return data, columns
+        return data, columns
         
-        elif ctx == 'end-new-button':
-            if end_new_n_clicks > 0: 
-                if data != []:
-                    df = pd.DataFrame(data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
-                    df = calculate_horizontal_vertical_speeds_df(df)
-                    return df.to_dict('records'), columns
+    elif ctx == 'end-new-button':
+        if end_new_n_clicks > 0: 
+            if data != []:
+                df = pd.DataFrame(data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
+                df = calculate_horizontal_vertical_speeds_df(df)
+                return df.to_dict('records'), columns
         
-        return dash.no_update, dash.no_update
+    return dash.no_update, dash.no_update
 
 @app.callback(Output('editable-table','style_table'),
                 [Input('editable-table','data'),
@@ -1163,8 +1248,6 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                 State('editable-table','style_table')])
 def toggle_data_table_height(data, active_tab, table_style):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]   
-    #table_on = {'width': '38rem', 'margin-left': "10px", 'display': "block", 'overflowY': 'scroll'}
-    #off = {'display': "none"}
     
     if ctx == 'tabs':
         if active_tab == 'tab-4':
@@ -1379,9 +1462,9 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
             return [], []
 
     elif ctx == 'session':
-        if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
+        #if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             # no trajectories should be selected if there isn't a ref point
-            return [], []
+        return [], []
 
     return dash.no_update, dash.no_update
 
@@ -1567,7 +1650,7 @@ def update_map(data, ref_data, current_polylines):
 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'editable-table' or ctx == 'session':
+    if ctx == 'editable-table': # or ctx == 'session':
         # data has changed - must update map polylines
         new_polylines = []
         
@@ -1601,6 +1684,8 @@ def update_map(data, ref_data, current_polylines):
             new_polylines.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
         
         return new_polylines
+    elif ctx == 'session':
+        return []
     
     return current_polylines
 
@@ -1616,8 +1701,9 @@ def update_map(data, ref_data, current_polylines):
                 [State('marker-layer', 'children'),
                  State('ac-index', 'value'),
                  State('load-waypoints-button', 'n_clicks'),
-                 State('create-mode', 'n_clicks')])
-def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_ids, current_marker_tools, ref_data, exit_create_n_clicks, current_markers, ac_value,  upload_n_clicks, create_n_clicks): 
+                 State('create-mode', 'n_clicks'),
+                 State('create-mode-zUp-input', 'value')])
+def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_ids, current_marker_tools, ref_data, exit_create_n_clicks, current_markers, ac_value,  upload_n_clicks, create_n_clicks, zUp_val): 
     ctx = dash.callback_context
     if not ctx.triggered or not ctx.triggered[0]['value']:
         return dash.no_update
@@ -1625,17 +1711,24 @@ def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_
 
     if ctx == 'map':
         if create_n_clicks > 0 and start_new_n_clicks > 0:
-            if ac_value is not None:
+            if ac_value is not None and zUp_val is not None:
                 if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
                     return dash.no_update
 
-                xEast, yNorth, zUp = pm.geodetic2enu(dbl_click_lat_lng[0], dbl_click_lat_lng[1], ref_data['ref_alt']*FT_TO_M, 
-                                                    ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
-                                                    ell=pm.Ellipsoid('wgs84'), deg=True)
+                lat, lng = dbl_click_lat_lng
+                
+                # xEast, yNorth, zUp = pm.geodetic2enu(lat, lng, zUp_val*FT_TO_M, 
+                #                                     ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
+                #                                     ell=pm.Ellipsoid('wgs84'), deg=True)
+
+                # current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), 
+                #                         position=dbl_click_lat_lng,
+                #                         children=dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast*M_TO_NM, yNorth*M_TO_NM])), 
+                #                         draggable=True))
 
                 current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), 
                                         position=dbl_click_lat_lng,
-                                        children=dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth])), 
+                                        children=dl.Tooltip(f"({lat:.3f}{chr(176)}, {lng:.3f}{chr(176)})"), 
                                         draggable=True))
             else:
                 print('Enter an AC ID.')
@@ -1684,11 +1777,12 @@ def update_marker(new_positions, current_marker_tools, ref_data):
             return dash.no_update
 
         index = json.loads(ctx)['index']
-        pos = new_positions[index]
-        xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt']*FT_TO_M, 
-                                            ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
-                                            ell=pm.Ellipsoid('wgs84'), deg=True)
-        current_marker_tools[index] = dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth]))
+        lat, lng = new_positions[index]
+        # xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt']*FT_TO_M, 
+        #                                     ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
+        #                                     ell=pm.Ellipsoid('wgs84'), deg=True)
+        # current_marker_tools[index] = dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth]))
+        current_marker_tools[index] = dl.Tooltip(f"({lat:.3f}{chr(176)}, {lng:.3f}{chr(176)})")
     return current_marker_tools
 
 
@@ -2167,9 +2261,10 @@ def toggle_filename_inputs(checked_values):
                 State('nominal-path-enc-ids', 'options'),
                 State('nominal-path-ac-ids', 'options'),
                 State('save-dat-filename', 'value'),
-                State('file-checklist', 'value')],
+                State('file-checklist', 'value'),
+                State('dat-file-units', 'value')],
                 prevent_initial_call=True)
-def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save):
+def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save, dat_file_units):
     
     if save_n_clicks > 0:
         if generated_data:
@@ -2189,11 +2284,19 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
                     
                     # write initial waypoints to file first
                     df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
-                    np.array([(initial['xEast'] * NM_TO_FT,\
-                            initial['yNorth'] * NM_TO_FT,\
-                            initial['zUp']) for initial in df_initial],\
-                            dtype=np.dtype('float64, float64, float64')\
-                            ).tofile(file)
+                    if dat_file_units == 'dat-units-enu':
+                        np.array([(initial['xEast'] * NM_TO_FT,\
+                                initial['yNorth'] * NM_TO_FT,\
+                                initial['zUp']) for initial in df_initial],\
+                                dtype=np.dtype('float64, float64, float64')\
+                                ).tofile(file)
+                    elif dat_file_units == 'dat-units-geo':
+                        np.array([(initial['lat'],\
+                                initial['long'],\
+                                initial['zUp']) for initial in df_initial],\
+                                dtype=np.dtype('float64, float64, float64')\
+                                ).tofile(file)
+
 
                     # then write update waypoints to file
                     df_updates = df_enc.loc[df_enc['time'] != 0]
@@ -2202,12 +2305,20 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
                         
                         np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
                         
-                        np.array([(update['time'],\
-                                update['xEast'] * NM_TO_FT,\
-                                update['yNorth'] * NM_TO_FT,\
-                                update['zUp']) for update in df_ac_updates],\
-                                dtype=np.dtype('float64, float64, float64, float64')\
-                                ).tofile(file)
+                        if dat_file_units == 'dat-units-enu':
+                            np.array([(update['time'],\
+                                    update['xEast'] * NM_TO_FT,\
+                                    update['yNorth'] * NM_TO_FT,\
+                                    update['zUp']) for update in df_ac_updates],\
+                                    dtype=np.dtype('float64, float64, float64, float64')\
+                                    ).tofile(file)
+                        elif dat_file_units == 'dat-units-geo':
+                            np.array([(update['time'],\
+                                    update['lat'],\
+                                    update['long'],\
+                                    update['zUp']) for update in df_ac_updates],\
+                                    dtype=np.dtype('float64, float64, float64, float64')\
+                                    ).tofile(file)
 
                 file.close()
 
