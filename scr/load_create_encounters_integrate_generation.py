@@ -1060,7 +1060,11 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
 
     elif ctx == 'generated-encounters':
         if generated_data is not None:
-            return generated_data
+            df = pd.DataFrame(generated_data)
+            df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
+                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                                ell=pm.Ellipsoid('wgs84'), deg=True)
+            return df.to_dict('records')
 
     elif ctx == 'load-model':
         if model_contents is not None:
@@ -2180,15 +2184,12 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
     df_ac_1_interp = pd.DataFrame()
     df_ac_2_interp = pd.DataFrame()
     for enc_id in set(df['encounter_id']):
-        print(enc_id)
         df_enc = df.loc[df['encounter_id'] == enc_id]
         
         df_enc_ac1_interp, _, _ = interpolate_df_time(df_enc, [1])
         df_ac_1_interp = df_ac_1_interp.append(df_enc_ac1_interp, ignore_index=True)
         df_enc_ac2_interp, _, _ = interpolate_df_time(df_enc, [2])
         df_ac_2_interp = df_ac_2_interp.append(df_enc_ac2_interp, ignore_index=True)   
-
-    print("that took a while")
 
     viridis = px.colors.sequential.gray #Blues
     colors = viridis
@@ -2258,13 +2259,14 @@ def toggle_filename_inputs(checked_values):
 @app.callback(Output('download-waypoints', 'data'),
                 Input('save-filename-button', 'n_clicks'),
                 [State('generated-encounters', 'data'),
+                State('memory-data', 'data'),
                 State('nominal-path-enc-ids', 'options'),
                 State('nominal-path-ac-ids', 'options'),
                 State('save-dat-filename', 'value'),
                 State('file-checklist', 'value'),
                 State('dat-file-units', 'value')],
                 prevent_initial_call=True)
-def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save, dat_file_units):
+def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save, dat_file_units):
     
     if save_n_clicks > 0:
         if generated_data:
@@ -2272,7 +2274,7 @@ def on_click_save_dat_file(save_n_clicks, generated_data, nom_enc_ids, nom_ac_id
                 file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
                 file = open(file_name, mode='wb')
 
-                df = pd.DataFrame(generated_data)
+                df = pd.DataFrame(memory_data)
 
                 # num encounters and num ac ids
                 num_enc = len(nom_enc_ids) - 1
