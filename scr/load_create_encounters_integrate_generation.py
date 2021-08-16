@@ -12,6 +12,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
+from pandas.core.frame import DataFrame
 from pkg_resources import resource_filename, resource_string
 
 import plotly.express as px
@@ -2215,35 +2216,41 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
         return px.density_heatmap(), px.density_heatmap(), \
             px.density_heatmap(), px.density_heatmap()
 
+    # organize generated data by ac_id then enc_id
     df = pd.DataFrame(generated_data)
-
-
-    num_partitions = len(set(df['encounter_id']))
+    df_group_by_ac = [pd.DataFrame(data) for i, data in df.groupby('ac_id', as_index=False)]
+    df_to_interpolate = [pd.DataFrame(data) for data_df in df_group_by_ac for i, data in data_df.groupby('encounter_id')]
+    
     num_processes = mp.cpu_count()
-
-    df_split = [pd.DataFrame(data) for i, data in df.groupby('encounter_id')]
+    num_partitions = int(len(df_to_interpolate)/2)
 
     pool = mp.Pool(num_processes)
-    ac_ids = repeat([1,2], num_partitions)
+
+    ac_ids = [[1] for i in range(num_partitions)]
+    ac_ids += [[2] for i in range(num_partitions)]
 
     start = time.time()
-
     print('before interpolating: ', 0)
 
-    results = pool.starmap(interpolate_df_time, zip(df_split, ac_ids))
+    results = pool.starmap(interpolate_df_time, zip(df_to_interpolate, ac_ids))
     pool.close()
     pool.join()
 
     print('finished interpolating: ', time.time()-start)
 
+    # df_ac_1_interp = pd.DataFrame([result[0] for result in results[:num_partitions]])
     df_ac_1_interp = pd.DataFrame()
+    ac_1_results = [result[0] for result in results[:num_partitions]]
+    df_ac_1_interp = df_ac_1_interp.append(ac_1_results)
+
+    # df_ac_2_interp = pd.DataFrame([result[0] for result in results[num_partitions:]])
     df_ac_2_interp = pd.DataFrame()
-    df_ac_1_interp = df_ac_1_interp.append([result[0].loc[result[0]['ac_id'] == 1] for result in results])
-    df_ac_2_interp = df_ac_2_interp.append([result[0].loc[result[0]['ac_id'] == 2] for result in results])
-    
+    ac_2_results = [result[0] for result in results[num_partitions:]]
+    df_ac_2_interp = df_ac_2_interp.append(ac_2_results)
+
     print('organized: ', time.time()-start)
 
-    num_partitions = 4
+    num_partitions = 4 # number of histograms
     df_ac = [df_ac_1_interp, df_ac_1_interp, df_ac_2_interp, df_ac_2_interp]
     x = ['xEast', 'time','xEast', 'time']
     y = ['yNorth', 'zUp', 'yNorth', 'zUp']
@@ -2251,14 +2258,14 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
     print('before creating histograms: ', time.time()-start)
 
     pool = mp.Pool(num_processes)
-    results = pool.starmap(create_histogram, zip(df_ac, x, y))
+    histograms = pool.starmap(create_histogram, zip(df_ac, x, y))
     
     pool.close()
     pool.join()
     
     print('finished building histograms: ', time.time()-start)
 
-    return results
+    return histograms
     
 
 def create_histogram(df_data, x, y):
