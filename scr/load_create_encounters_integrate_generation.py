@@ -17,6 +17,10 @@ from pkg_resources import resource_filename, resource_string
 import plotly.express as px
 import plotly.graph_objects as go
 
+import multiprocessing as mp
+import tqdm
+from itertools import repeat
+
 import pandas as pd
 import numpy as np
 import collections
@@ -28,6 +32,8 @@ import re
 
 from read_file import *
 import base64
+
+import time
 
 external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
 
@@ -836,6 +842,28 @@ print('\n*****START OF CODE*****\n')
 
 #########################################################################################
 #########################################################################################
+# def interpolate_df_time(df, ac_ids_selected):
+#     num_partitions = mp.cpu_count()
+#     num_processes = mp.cpu_count()
+#     manager = mp.Manager()
+#     d = manager.dict()
+#     df_split = np.array_split(df, num_partitions)
+
+#     pool = mp.Pool(num_processes)
+#     shared_arg = repeat(d,num_partitions)
+#     for _ in tqdm.tqdm(pool.map(interpolate_df_time_2, zip(shared_arg,df_split)), total=num_partitions):
+#         pass
+
+#     # start num_processes worker processes
+#     with mp.Pool(num_processes) as pool:
+#         pool.map(interpolate_df_time_2, )
+
+
+
+#     pool.close()
+#     pool.join()
+
+
 
 def interpolate_df_time(df, ac_ids_selected):
     df_interp = pd.DataFrame()
@@ -2188,16 +2216,52 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
             px.density_heatmap(), px.density_heatmap()
 
     df = pd.DataFrame(generated_data)
+
+
+    num_partitions = len(set(df['encounter_id']))
+    num_processes = mp.cpu_count()
+
+    df_split = [pd.DataFrame(data) for i, data in df.groupby('encounter_id')]
+
+    pool = mp.Pool(num_processes)
+    ac_ids = repeat([1,2], num_partitions)
+
+    start = time.time()
+
+    print('before interpolating: ', 0)
+
+    results = pool.starmap(interpolate_df_time, zip(df_split, ac_ids))
+    pool.close()
+    pool.join()
+
+    print('finished interpolating: ', time.time()-start)
+
     df_ac_1_interp = pd.DataFrame()
     df_ac_2_interp = pd.DataFrame()
-    for enc_id in set(df['encounter_id']):
-        df_enc = df.loc[df['encounter_id'] == enc_id]
-        
-        df_enc_ac1_interp, _, _ = interpolate_df_time(df_enc, [1])
-        df_ac_1_interp = df_ac_1_interp.append(df_enc_ac1_interp, ignore_index=True)
-        df_enc_ac2_interp, _, _ = interpolate_df_time(df_enc, [2])
-        df_ac_2_interp = df_ac_2_interp.append(df_enc_ac2_interp, ignore_index=True)   
+    df_ac_1_interp = df_ac_1_interp.append([result[0].loc[result[0]['ac_id'] == 1] for result in results])
+    df_ac_2_interp = df_ac_2_interp.append([result[0].loc[result[0]['ac_id'] == 2] for result in results])
+    
+    print('organized: ', time.time()-start)
 
+    num_partitions = 4
+    df_ac = [df_ac_1_interp, df_ac_1_interp, df_ac_2_interp, df_ac_2_interp]
+    x = ['xEast', 'time','xEast', 'time']
+    y = ['yNorth', 'zUp', 'yNorth', 'zUp']
+
+    print('before creating histograms: ', time.time()-start)
+
+    pool = mp.Pool(num_processes)
+    results = pool.starmap(create_histogram, zip(df_ac, x, y))
+    
+    pool.close()
+    pool.join()
+    
+    print('finished building histograms: ', time.time()-start)
+
+    return results
+    
+
+def create_histogram(df_data, x, y):
     viridis = px.colors.sequential.gray #Blues
     colors = viridis
     # colors = [  [0, viridis[0]],
@@ -2206,19 +2270,16 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
     #             [1./100, viridis[7]],
     #             [1./10, viridis[9]],
     #             [1., viridis[11]]   ]
-    
-    fig_1_xy = px.density_heatmap(df_ac_1_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
+
+
+    if x == 'xEast' and y == 'yNorth':
+        return px.density_heatmap(df_data, x=x, y=y, nbinsx=100, nbinsy=100, 
                             labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
-    fig_1_tz = px.density_heatmap(df_ac_1_interp, x='time', y='zUp', nbinsx=100, nbinsy=100, 
-                            # nbinsx=nbin_time_ac_1, nbinsy=nbin_zUp_ac_1, 
+
+    if x == 'time' and y == 'zUp':
+        return px.density_heatmap(df_data, x=x, y=y, nbinsx=100, nbinsy=100, 
                             labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
 
-    fig_2_xy = px.density_heatmap(df_ac_2_interp, x='xEast', y='yNorth', nbinsx=100, nbinsy=100, 
-                            labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
-    fig_2_tz = px.density_heatmap(df_ac_2_interp, x='time', y='zUp', nbinsx=100, nbinsy=100,
-                            # nbinsx=nbin_time_ac_2, nbinsy=nbin_zUp_ac_2, 
-                            labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
-    return fig_1_xy, fig_1_tz, fig_2_xy, fig_2_tz
 
 
 # ##########################################################################################
