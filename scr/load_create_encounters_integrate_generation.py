@@ -1196,10 +1196,13 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
         if ac_value is None or not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt'] or not interval or not zUp_input:
             return dash.no_update, dash.no_update
         
-        if len(data) != len(current_markers):
+        
+        df = pd.DataFrame(data)
+        if 'ac_id' not in df.keys() or (len(df.loc[df['ac_id'] == ac_value]) != len(current_markers)):
             timestep = 0
-            if len(data) > 0:
-                df = pd.DataFrame(data)
+            # if len(data) > 0:
+            #     df = pd.DataFrame(data)
+            if 'ac_id' in df.keys():
                 if ac_value in df['ac_id'].tolist():
                     df_ac = df.loc[df['ac_id'] == ac_value]
                     last_timestep = max(df_ac['time'])
@@ -1221,19 +1224,24 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             # an already existing marker was dragged
             # and therefore its position in data table needs to get updated
 
-            # FIXME: there must be a more efficient way to do this
-            # because right now I touch all data points instead of the one that
-            # is explicitly changed.
-            for i, data_point in enumerate(data):
-                pos = current_markers[i]['props']['position']
-                xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], zUp_input*FT_TO_M, 
-                                                        ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
-                                                        ell=pm.Ellipsoid('wgs84'), deg=True)
-                data_point['xEast'] = xEast*M_TO_NM
-                data_point['yNorth'] = yNorth*M_TO_NM
-                data_point['zUp'] = zUp_input
-                data_point['lat'] = pos[0]
-                data_point['long'] = pos[1]
+            df = pd.DataFrame(data)
+
+            waypoint = 0
+            for i, data_point in df.iterrows():
+                if data_point['ac_id'] == ac_value:
+                    pos = current_markers[waypoint]['props']['position']
+                    xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], zUp_input*FT_TO_M, 
+                                                            ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
+                                                            ell=pm.Ellipsoid('wgs84'), deg=True)
+                    data_point['xEast'] = xEast*M_TO_NM
+                    data_point['yNorth'] = yNorth*M_TO_NM
+                    data_point['zUp'] = zUp_input
+                    data_point['lat'] = pos[0]
+                    data_point['long'] = pos[1]
+                    df.at[i] = data_point
+                    waypoint += 1
+
+            data = df.to_dict('records')
 
         return data, columns
         
@@ -1729,7 +1737,6 @@ def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_
                 #                         position=dbl_click_lat_lng,
                 #                         children=dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast*M_TO_NM, yNorth*M_TO_NM])), 
                 #                         draggable=True))
-
                 current_markers.append(dl.Marker(id=dict(tag="marker", index=len(current_markers)), 
                                         position=dbl_click_lat_lng,
                                         children=dl.Tooltip(f"({lat:.3f}{chr(176)}, {lng:.3f}{chr(176)})"), 
