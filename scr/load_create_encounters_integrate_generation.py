@@ -909,29 +909,6 @@ print('\n*****START OF CODE*****\n')
 
 #########################################################################################
 #########################################################################################
-# def interpolate_df_time(df, ac_ids_selected):
-#     num_partitions = mp.cpu_count()
-#     num_processes = mp.cpu_count()
-#     manager = mp.Manager()
-#     d = manager.dict()
-#     df_split = np.array_split(df, num_partitions)
-
-#     pool = mp.Pool(num_processes)
-#     shared_arg = repeat(d,num_partitions)
-#     for _ in tqdm.tqdm(pool.map(interpolate_df_time_2, zip(shared_arg,df_split)), total=num_partitions):
-#         pass
-
-#     # start num_processes worker processes
-#     with mp.Pool(num_processes) as pool:
-#         pool.map(interpolate_df_time_2, )
-
-
-
-#     pool.close()
-#     pool.join()
-
-
-
 def interpolate_df_time(df, ac_ids_selected):
     df_interp = pd.DataFrame()
     min_values_list, max_values_list = [], []
@@ -1003,13 +980,13 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
             t_value = np.min(np.array(min_values_list), axis=0)[0]
 
         # plot 2D/3D slider graphs
-        fig_xy = px.line()#title='xEast vs yNorth')
-        fig_tz = px.line()#title='Time vs zUp')
-        fig_tspeedxy = px.line()#title='Time vs Horizontal Speed')
-        fig_tspeedz = px.line()#title='Time vs Vertical Speed')
-        fig_xyz = px.line_3d()#title='xEast vs yNorth vs zUp')
-        fig_tdistxy = px.line()#title='Time vs Horizontal Distance')
-        fig_tdistz = px.line()#title='Time vs Vertical Distance')
+        fig_xy = px.line()
+        fig_tz = px.line()
+        fig_tspeedxy = px.line()
+        fig_tspeedz = px.line()
+        fig_xyz = px.line_3d()
+        fig_tdistxy = px.line()
+        fig_tdistz = px.line()
     
         df_x = None; df_y = None
         for i, ac_id in enumerate(ac_ids_selected):
@@ -1247,20 +1224,6 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
 
             return df_filtered.to_dict('records'), columns 
-
-    # elif ctx == 'session':
-
-    #     if encounter_id_selected is None or encounter_id_selected == [] or ac_ids_selected == []:
-    #         return [], columns
-
-    #     df = pd.DataFrame(memory_data)
-    #     print(df['lat'])
-    #     df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
-    #     df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
-    #     print(df_filtered['lat'])
-    #     return df_filtered.to_dict('records'), columns 
-
-
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
         return [], columns
@@ -1278,9 +1241,6 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
     elif ctx == 'done-add-rows-button' and done_add_rows_n_clicks > 0:
         # FIXME: we need to add an alert check here to make sure that the user
         # inputs xEast, yNorth and zUp at least so we can calculate horizontal vertical speeds
-
-        #df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
-        #df = pd.DataFrame(data)
         data = populate_lat_lng_xEast_yNorth(data, ref_data)
         df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
         df = df.sort_values(by=['ac_id', 'time'])
