@@ -36,6 +36,8 @@ import base64
 
 import time
 
+import struct
+
 external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
 
 app = dash.Dash(__name__, external_scripts=external_scripts)
@@ -1085,11 +1087,51 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
 ##########################################################################################
 def parse_contents(contents, filename):
     content_type, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
+    byte_size_pos = 8
+    initial_dim = 3
+    byte_size_num_updates = 2
+    update_dim = 4
+    # file contents in bytes
+    
+    
     if '.dat' in filename:
-        [encounters, num_ac, num_encounters] = load_waypoints(filename)
-        encounters_df = waypoints_to_df(encounters, num_encounters, num_ac)
-        return encounters_df
+        decoded = base64.b64decode(content_string)
+        num_enc = int.from_bytes(decoded[0:4], byteorder='little')
+
+        encounter_byte_indices = [None] * (num_enc+1)
+        
+        
+        num_ac = int.from_bytes(decoded[4:8], byteorder='little')
+
+
+        cursor = 8
+        initial_bytes = num_ac * byte_size_pos * initial_dim
+
+        for i in range(1, num_enc+1): 
+            encounter_byte_indices[i] = cursor
+            cursor += initial_bytes
+            for j in range(num_ac):
+                num_updates = int.from_bytes(decoded[cursor:cursor+byte_size_num_updates], byteorder='little')
+                update_bytes = (num_updates * update_dim)*8
+                cursor = cursor + byte_size_num_updates + update_bytes
+            
+
+
+        # print('initial: \n', int.from_bytes(decoded[8:16], byteorder='little'))
+        # print(int.from_bytes(decoded[16:24], byteorder='little'))
+        # print(np.array(decoded[24:32], dtype=np.float64))
+        # [x,y,z] = struct.unpack('ddd', decoded[8:32])
+
+        # print(int.from_bytes(decoded[32:40], byteorder='little'))
+        # print(int.from_bytes(decoded[48:56], byteorder='little'))
+        # print(int.from_bytes(decoded[56:64], byteorder='little'))
+        #print('num_updates: ', int.from_bytes(decoded[32:34], byteorder='little'))
+
+
+        # [encounters, num_ac, num_encounters] = load_waypoints(filename)
+        return content_string, encounter_byte_indices, num_ac, num_enc
+        # encounters_df = waypoints_to_df(encounters, num_encounters, num_ac)
+        # return encounters_df
 
 
 @app.callback(Output('memory-data', 'data'),
@@ -1103,8 +1145,12 @@ def parse_contents(contents, filename):
               [State('load-waypoints', 'filename'),
                State('editable-table', 'data'),
                State('memory-data', 'data')])
-def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks, generated_data, model_contents, ref_data, filename, table_data, memory_data):
+def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks,\
+                        generated_data, model_contents, ref_data, filename, table_data, memory_data):
+                        
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    # print('update_memory_data ctx: ', ctx)
 
     if ctx == 'create-mode' and create_n_clicks > 0:
         return [{}]
@@ -1115,20 +1161,23 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
         if waypoints_contents is None or not filename:
             return [{}]
 
-        df = parse_contents(waypoints_contents, filename) 
+        content_string, encounter_byte_indices, num_ac, num_encounters = parse_contents(waypoints_contents, filename) 
 
-        if 0 in set(df['encounter_id']):
-            df['encounter_id'] += 1
-        if 0 in set(df['ac_id']):
-            df['ac_id'] += 1
+    #     # if 0 in set(df['encounter_id']):
+    #     #     df['encounter_id'] += 1
+    #     # if 0 in set(df['ac_id']):
+    #     #     df['ac_id'] += 1
         
-        df['xEast'] = df['xEast'] * FT_TO_NM  #np.around(df['xEast'] * FT_TO_NM, decimals=4)
-        df['yNorth'] = df['yNorth'] * FT_TO_NM  #np.around(df['yNorth'] * FT_TO_NM, decimals=4)
+    #     # df['xEast'] = df['xEast'] * FT_TO_NM  #np.around(df['xEast'] * FT_TO_NM, decimals=4)
+    #     # df['yNorth'] = df['yNorth'] * FT_TO_NM  #np.around(df['yNorth'] * FT_TO_NM, decimals=4)
 
-        df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
-                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
-                                                ell=pm.Ellipsoid('wgs84'), deg=True)
-        return df.to_dict('records')
+    #     # df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
+    #     #                                         ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+    #     #   
+    #                                        ell=pm.Ellipsoid('wgs84'), deg=True)
+        # print('setting memory data')
+        # print(type(encounters[0]))
+        return {'encounters_data': content_string, 'encounter_indices': encounter_byte_indices, 'num_ac': num_ac, 'num_encounters': num_encounters}
 
     elif ctx == 'generated-encounters':
         if generated_data is not None:
@@ -1174,6 +1223,54 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
     return dash.no_update
 
 
+def parse_enc_data(enc_id, encounters_data, num_ac, enc_start_id, enc_end_id, ref_data):
+    decoded = base64.b64decode(encounters_data)
+    enc_data = decoded[enc_start_id:enc_end_id]
+    enc_data_list = []
+
+    initial_dim = 3
+    update_dim = 4
+    waypoint_byte_size = 8
+    num_update_byte_size = 2
+
+    cursor = 0
+    for ac in range(1, num_ac+1):
+        [x,y,z] = struct.unpack('ddd', enc_data[cursor:cursor+(waypoint_byte_size*initial_dim)])
+        
+
+        data_point = {'encounter_id': enc_id, 'ac_id':ac, 'time':0,\
+                        'xEast':x*FT_TO_NM, 'yNorth':y*FT_TO_NM,\
+                        'lat':None, 'long': None, 'zUp':z,\
+                        'horizontal_speed':0, 'vertical_speed':0}
+
+        data_point['lat'], data_point['long'], _ = pm.enu2geodetic(data_point['xEast']*NM_TO_M, data_point['yNorth']*NM_TO_M, data_point['zUp']*FT_TO_M, 
+                                                        ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                                        ell=pm.Ellipsoid('wgs84'), deg=True)
+        enc_data_list += [data_point]
+
+        cursor += (waypoint_byte_size*initial_dim)
+    
+    for ac in range(1, num_ac+1):
+        num_updates = int.from_bytes(enc_data[cursor:cursor+num_update_byte_size], byteorder='little')
+        cursor += num_update_byte_size
+        for i in range(num_updates):
+            [time,x,y,z] = struct.unpack('dddd', enc_data[cursor:cursor+(waypoint_byte_size*update_dim)])
+
+            data_point = {'encounter_id': enc_id, 'ac_id':ac, 'time':time,\
+                            'xEast':x*FT_TO_NM, 'yNorth':y*FT_TO_NM,\
+                            'lat':None, 'long': None, 'zUp':z,\
+                            'horizontal_speed':0, 'vertical_speed':0}
+
+            data_point['lat'], data_point['long'], _ = pm.enu2geodetic(data_point['xEast']*NM_TO_M, data_point['yNorth']*NM_TO_M, data_point['zUp']*FT_TO_M, 
+                                                            ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                                            ell=pm.Ellipsoid('wgs84'), deg=True)
+            enc_data_list += [data_point]
+
+            cursor += (waypoint_byte_size*update_dim)
+    
+    return enc_data_list
+
+
 @app.callback([Output('editable-table', 'data'),
                Output('editable-table', 'columns')],
               [Input('load-waypoints-button', 'n_clicks'),
@@ -1196,10 +1293,13 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                State('time-interval-input', 'value'),
                State('create-mode-zUp-input', 'value'),
                State('memory-data', 'data'),
-               State('session', 'data')])
+               State('session', 'data'),
+               State('load-waypoints', 'filename')])
 def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
-                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, interval, zUp_input, memory_data, ref_data):
+                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, interval, zUp_input, memory_data, ref_data, load_waypoints_filename):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    #print('update_data_table ctx: ', ctx)
 
     if ctx == 'load-waypoints' and upload_n_clicks > 0:
         return [], columns
@@ -1209,21 +1309,43 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             return [], columns
         else:
             # encounter IDs have been updated or loaded in
-            df = pd.DataFrame(memory_data)
-            df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-            df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
-            return df_filtered.to_dict('records'), columns
-    
-    elif ctx == 'ac-ids':
-        if encounter_id_selected is None or encounter_id_selected == []:
-            return dash.no_update, dash.no_update
-        else:
-            # AC IDs have been updated or loaded in
-            df = pd.DataFrame(memory_data)
-            df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
-            df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
+            # content_type, content_string = load_waypoints_contents.split(',')
+            # decoded = base64.b64decode(content_string)
+            # if '.dat' in load_waypoints_filename:
+            #     with open(load_waypoints_filename, 'rb') as file:
+            #         num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
+            #         num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
+            #         options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in range(1, num_encounters+1)]
+            #         return options
+            encounters_data = memory_data['encounters_data']
+            enc_start_id = memory_data['encounter_indices'][encounter_id_selected]
+            enc_end_id = memory_data['encounter_indices'][encounter_id_selected+1]
 
-            return df_filtered.to_dict('records'), columns 
+            enc_data = parse_enc_data(encounter_id_selected, encounters_data, memory_data['num_ac'], enc_start_id, enc_end_id, ref_data)
+
+            
+            # df = pd.DataFrame(memory_data)
+            # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
+            # df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
+            return enc_data, columns
+    
+    # elif ctx == 'ac-ids':
+    #     if encounter_id_selected is None or encounter_id_selected == []:
+    #         return dash.no_update, dash.no_update
+    #     else:
+    #         # AC IDs have been updated or loaded in
+    #         if '.dat' in load_waypoints_filename:
+    #             with open(load_waypoints_filename, 'rb') as file:
+    #                 num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
+    #                 num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
+    #                 step = 3 * num_ac
+
+                    
+    #         df = pd.DataFrame(memory_data)
+    #         df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
+    #         df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
+
+    #         return df_filtered.to_dict('records'), columns 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
         return [], columns
@@ -1396,20 +1518,39 @@ def toggle_data_table_speeds_button(data):
 # ##########################################################################################
 # ##########################################################################################
 @app.callback(Output('encounter-ids', 'options'),
-              [Input('memory-data', 'data'),
+              [#Input('load-waypoints', 'contents'),
+              #Input('load-waypoints', 'filename'),
+              Input('memory-data', 'data'),
                Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks')],
               [State('encounter-ids', 'options')])
 def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, options):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    #print('update_encounter_dropdown ctx: ', ctx)
     
     if ctx == 'memory-data':
         if memory_data == [{}]: #or memory_data == []
             return []
-        df = pd.DataFrame(memory_data)
-        encounter_ids = df['encounter_id'].unique()
-        options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in encounter_ids]
+        #print(type(memory_data['encounters'][0]))
+        # df = pd.DataFrame(memory_data)
+        # encounter_ids = df['encounter_id'].unique()
+        num_encounters = memory_data['num_encounters']
+        options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in range(1, num_encounters+1)]
         return options
+
+    # if ctx == 'load-waypoints':
+    #     # content_type, content_string = load_waypoints_contents.split(',')
+    #     # decoded = base64.b64decode(content_string)
+    #     if '.dat' in load_waypoints_filename:
+    #         file = open(load_waypoints_filename, 'rb')
+    #         num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
+    #         #num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
+    #         options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in range(1, num_encounters+1)]
+    #         return options
+
+
+
     elif ctx == 'create-mode' and create_n_clicks > 0:
         if memory_data is not [{}]: #and memory_data != []
             return []
@@ -1436,8 +1577,9 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
                State('create-new-button', 'n_clicks'),
                State('generate-button', 'n_clicks'),
                State('editable-table', 'data'),
-               State('memory-data', 'data')])
-def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, data, memory_data):
+               State('memory-data', 'data'),
+               State('load-waypoints', 'filename')])
+def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, data, memory_data, load_waypoints_filename):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     
@@ -1455,12 +1597,22 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
         if encounter_id_selected == []:
             return []
         else:
-        #if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0:
-            df = pd.DataFrame(memory_data)
-            df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-            ac_ids = df_filtered['ac_id'].unique()
-            dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in ac_ids]
-            return dropdown_options
+            # print('trying to set ac options')
+            if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0:
+                # print(type(memory_data['encounters'][0]))
+                # df = pd.DataFrame(memory_data)
+                # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
+                # ac_ids = df_filtered['ac_id'].unique()
+                dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in range(1, memory_data['num_ac']+1)]
+                return dropdown_options
+            # if memory_data == [{}]:
+            #     print('yup')
+            #     if '.dat' in load_waypoints_filename:
+            #         with open(load_waypoints_filename, 'rb') as file:
+            #             num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
+            #             num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
+            #             dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in range(1, num_ac + 1)]
+            #         return dropdown_options
     
     elif ctx == 'create-mode':
         if create_n_clicks > 0 and start_new_n_clicks == 0 and end_new_n_clicks == 0:
@@ -1505,10 +1657,13 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
     elif ctx == 'encounter-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
             return [], []
-        df = pd.DataFrame(memory_data)
-        df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-        ac_ids = df_filtered['ac_id'].unique()
-        return encounter_id_selected, [ac_id for ac_id in ac_ids]
+
+        # print(type(memory_data['encounters'][0]))
+        # df = pd.DataFrame(memory_data)
+        # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
+        # ac_ids = df_filtered['ac_id'].unique()
+
+        return encounter_id_selected, [ac_id for ac_id in range(1, memory_data['num_ac']+1)]
 
     elif ctx == 'create-mode' and create_n_clicks > 0:
         return [], []
