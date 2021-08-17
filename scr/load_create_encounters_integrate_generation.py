@@ -231,7 +231,13 @@ app.layout = html.Div([
                                                     ],justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-xy-slider', figure=px.line()))
+                                                        dbc.Col(
+                                                            dcc.Loading(parent_className='loading-graph-xy', 
+                                                            children=[dcc.Graph(id='editable-graph-xy-slider', figure=px.line())],
+                                                            type='circle',
+                                                            color='white'
+                                                            )  
+                                                        )
                                                     ],justify='center')
                                                 ])
                                             ], 
@@ -247,7 +253,13 @@ app.layout = html.Div([
                                                     ],justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns'))
+                                                        dbc.Col(
+                                                            dcc.Loading(parent_className='loading-graph-tz', 
+                                                            children=[dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')],
+                                                            type='circle',
+                                                            color='white'
+                                                            )  
+                                                        )
                                                     ],justify='center')
                                                 ])
                                             ], color='primary',
@@ -272,7 +284,13 @@ app.layout = html.Div([
                                                     justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line()))
+                                                        dbc.Col(
+                                                            dcc.Loading(parent_className='loading-graph-tdistxy', 
+                                                            children=[dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())],
+                                                            type='circle',
+                                                            color='white'
+                                                            ) 
+                                                        )
                                                     ],
                                                     justify='center')
                                                 ])
@@ -290,7 +308,13 @@ app.layout = html.Div([
                                                     ],justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns'))
+                                                        dbc.Col(
+                                                            dcc.Loading(parent_className='loading-graph-tdistz', 
+                                                            children=[dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')],
+                                                            type='circle',
+                                                            color='white'
+                                                            ) 
+                                                        )
                                                     ],justify='center')
                                                 ])
                                             ], color='primary',
@@ -311,7 +335,13 @@ app.layout = html.Div([
                                                     ],justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line()))
+                                                        dbc.Col(
+                                                            dcc.Loading(parent_className='loading-graph-tspeedxy', 
+                                                            children=[dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line())],
+                                                            type='circle',
+                                                            color='white'
+                                                            ) 
+                                                        )
                                                     ],justify='center')
                                                 ])
                                             ], color='primary',
@@ -326,7 +356,13 @@ app.layout = html.Div([
                                                     ],justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line()))#, className='ten columns'))
+                                                        dbc.Col(
+                                                            dcc.Loading(parent_className='loading-graph-tspeedz', 
+                                                            children=[dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line())],
+                                                            type='circle',
+                                                            color='white'
+                                                            ) 
+                                                        )
                                                     ],justify='center')
                                                 ])
                                             ], color='primary',
@@ -348,7 +384,13 @@ app.layout = html.Div([
                                                     ],justify='center'),
 
                                                     dbc.Row([
-                                                        dbc.Col(dcc.Graph(id='editable-graph-xyz-slider', figure=px.line_3d()))
+                                                        dbc.Col(
+                                                            dcc.Loading(parent_className='loading-graph-xyz', 
+                                                            children=[dcc.Graph(id='editable-graph-xyz-slider', figure=px.line_3d())],
+                                                            type='circle',
+                                                            color='white'
+                                                            )    
+                                                        )
                                                     ],justify='center')
                                                 ])
                                             ], 
@@ -372,7 +414,13 @@ app.layout = html.Div([
                                                 ],justify='center'),
 
                                                 dbc.Row([
-                                                    dbc.Col(dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())) #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]}
+                                                    dbc.Col(
+                                                        dcc.Loading(parent_className='loading-hist-ac-1-xy', 
+                                                        children=[dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())],
+                                                        type='circle',
+                                                        color='white'
+                                                        ) 
+                                                    )
                                                 ],justify='center')
                                             ])
                                         ],
@@ -389,7 +437,13 @@ app.layout = html.Div([
                                                 ],justify='center'),
 
                                                 dbc.Row([
-                                                    dbc.Col(dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap()))
+                                                    dbc.Col(
+                                                        dcc.Loading(parent_className='loading-hist-ac-1-tz', 
+                                                        children=[dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap())],
+                                                        type='circle',
+                                                        color='white'
+                                                        ) 
+                                                    )
                                                 ],justify='center')
                                             ])
                                         ],
@@ -412,7 +466,13 @@ app.layout = html.Div([
                                                 ],justify='center'),
 
                                                 dbc.Row([
-                                                    dbc.Col(dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())) #'data':[go.Figure(data=go.Heatmap(x=[],y=[],z=[], colorscale=[[0, "#FFFFFF"], [1, "#19410a"]]), layout=go.Layout(title='AC 1: xEast yNorth Count'))]},
+                                                    dbc.Col(
+                                                        dcc.Loading(parent_className='loading-hist-ac-2-xy', 
+                                                        children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())],
+                                                        type='circle',
+                                                        color='white'
+                                                        ) 
+                                                    )
                                                 ],justify='center')
                                             ])
                                         ],
@@ -429,7 +489,13 @@ app.layout = html.Div([
                                                 ],justify='center'),
 
                                                 dbc.Row([
-                                                    dbc.Col(dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap()))
+                                                    dbc.Col(
+                                                        dcc.Loading(parent_className='loading-hist-ac-2-tz', 
+                                                        children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap())],
+                                                        type='circle',
+                                                        color='white'
+                                                        )    
+                                                    )
                                                 ],justify='center')
                                             ])
                                         ],
@@ -2238,15 +2304,15 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected):
 
     print('finished interpolating: ', time.time()-start)
 
-    # df_ac_1_interp = pd.DataFrame([result[0] for result in results[:num_partitions]])
-    df_ac_1_interp = pd.DataFrame()
-    ac_1_results = [result[0] for result in results[:num_partitions]]
-    df_ac_1_interp = df_ac_1_interp.append(ac_1_results)
+    df_ac_1_interp = pd.concat([result[0] for result in results[:num_partitions]])
+    # df_ac_1_interp = pd.DataFrame()
+    # ac_1_results = [result[0] for result in results[:num_partitions]]
+    # df_ac_1_interp = df_ac_1_interp.append(ac_1_results)
 
-    # df_ac_2_interp = pd.DataFrame([result[0] for result in results[num_partitions:]])
-    df_ac_2_interp = pd.DataFrame()
-    ac_2_results = [result[0] for result in results[num_partitions:]]
-    df_ac_2_interp = df_ac_2_interp.append(ac_2_results)
+    df_ac_2_interp = pd.concat([result[0] for result in results[num_partitions:]])
+    # df_ac_2_interp = pd.DataFrame()
+    # ac_2_results = [result[0] for result in results[num_partitions:]]
+    # df_ac_2_interp = df_ac_2_interp.append(ac_2_results)
 
     print('organized: ', time.time()-start)
 
