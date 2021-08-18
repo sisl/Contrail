@@ -1175,17 +1175,18 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
     #     #                                         ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
     #     #   
     #                                        ell=pm.Ellipsoid('wgs84'), deg=True)
-        # print('setting memory data')
-        # print(type(encounters[0]))
-        return {'encounters_data': content_string, 'encounter_indices': encounter_byte_indices, 'num_ac': num_ac, 'num_encounters': num_encounters}
+
+        return {'encounters_data': content_string, 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters}
 
     elif ctx == 'generated-encounters':
         if generated_data is not None:
-            df = pd.DataFrame(generated_data)
-            df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
-                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
-                                                ell=pm.Ellipsoid('wgs84'), deg=True)
-            return df.to_dict('records')
+            print('setting memory_data')
+            print(generated_data['encounters_data'][:10])
+            # df = pd.DataFrame(generated_data)
+            # df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
+            #                                     ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+            #                                     ell=pm.Ellipsoid('wgs84'), deg=True)
+            return generated_data
 
     elif ctx == 'load-model':
         if model_contents is not None:
@@ -1223,8 +1224,21 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
     return dash.no_update
 
 
-def parse_enc_data(enc_id, encounters_data, num_ac, enc_start_id, enc_end_id, ref_data):
-    decoded = base64.b64decode(encounters_data)
+def parse_enc_data(enc_id, enc_start_id, enc_end_id, encounters_data, enc_ac_ids, ac_ids_selected, ref_data):
+    print(type(encounters_data))
+    if encounters_data[0:2] != 'b\'':
+        decoded = base64.b64decode(encounters_data)
+        print('decoded load')
+        print(decoded[:10])
+        print(type(decoded))
+    else:
+        print('decoded string')
+        decoded = bytes(encounters_data, 'ascii')
+        print(decoded[:10])
+        print(type(decoded))
+        #bytes(encounters_data, 'utf-8')
+        #print(decoded[:10])
+        #decoded = base64.b64encode(encounters_data)
     enc_data = decoded[enc_start_id:enc_end_id]
     enc_data_list = []
 
@@ -1234,29 +1248,11 @@ def parse_enc_data(enc_id, encounters_data, num_ac, enc_start_id, enc_end_id, re
     num_update_byte_size = 2
 
     cursor = 0
-    for ac in range(1, num_ac+1):
+    for ac in enc_ac_ids:
         [x,y,z] = struct.unpack('ddd', enc_data[cursor:cursor+(waypoint_byte_size*initial_dim)])
         
-
-        data_point = {'encounter_id': enc_id, 'ac_id':ac, 'time':0,\
-                        'xEast':x*FT_TO_NM, 'yNorth':y*FT_TO_NM,\
-                        'lat':None, 'long': None, 'zUp':z,\
-                        'horizontal_speed':0, 'vertical_speed':0}
-
-        data_point['lat'], data_point['long'], _ = pm.enu2geodetic(data_point['xEast']*NM_TO_M, data_point['yNorth']*NM_TO_M, data_point['zUp']*FT_TO_M, 
-                                                        ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
-                                                        ell=pm.Ellipsoid('wgs84'), deg=True)
-        enc_data_list += [data_point]
-
-        cursor += (waypoint_byte_size*initial_dim)
-    
-    for ac in range(1, num_ac+1):
-        num_updates = int.from_bytes(enc_data[cursor:cursor+num_update_byte_size], byteorder='little')
-        cursor += num_update_byte_size
-        for i in range(num_updates):
-            [time,x,y,z] = struct.unpack('dddd', enc_data[cursor:cursor+(waypoint_byte_size*update_dim)])
-
-            data_point = {'encounter_id': enc_id, 'ac_id':ac, 'time':time,\
+        if ac in ac_ids_selected:
+            data_point = {'encounter_id': enc_id, 'ac_id':ac, 'time':0,\
                             'xEast':x*FT_TO_NM, 'yNorth':y*FT_TO_NM,\
                             'lat':None, 'long': None, 'zUp':z,\
                             'horizontal_speed':0, 'vertical_speed':0}
@@ -1265,6 +1261,25 @@ def parse_enc_data(enc_id, encounters_data, num_ac, enc_start_id, enc_end_id, re
                                                             ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
                                                             ell=pm.Ellipsoid('wgs84'), deg=True)
             enc_data_list += [data_point]
+
+        cursor += (waypoint_byte_size*initial_dim)
+    
+    for ac in enc_ac_ids:
+        num_updates = int.from_bytes(enc_data[cursor:cursor+num_update_byte_size], byteorder='little')
+        cursor += num_update_byte_size
+        for i in range(num_updates): 
+            [time,x,y,z] = struct.unpack('dddd', enc_data[cursor:cursor+(waypoint_byte_size*update_dim)])
+
+            if ac in ac_ids_selected:
+                data_point = {'encounter_id': enc_id, 'ac_id':ac, 'time':time,\
+                                'xEast':x*FT_TO_NM, 'yNorth':y*FT_TO_NM,\
+                                'lat':None, 'long': None, 'zUp':z,\
+                                'horizontal_speed':0, 'vertical_speed':0}
+
+                data_point['lat'], data_point['long'], _ = pm.enu2geodetic(data_point['xEast']*NM_TO_M, data_point['yNorth']*NM_TO_M, data_point['zUp']*FT_TO_M, 
+                                                                ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
+                                                                ell=pm.Ellipsoid('wgs84'), deg=True)
+                enc_data_list += [data_point]
 
             cursor += (waypoint_byte_size*update_dim)
     
@@ -1296,74 +1311,69 @@ def parse_enc_data(enc_id, encounters_data, num_ac, enc_start_id, enc_end_id, re
                State('session', 'data'),
                State('load-waypoints', 'filename')])
 def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
-                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, data, columns, ac_value, interval, zUp_input, memory_data, ref_data, load_waypoints_filename):
+                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, memory_data, ref_data, load_waypoints_filename):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    #print('update_data_table ctx: ', ctx)
 
     if ctx == 'load-waypoints' and upload_n_clicks > 0:
         return [], columns
         
-    elif ctx == 'encounter-ids':
+    elif ctx == 'encounter-ids' or ctx == 'ac-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
             return [], columns
         else:
-            # encounter IDs have been updated or loaded in
-            # content_type, content_string = load_waypoints_contents.split(',')
-            # decoded = base64.b64decode(content_string)
-            # if '.dat' in load_waypoints_filename:
-            #     with open(load_waypoints_filename, 'rb') as file:
-            #         num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
-            #         num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
-            #         options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in range(1, num_encounters+1)]
-            #         return options
+            # encounter IDs or ac IDs have been updated or loaded in
+
             encounters_data = memory_data['encounters_data']
             enc_start_id = memory_data['encounter_indices'][encounter_id_selected]
             enc_end_id = memory_data['encounter_indices'][encounter_id_selected+1]
 
-            enc_data = parse_enc_data(encounter_id_selected, encounters_data, memory_data['num_ac'], enc_start_id, enc_end_id, ref_data)
-
+            if ctx == 'encounter-ids':
+                enc_data = parse_enc_data(encounter_id_selected, enc_start_id, enc_end_id, encounters_data, memory_data['ac_ids'], memory_data['ac_ids'], ref_data)
+            else:
+                enc_data = parse_enc_data(encounter_id_selected, enc_start_id, enc_end_id, encounters_data, memory_data['ac_ids'], ac_ids_selected, ref_data)
             
             # df = pd.DataFrame(memory_data)
             # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-            # df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
-            return enc_data, columns
+            enc_data_df = calculate_horizontal_vertical_speeds_df(pd.DataFrame(enc_data))
+            return enc_data_df.to_dict('records'), columns
     
     # elif ctx == 'ac-ids':
     #     if encounter_id_selected is None or encounter_id_selected == []:
     #         return dash.no_update, dash.no_update
     #     else:
     #         # AC IDs have been updated or loaded in
-    #         if '.dat' in load_waypoints_filename:
-    #             with open(load_waypoints_filename, 'rb') as file:
-    #                 num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
-    #                 num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
-    #                 step = 3 * num_ac
+    #         encounters_data = memory_data['encounters_data']
+    #         enc_start_id = memory_data['encounter_indices'][encounter_id_selected]
+    #         enc_end_id = memory_data['encounter_indices'][encounter_id_selected+1]
 
-                    
-    #         df = pd.DataFrame(memory_data)
-    #         df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
-    #         df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
+    #         enc_data = parse_enc_data(encounter_id_selected, enc_start_id, enc_end_id, encounters_data, memory_data['ac_ids'], ac_ids_selected, ref_data)
+     
+    #         # df = pd.DataFrame(memory_data['encounters_data'])
+    #         # df_filtered = df.loc[(df['encounter_id'] == encounter_id_selected) & (df['ac_id'].isin(ac_ids_selected))]
+            
+            
+    #         # df_filtered = calculate_horizontal_vertical_speeds_df(df_filtered)
 
-    #         return df_filtered.to_dict('records'), columns 
+    #         return enc_data, columns 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
         # wipe all data
         return [], columns
 
     elif ctx == 'update-speeds-button' and update_speeds_n_clicks > 0:
-        df = pd.DataFrame(data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
+        df = pd.DataFrame(table_data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
         df = calculate_horizontal_vertical_speeds_df(df)
         return df.to_dict('records'), columns
 
     elif ctx == 'add-rows-button' and create_n_clicks == 0:
         if add_rows_n_clicks > 0:
             # add an empty row
-            data.append({col["id"]: '' for col in columns})
-        return data, columns
+            table_data.append({col["id"]: '' for col in columns})
+        return table_data, columns
     elif ctx == 'done-add-rows-button' and done_add_rows_n_clicks > 0:
         # FIXME: we need to add an alert check here to make sure that the user
         # inputs xEast, yNorth and zUp at least so we can calculate horizontal vertical speeds
-        data = populate_lat_lng_xEast_yNorth(data, ref_data)
+        data = populate_lat_lng_xEast_yNorth(table_data, ref_data)
         df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
         df = df.sort_values(by=['ac_id', 'time'])
         df = calculate_horizontal_vertical_speeds_df(df)
@@ -1374,7 +1384,7 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             return dash.no_update, dash.no_update
         
         
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(table_data)
         if 'ac_id' not in df.keys() or (len(df.loc[df['ac_id'] == ac_value]) != len(current_markers)):
             timestep = 0
             # if len(data) > 0:
@@ -1396,12 +1406,12 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
                             'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM,
                             'lat':pos[0], 'long':pos[1], 'zUp': zUp_input,
                             'horizontal_speed': 0, 'vertical_speed': 0}
-            data.append(marker_dict)
+            table_data.append(marker_dict)
         else:
             # an already existing marker was dragged
             # and therefore its position in data table needs to get updated
 
-            df = pd.DataFrame(data)
+            df = pd.DataFrame(table_data)
 
             waypoint = 0
             for i, data_point in df.iterrows():
@@ -1424,8 +1434,8 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
         
     elif ctx == 'end-new-button':
         if end_new_n_clicks > 0: 
-            if data != []:
-                df = pd.DataFrame(data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
+            if table_data != []:
+                df = pd.DataFrame(table_data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
                 df = calculate_horizontal_vertical_speeds_df(df)
                 return df.to_dict('records'), columns
         
@@ -1518,9 +1528,7 @@ def toggle_data_table_speeds_button(data):
 # ##########################################################################################
 # ##########################################################################################
 @app.callback(Output('encounter-ids', 'options'),
-              [#Input('load-waypoints', 'contents'),
-              #Input('load-waypoints', 'filename'),
-              Input('memory-data', 'data'),
+              [Input('memory-data', 'data'),
                Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks')],
               [State('encounter-ids', 'options')])
@@ -1538,18 +1546,6 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
         num_encounters = memory_data['num_encounters']
         options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in range(1, num_encounters+1)]
         return options
-
-    # if ctx == 'load-waypoints':
-    #     # content_type, content_string = load_waypoints_contents.split(',')
-    #     # decoded = base64.b64decode(content_string)
-    #     if '.dat' in load_waypoints_filename:
-    #         file = open(load_waypoints_filename, 'rb')
-    #         num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
-    #         #num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
-    #         options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Path'} for encounter_id in range(1, num_encounters+1)]
-    #         return options
-
-
 
     elif ctx == 'create-mode' and create_n_clicks > 0:
         if memory_data is not [{}]: #and memory_data != []
@@ -1581,14 +1577,6 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
                State('load-waypoints', 'filename')])
 def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, data, memory_data, load_waypoints_filename):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-    
-    # print('\n--update_ac_dropdown--')
-    # print('ctx: ', ctx)
-    # print(encounter_id_selected)
-
-    # if not encounter_id_selected and ac_value is None:
-    #     return dash.no_update
     
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return []  
@@ -1603,16 +1591,8 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
                 # df = pd.DataFrame(memory_data)
                 # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
                 # ac_ids = df_filtered['ac_id'].unique()
-                dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in range(1, memory_data['num_ac']+1)]
+                dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
                 return dropdown_options
-            # if memory_data == [{}]:
-            #     print('yup')
-            #     if '.dat' in load_waypoints_filename:
-            #         with open(load_waypoints_filename, 'rb') as file:
-            #             num_encounters = np.fromfile(file, dtype=np.uint32, count=1)[0]  
-            #             num_ac = np.fromfile(file, dtype=np.uint32, count=1)[0]
-            #             dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in range(1, num_ac + 1)]
-            #         return dropdown_options
     
     elif ctx == 'create-mode':
         if create_n_clicks > 0 and start_new_n_clicks == 0 and end_new_n_clicks == 0:
@@ -1663,7 +1643,7 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
         # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
         # ac_ids = df_filtered['ac_id'].unique()
 
-        return encounter_id_selected, [ac_id for ac_id in range(1, memory_data['num_ac']+1)]
+        return encounter_id_selected, [ac_id for ac_id in memory_data['ac_ids']]
 
     elif ctx == 'create-mode' and create_n_clicks > 0:
         return [], []
@@ -2135,10 +2115,10 @@ def set_nominal_enc_id_options(encounter_options):
               State('memory-data','data'))
 def set_nominal_ac_ids_options(encounter_id_selected, memory_data):
     if encounter_id_selected != [] and memory_data != [{}]:
-        df = pd.DataFrame(memory_data)
-        df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
-        ac_ids = df_filtered['ac_id'].unique()
-        dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in ac_ids]
+        # df = pd.DataFrame(memory_data)
+        # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
+        # ac_ids = df_filtered['ac_id'].unique()
+        dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
         return dropdown_options
 
     return []
@@ -2332,9 +2312,13 @@ def generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_va
                State('exp-kernel-input-b', 'value'),
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
-               State('memory-data', 'data')])
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data):
+               State('memory-data', 'data'),
+               State('session', 'data')])
+def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    initial_dim, update_dim = 3, 4
+    waypoint_byte_size = 8
 
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
@@ -2344,17 +2328,42 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
                 return {}
 
-            df_memory_data = pd.DataFrame(memory_data) 
-            df = df_memory_data.loc[df_memory_data['encounter_id'] == nom_enc_id]
-
+            # df_memory_data = pd.DataFrame(memory_data) 
+            # df = df_memory_data.loc[df_memory_data['encounter_id'] == nom_enc_id]
+            
+            enc_start_ind = memory_data['encounter_indices'][nom_enc_id]
+            enc_end_ind = memory_data['encounter_indices'][nom_enc_id+1]
+            enc_data = parse_enc_data(nom_enc_id, enc_start_ind, enc_end_ind, memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
+            df = pd.DataFrame(enc_data)
+            
             generated_data = []
+            
+            gen_enc_data = [None] * (int(num_encounters) + 1)
             for ac in nom_ac_ids:
                 ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
                 
                 # mean (nominal path) saved in enc_id=0
-                generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
-                                   'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
-                                   for waypoint in ac_df]
+                # initial_ac_bytes = []
+                # # update_ac_bytes = [[struct.pack('<h', (len(ac_df)-1))]]
+                # update_ac_bytes = [[], []]
+                if gen_enc_data[0] == None:
+                    initial_ac_bytes = []
+                    update_ac_bytes = [[], []]
+                else:
+                    initial_ac_bytes = gen_enc_data[0][0]
+                    update_ac_bytes = gen_enc_data[0][1]
+                for waypoint in ac_df:
+                    if waypoint['time'] == 0:
+                        initial_ac_bytes.append(struct.pack('ddd', waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
+                    else:
+                        update_ac_bytes[ac-1].append(struct.pack('dddd', waypoint['time'], waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
+                
+                gen_enc_data[0] = [initial_ac_bytes, update_ac_bytes]
+                #enc_data_indices[0] = 0
+                
+                # generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
+                #                    'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
+                #                    for waypoint in ac_df]
                                    
                 # generate samples    
                 kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
@@ -2365,9 +2374,28 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                             [0, sigma_hor, 0], 
                             [0, 0, sigma_ver] ]
                     waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
-                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
-                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
-                                       for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
+                    
+                    for i, waypoints in enumerate(waypoints_list):
+                        for enc_id, waypoint in enumerate(waypoints):
+                            if gen_enc_data[enc_id+1] == None:
+                                initial_ac_bytes = []
+                                update_ac_bytes = [[], []]
+                            else:
+                                initial_ac_bytes = gen_enc_data[enc_id+1][0]
+                                update_ac_bytes = gen_enc_data[enc_id+1][1] #.append([struct.pack('<h', (len(waypoints)-1))])
+                        
+                            if ac_time[i] == 0:
+                                initial_ac_bytes.append(struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
+                            else:
+                                update_ac_bytes[ac-1].append(struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
+                        
+                            gen_enc_data[enc_id+1] = [initial_ac_bytes, update_ac_bytes]
+                            #enc_data_indices[enc_id+1] = None
+                    
+
+                    # generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
+                    #                     'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
+                    #                    for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
 
                     
                 elif cov_radio_value == 'cov-radio-exp':                    
@@ -2378,10 +2406,84 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                                         'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
                                        for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
 
+            # time to combine all of the bytes into one string!
+            generated_data = bytes('', encoding='ascii')
+            enc_data_indices = [None] * (int(num_encounters)+1)
+            cursor = 0
+            for enc_id, enc in enumerate(gen_enc_data):
+                enc_data_indices[enc_id] = cursor
+
+                enc_data_combined = bytes('', encoding='ascii')
+                initial_waypoints = enc[0]
+                for waypoint in initial_waypoints:
+                    enc_data_combined += waypoint
+
+                cursor += len(initial_waypoints) * initial_dim * waypoint_byte_size
+
+                updates = enc[1]
+                for ac_id, update in enumerate(updates):
+                    num_updates = struct.pack('<h', len(update))
+                    enc_data_combined += num_updates
+                    for waypoint in update:
+                        enc_data_combined += waypoint
+
+                cursor += len(updates) * update_dim * waypoint_byte_size
                 
+                
+                generated_data += enc_data_combined
+                    
+
+                
+                # print('\t updates ac 1: \n\t', updates[0])
+                # print('\t num updates ac 1: ', num_updates, ' ', int.from_bytes(num_updates, byteorder='little'))
+                # # print('\t updates ac 2: \n\t', updates[1])
+                # num_updates = struct.pack('<h', len(updates[1]))
+                # print('\t num updates ac 2: ', num_updates, int.from_bytes(num_updates, byteorder='little'))
+
+                
+
+            #encounters_data =         
             # if we need them to be sorted...
             # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
-            return generated_data
+            # 'Mg'+str(base64.b64encode(generated_data))[3:-1]
+            # # print(len(generated_data))
+            # test_2 = base64.b64decode(test)
+            # print('generation test')
+            # print(test[:10])
+            # print(test_2[:10])
+            # print()
+            # print(test_2)
+            return {'encounters_data': str(generated_data), 'encounter_indices': enc_data_indices, 'ac_ids':nom_ac_ids, 'num_encounters': int(num_encounters)+1}
+
+            # for ac in nom_ac_ids:
+            #     ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
+                
+            #     # mean (nominal path) saved in enc_id=0
+            #     generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
+            #                        'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
+            #                        for waypoint in ac_df]
+                                   
+            #     # generate samples    
+            #     kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
+            #     ac_time = [waypoint['time'] for waypoint in ac_df]
+                
+            #     if cov_radio_value == 'cov-radio-diag':
+            #         cov = [ [sigma_hor, 0, 0], 
+            #                 [0, sigma_hor, 0], 
+            #                 [0, 0, sigma_ver] ]
+            #         waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
+            #         generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
+            #                             'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
+            #                            for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
+
+                    
+            #     elif cov_radio_value == 'cov-radio-exp':                    
+            #         mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
+            #         waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
+            #         waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3))                
+            #         generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
+            #                             'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
+            #                            for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
 
     return dash.no_update
 
@@ -2393,9 +2495,9 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               Input('generated-encounters', 'data'),
               State('ac-ids', 'value'))
 def on_generation_update_log_histograms(generated_data, ac_ids_selected):
-    if generated_data == {}:
-        return px.density_heatmap(), px.density_heatmap(), \
-            px.density_heatmap(), px.density_heatmap()
+    # if generated_data == {}:
+    return px.density_heatmap(), px.density_heatmap(), \
+        px.density_heatmap(), px.density_heatmap()
 
     # organize generated data by ac_id then enc_id
     df = pd.DataFrame(generated_data)
