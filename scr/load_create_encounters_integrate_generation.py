@@ -1088,11 +1088,8 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
 def parse_contents(contents, filename):
     content_type, content_string = contents.split(',')
     byte_size_pos = 8
-    initial_dim = 3
+    initial_dim, update_dim = 3, 4
     byte_size_num_updates = 2
-    update_dim = 4
-    # file contents in bytes
-    
     
     if '.dat' in filename:
         decoded = base64.b64decode(content_string)
@@ -1180,12 +1177,6 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
 
     elif ctx == 'generated-encounters':
         if generated_data is not None:
-            print('setting memory_data')
-            print(generated_data['encounters_data'][:10])
-            # df = pd.DataFrame(generated_data)
-            # df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
-            #                                     ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
-            #                                     ell=pm.Ellipsoid('wgs84'), deg=True)
             return generated_data
 
     elif ctx == 'load-model':
@@ -1225,27 +1216,19 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
 
 
 def parse_enc_data(enc_id, enc_start_id, enc_end_id, encounters_data, enc_ac_ids, ac_ids_selected, ref_data):
-    print(type(encounters_data))
-    if encounters_data[0:2] != 'b\'':
-        decoded = base64.b64decode(encounters_data)
-        print('decoded load')
-        print(decoded[:10])
-        print(type(decoded))
-    else:
-        print('decoded string')
-        decoded = bytes(encounters_data, 'ascii')
-        print(decoded[:10])
-        print(type(decoded))
-        #bytes(encounters_data, 'utf-8')
-        #print(decoded[:10])
-        #decoded = base64.b64encode(encounters_data)
+    if encounters_data[0:2] == 'b\'':
+        encounters_data = encounters_data[2:-1]
+        difference = len(encounters_data) % 4
+        padding = '=' * difference
+        encounters_data += padding
+
+    decoded = base64.b64decode(encounters_data)
+
     enc_data = decoded[enc_start_id:enc_end_id]
     enc_data_list = []
 
-    initial_dim = 3
-    update_dim = 4
-    waypoint_byte_size = 8
-    num_update_byte_size = 2
+    initial_dim, update_dim = 3, 4
+    num_update_byte_size, waypoint_byte_size = 2, 8
 
     cursor = 0
     for ac in enc_ac_ids:
@@ -2301,6 +2284,82 @@ def generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_va
     return error
 
 
+
+def generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time):
+    # print('AC: ', ac)
+    for i, waypoints in enumerate(waypoints_list):
+        for enc_id, waypoint in enumerate(waypoints):
+            if gen_enc_data[enc_id+1] == None:
+                initial_ac_bytes = []
+                update_ac_bytes = [[],[]]
+            else:
+                initial_ac_bytes = gen_enc_data[enc_id+1][0]
+                update_ac_bytes = gen_enc_data[enc_id+1][1] 
+
+            if ac_time[i] == 0:
+                initial_ac_bytes.append(struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
+            else:
+                update_ac_bytes[ac-1].append(struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
+        
+            gen_enc_data[enc_id+1] = [initial_ac_bytes, update_ac_bytes] 
+
+    return gen_enc_data
+
+def generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time):
+    for enc_id, waypoints in enumerate(waypoints_list):
+        if gen_enc_data[enc_id+1] == None:
+            initial_ac_bytes = []
+            update_ac_bytes = [[],[]]
+        else:
+            initial_ac_bytes = gen_enc_data[enc_id+1][0]
+            update_ac_bytes = gen_enc_data[enc_id+1][1] 
+        
+        for i, waypoint in enumerate(waypoints):
+            if ac_time[i] == 0:
+                initial_ac_bytes.append(struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
+            else:
+                update_ac_bytes[ac-1].append(struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
+        
+        gen_enc_data[enc_id+1] = [initial_ac_bytes, update_ac_bytes] 
+
+    return gen_enc_data
+
+def combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids):
+    initial_dim, update_dim = 3, 4
+    num_update_byte_size, enc_ac_byte_size, waypoint_byte_size = 2, 4, 8
+
+    generated_data = struct.pack('<II', int(num_encounters)+1, len(nom_ac_ids))
+    enc_data_indices = [None] * (int(num_encounters)+1)
+    cursor = 2 * enc_ac_byte_size
+    for enc_id, enc in enumerate(gen_enc_data):
+        enc_data_indices[enc_id] = cursor
+
+        enc_data_combined = bytes()
+
+        initial_waypoints = enc[0]
+        for waypoint in initial_waypoints:
+            enc_data_combined += waypoint
+
+        cursor += len(initial_waypoints) * initial_dim * waypoint_byte_size
+
+        updates = enc[1]
+        for ac_id, update in enumerate(updates):
+            num_updates = struct.pack('<H', len(update))
+            cursor += num_update_byte_size
+            enc_data_combined += num_updates
+
+            for waypoint in update:
+                enc_data_combined += waypoint
+
+            cursor += len(update) * update_dim * waypoint_byte_size
+        
+        generated_data += enc_data_combined
+    
+    return generated_data, enc_data_indices
+
+
+
+
 @app.callback(Output('generated-encounters', 'data'),
               Input('generate-button', 'n_clicks'),
               [State('nominal-path-enc-ids', 'value'),
@@ -2317,9 +2376,6 @@ def generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_va
 def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    initial_dim, update_dim = 3, 4
-    waypoint_byte_size = 8
-
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
 
@@ -2328,27 +2384,19 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
                 return {}
 
-            # df_memory_data = pd.DataFrame(memory_data) 
-            # df = df_memory_data.loc[df_memory_data['encounter_id'] == nom_enc_id]
-            
             enc_start_ind = memory_data['encounter_indices'][nom_enc_id]
             enc_end_ind = memory_data['encounter_indices'][nom_enc_id+1]
             enc_data = parse_enc_data(nom_enc_id, enc_start_ind, enc_end_ind, memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
             df = pd.DataFrame(enc_data)
             
-            generated_data = []
-            
-            gen_enc_data = [None] * (int(num_encounters) + 1)
+            gen_enc_data = [None] * (int(num_encounters) + 1) # [ [initial waypoints], [[ac_1_updates],[ac_2_updates]] ]
             for ac in nom_ac_ids:
                 ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
                 
-                # mean (nominal path) saved in enc_id=0
-                # initial_ac_bytes = []
-                # # update_ac_bytes = [[struct.pack('<h', (len(ac_df)-1))]]
-                # update_ac_bytes = [[], []]
+                # include nominal path
                 if gen_enc_data[0] == None:
                     initial_ac_bytes = []
-                    update_ac_bytes = [[], []]
+                    update_ac_bytes = [[],[]]
                 else:
                     initial_ac_bytes = gen_enc_data[0][0]
                     update_ac_bytes = gen_enc_data[0][1]
@@ -2357,14 +2405,9 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                         initial_ac_bytes.append(struct.pack('ddd', waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
                     else:
                         update_ac_bytes[ac-1].append(struct.pack('dddd', waypoint['time'], waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-                
+                        
                 gen_enc_data[0] = [initial_ac_bytes, update_ac_bytes]
-                #enc_data_indices[0] = 0
-                
-                # generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
-                #                    'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
-                #                    for waypoint in ac_df]
-                                   
+          
                 # generate samples    
                 kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
                 ac_time = [waypoint['time'] for waypoint in ac_df]
@@ -2375,117 +2418,26 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                             [0, 0, sigma_ver] ]
                     waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
                     
-                    for i, waypoints in enumerate(waypoints_list):
-                        for enc_id, waypoint in enumerate(waypoints):
-                            if gen_enc_data[enc_id+1] == None:
-                                initial_ac_bytes = []
-                                update_ac_bytes = [[], []]
-                            else:
-                                initial_ac_bytes = gen_enc_data[enc_id+1][0]
-                                update_ac_bytes = gen_enc_data[enc_id+1][1] #.append([struct.pack('<h', (len(waypoints)-1))])
-                        
-                            if ac_time[i] == 0:
-                                initial_ac_bytes.append(struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
-                            else:
-                                update_ac_bytes[ac-1].append(struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
-                        
-                            gen_enc_data[enc_id+1] = [initial_ac_bytes, update_ac_bytes]
-                            #enc_data_indices[enc_id+1] = None
-                    
-
-                    # generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
-                    #                     'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
-                    #                    for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
-
-                    
-                elif cov_radio_value == 'cov-radio-exp':                    
+                    gen_enc_data = generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time)
+                
+                elif cov_radio_value == 'cov-radio-exp':                
                     mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
                     waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
-                    waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3))                
-                    generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
-                                        'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
-                                       for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
+                    waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3)) 
 
+                    gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time)
+                    
+                                 
             # time to combine all of the bytes into one string!
-            generated_data = bytes('', encoding='ascii')
-            enc_data_indices = [None] * (int(num_encounters)+1)
-            cursor = 0
-            for enc_id, enc in enumerate(gen_enc_data):
-                enc_data_indices[enc_id] = cursor
-
-                enc_data_combined = bytes('', encoding='ascii')
-                initial_waypoints = enc[0]
-                for waypoint in initial_waypoints:
-                    enc_data_combined += waypoint
-
-                cursor += len(initial_waypoints) * initial_dim * waypoint_byte_size
-
-                updates = enc[1]
-                for ac_id, update in enumerate(updates):
-                    num_updates = struct.pack('<h', len(update))
-                    enc_data_combined += num_updates
-                    for waypoint in update:
-                        enc_data_combined += waypoint
-
-                cursor += len(updates) * update_dim * waypoint_byte_size
-                
-                
-                generated_data += enc_data_combined
+            # constants
+            generated_data, enc_data_indices = combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids)
                     
 
-                
-                # print('\t updates ac 1: \n\t', updates[0])
-                # print('\t num updates ac 1: ', num_updates, ' ', int.from_bytes(num_updates, byteorder='little'))
-                # # print('\t updates ac 2: \n\t', updates[1])
-                # num_updates = struct.pack('<h', len(updates[1]))
-                # print('\t num updates ac 2: ', num_updates, int.from_bytes(num_updates, byteorder='little'))
-
-                
-
-            #encounters_data =         
-            # if we need them to be sorted...
-            # generated_data = sorted(generated_data, key=lambda k: k['encounter_id'])
-            # 'Mg'+str(base64.b64encode(generated_data))[3:-1]
-            # # print(len(generated_data))
-            # test_2 = base64.b64decode(test)
-            # print('generation test')
-            # print(test[:10])
-            # print(test_2[:10])
-            # print()
-            # print(test_2)
-            return {'encounters_data': str(generated_data), 'encounter_indices': enc_data_indices, 'ac_ids':nom_ac_ids, 'num_encounters': int(num_encounters)+1}
-
-            # for ac in nom_ac_ids:
-            #     ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
-                
-            #     # mean (nominal path) saved in enc_id=0
-            #     generated_data += [{'encounter_id': 0, 'ac_id': ac, 'time': waypoint['time'],
-            #                        'xEast': waypoint['xEast'], 'yNorth': waypoint['yNorth'], 'zUp': waypoint['zUp']} 
-            #                        for waypoint in ac_df]
-                                   
-            #     # generate samples    
-            #     kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
-            #     ac_time = [waypoint['time'] for waypoint in ac_df]
-                
-            #     if cov_radio_value == 'cov-radio-diag':
-            #         cov = [ [sigma_hor, 0, 0], 
-            #                 [0, sigma_hor, 0], 
-            #                 [0, 0, sigma_ver] ]
-            #         waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
-            #         generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
-            #                             'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
-            #                            for i,waypoints in enumerate(waypoints_list) for enc_id, waypoint in enumerate(waypoints)]
-
-                    
-            #     elif cov_radio_value == 'cov-radio-exp':                    
-            #         mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-            #         waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
-            #         waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3))                
-            #         generated_data += [{'encounter_id': enc_id+1, 'ac_id': ac, 'time': ac_time[i], 
-            #                             'xEast': waypoint[0], 'yNorth': waypoint[1], 'zUp': waypoint[2]} 
-            #                            for enc_id, waypoints in enumerate(waypoints_list) for i, waypoint in enumerate(waypoints)]
+            base_64_encoded = base64.b64encode(generated_data)
+            return {'encounters_data': str(base_64_encoded), 'encounter_indices': enc_data_indices, 'ac_ids':nom_ac_ids, 'num_encounters': int(num_encounters)+1}
 
     return dash.no_update
+
 
 
 @app.callback(Output('log-histogram-ac-1-xy', 'figure'),
