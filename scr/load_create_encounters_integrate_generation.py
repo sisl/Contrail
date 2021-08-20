@@ -2287,69 +2287,23 @@ def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_i
                 file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
                 file = open(file_name, mode='wb')
 
-                # FIXME: This is an inefficient way to save the data
-                # because we convert it to a list of dictionaries of waypoints
-                # just to convert it back to bytes and send those bytes to a file
-                # however, lower on priority to fix this right now!
-                data = convert_and_combine_data(memory_data, ref_data)
-                df = pd.DataFrame(data)
+                num_enc = memory_data['num_encounters']
+                data_to_save = struct.pack('<II', int(num_enc)-1, len(nom_ac_ids)) # remove nominal encounter
+                enc_indices = memory_data['encounter_indices']
 
+                encounters_data = memory_data['encounters_data']
 
-                # encounters_data = memory_data['encounters_data']
-                # enc_indices = memory_data['encounter_indices']
-                # num_enc = memory_data['num_encounters']
-                # ac_ids = memory_data['ac_ids']
+                # make sure in base64 standard
+                if encounters_data[0:2] == 'b\'':
+                    encounters_data = encounters_data[2:-1]
+                    difference = len(encounters_data) % 4
+                    padding = '=' * difference
+                    encounters_data += padding
+
+                encs_data_bytes = base64.b64decode(encounters_data)
+                data_to_save += encs_data_bytes[enc_indices[1]:] # remove nominal encounter
                 
-                # for cursor in enc_indices:
-
-                
-                
-                # num encounters and num ac ids
-                num_enc = len(nom_enc_ids) - 1
-                np.array(num_enc, dtype=np.uint32).tofile(file)
-                np.array(len(nom_ac_ids), dtype=np.uint32).tofile(file)
-
-                for enc in range(1, len(nom_enc_ids)+1):
-                    df_enc = df.loc[df['encounter_id'] == enc]
-                    
-                    # write initial waypoints to file first
-                    df_initial = (df_enc.loc[df_enc['time'] == 0]).to_dict('records')
-                    if dat_file_units == 'dat-units-enu':
-                        np.array([(initial['xEast'] * NM_TO_FT,\
-                                initial['yNorth'] * NM_TO_FT,\
-                                initial['zUp']) for initial in df_initial],\
-                                dtype=np.dtype('float64, float64, float64')\
-                                ).tofile(file)
-                    elif dat_file_units == 'dat-units-geo':
-                        np.array([(initial['lat'],\
-                                initial['long'],\
-                                initial['zUp']) for initial in df_initial],\
-                                dtype=np.dtype('float64, float64, float64')\
-                                ).tofile(file)
-
-
-                    # then write update waypoints to file
-                    df_updates = df_enc.loc[df_enc['time'] != 0]
-                    for ac in nom_ac_ids:
-                        df_ac_updates = (df_updates.loc[df_updates['ac_id'] == ac['value']]).to_dict('records')
-                        
-                        np.array(len(df_ac_updates), dtype=np.uint16).tofile(file)
-                        
-                        if dat_file_units == 'dat-units-enu':
-                            np.array([(update['time'],\
-                                    update['xEast'] * NM_TO_FT,\
-                                    update['yNorth'] * NM_TO_FT,\
-                                    update['zUp']) for update in df_ac_updates],\
-                                    dtype=np.dtype('float64, float64, float64, float64')\
-                                    ).tofile(file)
-                        elif dat_file_units == 'dat-units-geo':
-                            np.array([(update['time'],\
-                                    update['lat'],\
-                                    update['long'],\
-                                    update['zUp']) for update in df_ac_updates],\
-                                    dtype=np.dtype('float64, float64, float64, float64')\
-                                    ).tofile(file)
-
+                file.write(data_to_save)
                 file.close()
 
                 return dcc.send_file(file_name)
@@ -2380,10 +2334,28 @@ def on_click_save_json_file(save_n_clicks, generated_data, memory_data, cov_radi
             if 'json-item' in files_to_save:
                 model_json = {}
 
-                data = convert_and_combine_data(memory_data, ref_data)
-                df = pd.DataFrame(data)
-                df_enc = df.loc[df['encounter_id'] == 0]
-                ac_ids = df_enc['ac_id'].unique()
+                # encounters_data = memory_data['encounters_data']
+
+                # # make sure in base64 standard
+                # if encounters_data[0:2] == 'b\'':
+                #     encounters_data = encounters_data[2:-1]
+                #     difference = len(encounters_data) % 4
+                #     padding = '=' * difference
+                #     encounters_data += padding
+                    
+                # encs_byte_data = base64.b64decode(encounters_data)
+
+                # enc_indices = memory_data['encounter_indices']
+                # nom_enc_start = enc_indices[0]
+                # if memory_data['num_encounters'] > 1:
+                #     nom_enc_end = enc_indices[1]
+                #     enc_data = encs_byte_data[nom_enc_start:nom_enc_end]
+                # else:
+                #     enc_data = encs_byte_data[nom_enc_start:]
+
+                enc_data = parse_enc_data([0], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], memory_data['ac_ids'], ref_data)
+                df_enc = pd.DataFrame(enc_data)
+                ac_ids = memory_data['ac_ids']
             
                 model_json['mean'] = {'num_ac': len(ac_ids)}
 
