@@ -2140,9 +2140,6 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
     return dash.no_update
 
 
-
-
-
 @app.callback(Output('log-histogram-ac-1-xy', 'figure'),
               Output('log-histogram-ac-1-tz', 'figure'),
               Output('log-histogram-ac-2-xy', 'figure'),
