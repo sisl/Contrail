@@ -2334,25 +2334,6 @@ def on_click_save_json_file(save_n_clicks, generated_data, memory_data, cov_radi
             if 'json-item' in files_to_save:
                 model_json = {}
 
-                # encounters_data = memory_data['encounters_data']
-
-                # # make sure in base64 standard
-                # if encounters_data[0:2] == 'b\'':
-                #     encounters_data = encounters_data[2:-1]
-                #     difference = len(encounters_data) % 4
-                #     padding = '=' * difference
-                #     encounters_data += padding
-                    
-                # encs_byte_data = base64.b64decode(encounters_data)
-
-                # enc_indices = memory_data['encounter_indices']
-                # nom_enc_start = enc_indices[0]
-                # if memory_data['num_encounters'] > 1:
-                #     nom_enc_end = enc_indices[1]
-                #     enc_data = encs_byte_data[nom_enc_start:nom_enc_end]
-                # else:
-                #     enc_data = encs_byte_data[nom_enc_start:]
-
                 enc_data = parse_enc_data([0], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], memory_data['ac_ids'], ref_data)
                 df_enc = pd.DataFrame(enc_data)
                 ac_ids = memory_data['ac_ids']
@@ -2382,11 +2363,6 @@ def on_click_save_json_file(save_n_clicks, generated_data, memory_data, cov_radi
                         'b': b,
                         'c': c,
                     }
-
-                # script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
-                # file_name = json_filename if json_filename else 'generation_model.json'
-                # rel_path = "generated_models/"+file_name
-                # abs_file_path = os.path.join(script_dir, rel_path)
 
                 file_name = json_filename if json_filename else 'generation_model.json'
                 with open(file_name, 'w') as outfile:
