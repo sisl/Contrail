@@ -1639,8 +1639,8 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
 def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, generate_n_clicks, ref_data, ac_value, ac_selected, memory_data): #encounter_value, 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    # print('\n--update_dropdowns_value--')
-    # print('ctx: ', ctx)
+    print('\n--update_dropdowns_value--')
+    print('ctx: ', ctx)
 
     clear_enc_val, clear_ac_val = [], []
     
@@ -1650,6 +1650,11 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
         if encounter_id_selected is None or encounter_id_selected == []:
             print('encounter_id_selected: ', encounter_id_selected)
             return clear_enc_val, clear_ac_val
+
+        # df = pd.DataFrame(memory_data)
+        # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
+        # ac_ids = df_filtered['ac_id'].unique()
+        # return encounter_id_selected, [ac_id for ac_id in ac_ids]
 
         print('setting it to')
         return encounter_id_selected, [ac_id for ac_id in memory_data['ac_ids']]
