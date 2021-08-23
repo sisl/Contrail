@@ -38,6 +38,8 @@ def parse_dat_file(contents, filename):
             
         return content_string, encounter_byte_indices, num_ac, num_enc
 
+    return False, False, 0, 0
+
 def convert_json_file(contents):
     content_type, content_string = contents.split(',')
         

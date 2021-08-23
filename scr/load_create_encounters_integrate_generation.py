@@ -4,14 +4,18 @@ from typing import Container
 import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
-from dash_bootstrap_components._components.Col import Col
-from dash_bootstrap_components.themes import SANDSTONE
+#from dash_extensions.callback import CallbackCache
+from dash_extensions.enrich import ServersideOutput
 
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
+
+from flask_caching.backends import SimpleCache
+
+
 from pandas.core.frame import DataFrame
 from pkg_resources import resource_filename, resource_string
 
@@ -906,6 +910,7 @@ app.layout = html.Div([
     html.Br(), html.Br(),
 
 ])
+#cc = CallbackCache(cache=SimpleCache()) #(cache_dir="cache"))
 
 
 print('\n*****START OF CODE*****\n')
@@ -1087,7 +1092,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
 
 # ##########################################################################################
 ##########################################################################################
-@app.callback(Output('memory-data', 'data'),
+@app.callback(ServersideOutput('memory-data', 'data'),
               [Input('load-waypoints-button', 'n_clicks'),
                Input('load-waypoints', 'contents'),
                Input('create-mode', 'n_clicks'),
@@ -1117,8 +1122,11 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
             return [{}]
 
         encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file(waypoints_contents, filename) 
-        return {'encounters_data': encounters_data, 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'loaded'}
-
+        if encounters_data:
+            return {'encounters_data': encounters_data, 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'loaded'}
+        else:
+            print('Not a .dat file')
+            
     elif ctx == 'generated-encounters':
         if generated_data is not None:
             return generated_data
@@ -1126,17 +1134,7 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
     elif ctx == 'load-model':
         if model_contents is not None:
             content_type, content_string = model_contents.split(',')
-        
             encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
-            # for ac in range(1, mean['num_ac']+1):
-            #     ac_traj = mean[str(ac)]['waypoints']
-            #     for waypoint in ac_traj:
-            #         lat, lng, _ = pm.enu2geodetic(waypoint['xEast']*NM_TO_M, waypoint['yNorth']*NM_TO_M, waypoint['zUp']*FT_TO_M, 
-            #                                         ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
-            #                                         ell=pm.Ellipsoid('wgs84'), deg=True)
-            #         data += [{'encounter_id':0, 'ac_id': ac, 'time':waypoint['time'], 
-            #                  'xEast':waypoint['xEast'], 'yNorth':waypoint['yNorth'], 'lat':lat, 'long':lng,
-            #                  'zUp':waypoint['zUp'], 'horizontal_speed':0, 'vertical_speed':0}]  ##NEED CHANGE : speeds
             return {'encounters_data': str(encounters_data), 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'json'}
 
     elif ctx == 'session':
@@ -2180,6 +2178,7 @@ def on_generation_update_log_histograms(generated_data, ac_ids_selected, ref_dat
     print('before interpolating: ', time.time()-start)
 
     results = pool.starmap(interpolate_df_time, zip(df_to_interpolate, ac_ids))
+    
     pool.close()
     pool.join()
 
@@ -2218,7 +2217,6 @@ def create_histogram(df_data, x, y):
     #             [1./100, viridis[7]],
     #             [1./10, viridis[9]],
     #             [1., viridis[11]]   ]
-
 
     if x == 'xEast' and y == 'yNorth':
         return px.density_heatmap(df_data, x=x, y=y, nbinsx=100, nbinsy=100, 
@@ -2452,6 +2450,7 @@ def toggle_map_create_mode_div(active_tab, style):
 
 #     return 'pl-4'
 
+# cc.register(app)
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=8332)
