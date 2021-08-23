@@ -15,6 +15,8 @@ import dash_leaflet as dl
 from pandas.core.frame import DataFrame
 from pkg_resources import resource_filename, resource_string
 
+from collections import deque
+
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -1118,7 +1120,9 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
         return {'encounters_data': encounters_data, 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'loaded'}
 
     elif ctx == 'generated-encounters':
+        print('triggered update memory data')
         if generated_data is not None:
+            print('just returning')
             return generated_data
 
     elif ctx == 'load-model':
@@ -2091,27 +2095,29 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
             df = pd.DataFrame(enc_data)
             
-            #gen_enc_data = [None] * (int(num_encounters) + 1) # [ [initial waypoints], [[ac_1_updates],[ac_2_updates]] ]
-            gen_enc_data = {}
+            gen_enc_data = deque()
             start = time.time()
             for ac in nom_ac_ids:
                 print("AC: ", ac)
                 ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
                 
                 # include nominal path
-                if 0 not in gen_enc_data.keys(): #[0] == None:
+                if len(gen_enc_data) > 0:
+                    enc_data = gen_enc_data.popleft()
+                    initial_ac_bytes = enc_data[0]
+                    update_ac_bytes = enc_data[1]
+                else:
                     initial_ac_bytes = []
                     update_ac_bytes = [[],[]]
-                else:
-                    initial_ac_bytes = gen_enc_data[0][0]
-                    update_ac_bytes = gen_enc_data[0][1]
+                
                 for waypoint in ac_df:
                     if waypoint['time'] == 0:
                         initial_ac_bytes.append(struct.pack('ddd', waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
                     else:
                         update_ac_bytes[ac-1].append(struct.pack('dddd', waypoint['time'], waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-                        
-                gen_enc_data[0] = [initial_ac_bytes, update_ac_bytes]
+
+                enc_data = [initial_ac_bytes, update_ac_bytes]
+                gen_enc_data.append(enc_data) 
           
                 # generate samples    
                 kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
@@ -2133,9 +2139,12 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
                                         
             # time to combine all of the bytes into one string!
+            print('before combining generated data @ ', time.time() - start)
             generated_data, enc_data_indices = combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start)
-                    
-            return {'encounters_data': str(base64.b64encode(generated_data)), 'encounter_indices': enc_data_indices, 'ac_ids':nom_ac_ids, 'num_encounters': int(num_encounters)+1, 'type':'generated'}
+            encoded_gen_data = base64.b64encode(generated_data)
+            print('finished combining generated data @ ', time.time() - start, '\n')  
+
+            return {'encounters_data': str(encoded_gen_data), 'encounter_indices': enc_data_indices, 'ac_ids':nom_ac_ids, 'num_encounters': int(num_encounters)+1, 'type':'generated'}
 
     return dash.no_update
 
