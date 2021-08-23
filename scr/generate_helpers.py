@@ -5,6 +5,7 @@ import multiprocessing as mp
 from itertools import repeat
 import pymap3d as pm
 import base64
+from collections import deque
 
 INITIAL_DIM = 3
 UPDATE_DIM = 4
@@ -88,38 +89,39 @@ def generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time) -> dict:
 
 def generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start) -> dict:
     for enc_id, waypoints in enumerate(waypoints_list):
+
         if enc_id % 10000 == 0: 
             print('enc_id: ', enc_id, ' @ ', time.time()-start)
-        if (enc_id+1) not in gen_enc_data.keys(): #[enc_id+1] == None:
+
+        if len(gen_enc_data) > enc_id+1:
+            enc_data = gen_enc_data.popleft()
+            initial_ac_bytes = enc_data[0]
+            update_ac_bytes = enc_data[1] 
+        else:
             initial_ac_bytes = []
             update_ac_bytes = [[],[]]
-        else:
-            initial_ac_bytes = gen_enc_data[enc_id+1][0]
-            update_ac_bytes = gen_enc_data[enc_id+1][1] 
         
         for i, waypoint in enumerate(waypoints):
             if ac_time[i] == 0:
                 initial_ac_bytes.append(struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
             else:
                 update_ac_bytes[ac-1].append(struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
-        
-        gen_enc_data[enc_id+1] = [initial_ac_bytes, update_ac_bytes] 
 
+        enc_data = [initial_ac_bytes, update_ac_bytes] 
+        gen_enc_data.append(enc_data)
+        
     return gen_enc_data
 
 def combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start):
-    generated_data = struct.pack('<II', int(num_encounters)+1, len(nom_ac_ids))
+    generated_data = bytearray(struct.pack('<II', int(num_encounters)+1, len(nom_ac_ids)))
     cursor = 2 * INFO_BYTE_SIZE
 
     enc_data_indices = [None] * (int(num_encounters)+1)
     
-    keys = gen_enc_data.keys()
-    for enc_id in keys:
-        enc = gen_enc_data[enc_id]
-        if enc_id % 1000 == 0: 
-            print('enc_id: ', enc_id, ' @ ', time.time()-start)
+    enc_id = 0
+    while gen_enc_data:
+        enc = gen_enc_data.popleft()
         enc_data_indices[enc_id] = cursor
-
         enc_data_combined = bytes()
         
         initial_waypoints = enc[0]
@@ -138,12 +140,12 @@ def combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start):
                 enc_data_combined += waypoint
 
             cursor += len(update) * UPDATE_DIM * WAYPOINT_BYTE_SIZE
-        
-        # if enc_id % 1000 == 0: 
-        #     print('appending @', time.time()-start)
-        generated_data += enc_data_combined
-        if enc_id % 1000 == 0: 
-            print('finished  @ ', time.time()-start)
+
+        generated_data.extend(enc_data_combined)
+
+        del enc
+        del enc_data_combined
+        enc_id += 1
     
     return generated_data, enc_data_indices
 
@@ -210,10 +212,20 @@ def parse_enc_data(enc_ids_selected, enc_indices, encounters_data, enc_ac_ids, a
 def convert_and_combine_data(data, ref_data) -> list:
     num_encs = data['num_encounters']
     num_processes = mp.cpu_count()
-    num_partitions = num_encs
+    num_enc_per_cpu = num_encs // num_processes
+    num_enc_per_partition = num_enc_per_cpu // 3
+    
+    start, size, end = 0, num_enc_per_partition, num_enc_per_partition
+    enc_ids = []
+    total_partitions = 3 * num_processes
+    for i in range(total_partitions):
+        if i == total_partitions - 1:
+            end = num_encs
+        encs = [enc for enc in range(start, end)]
+        start = end
+        end += size
+        enc_ids.append(encs)
 
-    # FIXME: find the fastest partition of enc ids
-    enc_ids = [[enc] for enc in range(num_encs)]
     enc_indices = repeat(data['encounter_indices'], num_encs)
     encs_data = repeat(data['encounters_data'], num_encs)
     ac_ids = repeat(data['ac_ids'], num_encs)
@@ -222,13 +234,18 @@ def convert_and_combine_data(data, ref_data) -> list:
 
     pool = mp.Pool(num_processes)
 
+    start = time.time()
+    print('before multiprocessing @ ', 0)
     results = pool.starmap(parse_enc_data, zip(enc_ids, enc_indices, encs_data, ac_ids, ac_ids_selected, ref_data_repeats))
-
+    print('finished multiprocessing @ ',time.time() - start)
     pool.close()
     pool.join()
 
+    print('before enumerating @ ', time.time() - start)
     combined_data = []
-    for result in results:
+    for i, result in enumerate(results):
         combined_data += result
+
+    print('finished enumerating @ ', time.time() - start, '\n')
 
     return combined_data
