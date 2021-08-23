@@ -1120,9 +1120,7 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
         return {'encounters_data': encounters_data, 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'loaded'}
 
     elif ctx == 'generated-encounters':
-        print('triggered update memory data')
         if generated_data is not None:
-            print('just returning')
             return generated_data
 
     elif ctx == 'load-model':
