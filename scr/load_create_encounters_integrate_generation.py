@@ -1106,21 +1106,6 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
 # ##########################################################################################
 ##########################################################################################
 
-# def get_encounters_data(session_id):
-#     @cache.memoize()
-#     def query_encounters_data(session_id):
-#         pass
-
-#     pass
-
-# def access_memory_data(session_id):
-#     @cache.memoize()
-#     def checkout_memory_data(session_id):
-#         # expensive computation 
-        
-
-#     return checkout_memory_data(session_id)
-
 @cache.memoize()
 def loaded_memory_data(session_id, waypoints_contents, filename):
     encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(waypoints_contents, filename) 
@@ -1156,9 +1141,6 @@ def json_memory_data(session_id, model_contents):
             'ac_ids': [ac for ac in range(1, num_ac+1)],
             'num_encounters': num_encounters,
             'type':'json'}
-
-
-
 
 
 @app.callback(Output('memory-data', 'data'),
@@ -2121,67 +2103,6 @@ def toggle_covariance_type(cov_radio_value):
         return off, on
     else:
         print("Select a covariance matrix type.") 
-
-# @cache.memoize()
-# def generate(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data, session_id):
-#     nom_enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
-#     df = pd.DataFrame(nom_enc_data)
-    
-#     gen_enc_data = deque()
-#     start = time.time()
-#     for ac in nom_ac_ids:
-#         print("AC: ", ac)
-#         ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
-        
-#         # include nominal path
-#         if len(gen_enc_data) > 0:
-#             enc_data = gen_enc_data.popleft()
-#             initial_ac_bytes = enc_data[0]
-#             update_ac_bytes = enc_data[1]
-#         else:
-#             initial_ac_bytes = []
-#             update_ac_bytes = [[],[]]
-        
-#         for waypoint in ac_df:
-#             if waypoint['time'] == 0:
-#                 initial_ac_bytes.append(struct.pack('ddd', waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-#             else:
-#                 update_ac_bytes[ac-1].append(struct.pack('dddd', waypoint['time'], waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-
-#         enc_data = [initial_ac_bytes, update_ac_bytes]
-#         gen_enc_data.append(enc_data) 
-    
-#         # generate samples    
-#         kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
-#         ac_time = [waypoint['time'] for waypoint in ac_df]
-        
-#         if cov_radio_value == 'cov-radio-diag':
-#             cov = [ [sigma_hor, 0, 0], 
-#                     [0, sigma_hor, 0], 
-#                     [0, 0, sigma_ver] ]
-#             waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
-            
-#             gen_enc_data = generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time)
-        
-#         elif cov_radio_value == 'cov-radio-exp':                
-#             mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-#             waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
-#             waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3)) 
-
-#             gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
-                                
-#     # time to combine all of the bytes into one string!
-#     print('before combining generated data @ ', time.time() - start)
-#     generated_data, enc_data_indices = combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start)
-#     encoded_gen_data = base64.b64encode(generated_data)
-#     print('finished combining generated data @ ', time.time() - start, '\n')  
-
-#     return {'session_id':session_id,
-#             'encounters_data': str(encoded_gen_data),
-#             'encounter_indices': enc_data_indices,
-#             'ac_ids':nom_ac_ids,
-#             'num_encounters': int(num_encounters)+1,
-#             'type':'generated'}
 
                         
 @app.callback(Output('generated-encounters', 'data'),
