@@ -5,7 +5,7 @@ import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 #from dash_extensions.callback import CallbackCache
-from dash_extensions.enrich import ServersideOutput
+# from dash_extensions.enrich import Dash, ServersideOutput, FileSystemStore
 
 import dash_table
 import dash_core_components as dcc
@@ -13,8 +13,7 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
 
-from flask_caching.backends import SimpleCache
-
+from flask_caching import Cache
 
 from pandas.core.frame import DataFrame
 from pkg_resources import resource_filename, resource_string
@@ -44,10 +43,20 @@ from memory_helpers import *
 
 import time
 import struct
+import uuid
 
 external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
 
 app = dash.Dash(__name__, external_scripts=external_scripts)
+cache = Cache(app.server, config={
+    'CACHE_TYPE': 'filesystem',
+    'CACHE_DIR': 'cache',
+
+    # should be equal to maximum number of users on the app at a single time
+    # higher numbers will store more data in the filesystem / redis cache
+    'CACHE_THRESHOLD': 0,
+    'CACHE_TIMEOUT': 0
+})
 
 def calculate_horizontal_vertical_speeds_df(df):
     dataf = df.copy()
@@ -97,821 +106,825 @@ map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color=
 
 graph_card_style = {'width':'30rem', 'height':'32rem'}
 
-app.layout = html.Div([
-    #   memory store reverts to the default on every page refresh
-    dcc.Store(id='memory-data', data=[{}]),
-    dcc.Store(id='session', data={'ref_lat': 40.63993,
-                                  'ref_long': -73.77869,
-                                  'ref_alt': 12.7}),
+def serve_layout():
+    session_id = str(uuid.uuid4())
 
-    dcc.Loading(parent_className='loading_wrapper', 
-            children=[dcc.Store(id='generated-encounters', data={})],
-            type='circle',
-            style={'margin-top':'250px'}),   
+    return html.Div([
+        #   memory store reverts to the default on every page refresh
+        dcc.Store(id='session-id', data=session_id),
+
+        dcc.Store(id='memory-data', data=[{}]),
+
+        dcc.Store(id='ref-data', data={'ref_lat': 40.63993,
+                                    'ref_long': -73.77869,
+                                    'ref_alt': 12.7}),
+
+        dcc.Loading(parent_className='loading_wrapper', 
+                children=[dcc.Store(id='generated-encounters', data={})],
+                type='circle',
+                style={'margin-top':'250px'}),   
 
 
-    dbc.Navbar([
-            html.A(
-                dbc.Row(
-                    [
-                        dbc.Col(html.Img(src=DASHBOARD_LOGO, height="30px")),
-                        dbc.Col(dbc.NavbarBrand("Encounter GUI", className="ml-2")),
-                    ],
-                    align="center",
-                    no_gutters=True,
-                ),
-                href="http://127.0.0.1:8332/",
-            ),
-            # dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
-            dbc.Collapse(id="navbar-collapse", children=[
-                dbc.Row([
-                    dbc.Nav([
-                        dbc.Col(dbc.NavItem(dbc.NavLink("Home", href="http://127.0.0.1:8332/"))),
-                        # dbc.Col(dbc.NavItem(dbc.NavLink("Features", href="#"))),
-                        # dbc.Col(dbc.NavItem(dbc.NavLink("About", href="#")))
-                        ], className='navbar-nav')
-                    ],
-                    align='center',
-                    no_gutters=True)
-                ], navbar=True, is_open=False, className="ml-auto flex-nowrap mt-3 mt-md-0",)],
-        color='primary',
-        dark=True),
-
-    html.Br(),
-    html.Br(),
-
-    #load waypoints, gen and save buttons
-    dbc.Container(
-        dbc.Row([
-            dbc.Col(
-                html.Label([
-                        dcc.Upload(id='load-waypoints', children = 
-                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-2")),#, style={'margin-left':'10px'}))
-                    ]),
-                width={"size": 'auto', "order": 1}),
-
-            dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning", className="ml-2"), #, style={'margin-left':'15px'}), 
-                width={'size':'auto', 'order':2}),
-
-            dbc.Col([
-                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="success", className="ml-2"), #, style={'margin-left':'130px'}),
-                    dcc.Download(id='download-waypoints'),
-                    dcc.Download(id='download-model')],
-                    width={"size": 'auto', "order": 3}),
-        ],
-        align='start',
-        no_gutters=True
-        ),
-        fluid=True
-    ),
-
-    html.Br(),
-
-    # Encounter and AC ID dropdown menus
-    dbc.Container(
-        dbc.Row([
-            dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID",  className='ml-2', multi=False), #, style={'margin-left':'4px'}),
-                    width={"size": 2, "order": 1}),
-
-            dbc.Col(dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True,  className='ml-2'),
-                    width={"size": 2, "order": 2}),
-
-           
-            dbc.Col([
-                html.Div(id='ref-card-div', children=[
-                    dbc.Card(className='ml-6', children=[
-                        dbc.CardBody(className='card-body-m-0', children=[
-                            dbc.Row(className='', children=[
-                                dbc.Col(html.Div(id='ref-point-output', className='ml-1', children=['Reference Point: ']), width='auto'),
-                                dbc.Col(dbc.Button('Set Reference Point', id='set-ref-point', className='ml-7', n_clicks=0, outline=False, color='primary'), width='auto')
-                            ], 
-                            justify='between',
-                            align='center')
+        dbc.Navbar([
+                html.A(
+                    dbc.Row(
+                        [
+                            dbc.Col(html.Img(src=DASHBOARD_LOGO, height="30px")),
+                            dbc.Col(dbc.NavbarBrand("Encounter GUI", className="ml-2")),
                         ],
-                        style={'padding':'.3rem'})
-                    ],
-                    color='light',
-                    style={'width':'40.3rem', 'height':'3rem'})
-                ], style={'visibility':'visible'}),
-                html.Div(id='something', children='')
+                        align="center",
+                        no_gutters=True,
+                    ),
+                    href="http://127.0.0.1:8332/",
+                ),
+                # dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
+                dbc.Collapse(id="navbar-collapse", children=[
+                    dbc.Row([
+                        dbc.Nav([
+                            dbc.Col(dbc.NavItem(dbc.NavLink("Home", href="http://127.0.0.1:8332/"))),
+                            # dbc.Col(dbc.NavItem(dbc.NavLink("Features", href="#"))),
+                            # dbc.Col(dbc.NavItem(dbc.NavLink("About", href="#")))
+                            ], className='navbar-nav')
+                        ],
+                        align='center',
+                        no_gutters=True)
+                    ], navbar=True, is_open=False, className="ml-auto flex-nowrap mt-3 mt-md-0",)],
+            color='primary',
+            dark=True),
+
+        html.Br(),
+        html.Br(),
+
+        #load waypoints, gen and save buttons
+        dbc.Container(
+            dbc.Row([
+                dbc.Col(
+                    html.Label([
+                            dcc.Upload(id='load-waypoints', children = 
+                            dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-2")),#, style={'margin-left':'10px'}))
+                        ]),
+                    width={"size": 'auto', "order": 1}),
+
+                dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning", className="ml-2"), #, style={'margin-left':'15px'}), 
+                    width={'size':'auto', 'order':2}),
+
+                dbc.Col([
+                        dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="success", className="ml-2"), #, style={'margin-left':'130px'}),
+                        dcc.Download(id='download-waypoints'),
+                        dcc.Download(id='download-model')],
+                        width={"size": 'auto', "order": 3}),
             ],
-            width={"size": 'auto', "order": 4, 'offset':2},
-            align='right')  
-        ],
-        align='right',
-        justify='center',
-        no_gutters=True),
-    fluid=True
-    ),
+            align='start',
+            no_gutters=True
+            ),
+            fluid=True
+        ),
 
-    html.Br(),
+        html.Br(),
 
-    dbc.Container([
-        dbc.Row([
-            dbc.Col(className='', children=[  
-                
-                dbc.Container([
-                    # navigation tabs
-                    dbc.Row([
-                        html.Div([
-                            dbc.Tabs(id="tabs",
-                                    children=[
-                                        dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs'), # label_style={'color':'#2c3e50'}), #, style={'height':'1rem', 'line-height':'.5rem'}),
-                                        dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph'),#  tab_style={'background':'#2c3e50'}), #, style={'height':'1rem', 'line-height':'.5rem'}),
-                                        #dcc.Tab(id='tab3', label='Map', value='tab-3'),
-                                        dbc.Tab(id='tab-4', tab_id='tab-4',label='Log Histograms') #, style={'height':'1rem', 'line-height':'.5rem', 'width':'10rem'}),
-                                    ],
-                                    active_tab='tab-1'),
-                        ])
-                    ],
-                    no_gutters=True),
-                
-                    dbc.Row([
-                        dbc.Col(className='col-scrollable', children=[
-                            html.Div(id='tab-1-graphs', children= [
-                                dbc.Container([    
-                                    dbc.Row([ 
-                                        dbc.Col(className='pr-2', children=[
-                                            dbc.Card(className='card-small-graphs', children=[
-                                                dbc.CardBody([
-                                                    dbc.Row([
-                                                        dbc.Col(html.H5("xEast vs yNorth", className="card-title-1"))
-                                                    ],justify='center'),
+        # Encounter and AC ID dropdown menus
+        dbc.Container(
+            dbc.Row([
+                dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID",  className='ml-2', multi=False), #, style={'margin-left':'4px'}),
+                        width={"size": 2, "order": 1}),
 
-                                                    dbc.Row([
-                                                        dbc.Col(
-                                                            dcc.Loading(parent_className='loading-graph-xy', 
-                                                            children=[dcc.Graph(id='editable-graph-xy-slider', figure=px.line())],
-                                                            type='circle',
-                                                            color='white'
-                                                            )  
-                                                        )
-                                                    ],justify='center')
-                                                ])
-                                            ], 
-                                            color='primary',
-                                            style=graph_card_style),
-                                        ], 
-                                        width='auto'),
-                                        dbc.Col([
-                                            dbc.Card([
-                                                dbc.CardBody([
-                                                    dbc.Row([
-                                                        dbc.Col(html.H5("Time vs zUp", className="card-title-1"))
-                                                    ],justify='center'),
+                dbc.Col(dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True,  className='ml-2'),
+                        width={"size": 2, "order": 2}),
 
-                                                    dbc.Row([
-                                                        dbc.Col(
-                                                            dcc.Loading(parent_className='loading-graph-tz', 
-                                                            children=[dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')],
-                                                            type='circle',
-                                                            color='white'
-                                                            )  
-                                                        )
-                                                    ],justify='center')
-                                                ])
-                                            ], color='primary',
-                                            style=graph_card_style),
-                                        ], width='auto'),
-
-                                    ], 
-                                    no_gutters=True)
+            
+                dbc.Col([
+                    html.Div(id='ref-card-div', children=[
+                        dbc.Card(className='ml-6', children=[
+                            dbc.CardBody(className='card-body-m-0', children=[
+                                dbc.Row(className='', children=[
+                                    dbc.Col(html.Div(id='ref-point-output', className='ml-1', children=['Reference Point: ']), width='auto'),
+                                    dbc.Col(dbc.Button('Set Reference Point', id='set-ref-point', className='ml-7', n_clicks=0, outline=False, color='primary'), width='auto')
                                 ], 
-                                fluid=True),
+                                justify='between',
+                                align='center')
+                            ],
+                            style={'padding':'.3rem'})
+                        ],
+                        color='light',
+                        style={'width':'40.3rem', 'height':'3rem'})
+                    ],
+                    style={'visibility':'visible'}),
+                    html.Div(id='something', children='')
+                ],
+                width={"size": 'auto', "order": 4, 'offset':2},
+                align='right')  
+            ],
+            align='right',
+            justify='center',
+            no_gutters=True),
+        fluid=True
+        ),
 
-                                html.Br(),
+        html.Br(),
 
-                                dbc.Container([
+        dbc.Container([
+            dbc.Row([
+                dbc.Col(className='', children=[  
+                    
+                    dbc.Container([
+                        # navigation tabs
+                        dbc.Row([
+                            html.Div([
+                                dbc.Tabs(id="tabs",
+                                        children=[
+                                            dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs'), # label_style={'color':'#2c3e50'}), #, style={'height':'1rem', 'line-height':'.5rem'}),
+                                            dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph'),#  tab_style={'background':'#2c3e50'}), #, style={'height':'1rem', 'line-height':'.5rem'}),
+                                            #dcc.Tab(id='tab3', label='Map', value='tab-3'),
+                                            dbc.Tab(id='tab-4', tab_id='tab-4',label='Log Histograms') #, style={'height':'1rem', 'line-height':'.5rem', 'width':'10rem'}),
+                                        ],
+                                        active_tab='tab-1'),
+                            ])
+                        ],
+                        no_gutters=True),
+                    
+                        dbc.Row([
+                            dbc.Col(className='col-scrollable', children=[
+                                html.Div(id='tab-1-graphs', children= [
+                                    dbc.Container([    
+                                        dbc.Row([ 
+                                            dbc.Col(className='pr-2', children=[
+                                                dbc.Card(className='card-small-graphs', children=[
+                                                    dbc.CardBody([
+                                                        dbc.Row([
+                                                            dbc.Col(html.H5("xEast vs yNorth", className="card-title-1"))
+                                                        ],justify='center'),
+
+                                                        dbc.Row([
+                                                            dbc.Col(
+                                                                dcc.Loading(parent_className='loading-graph-xy', 
+                                                                children=[dcc.Graph(id='editable-graph-xy-slider', figure=px.line())],
+                                                                type='circle',
+                                                                color='white'
+                                                                )  
+                                                            )
+                                                        ],justify='center')
+                                                    ])
+                                                ], 
+                                                color='primary',
+                                                style=graph_card_style),
+                                            ], 
+                                            width='auto'),
+                                            dbc.Col([
+                                                dbc.Card([
+                                                    dbc.CardBody([
+                                                        dbc.Row([
+                                                            dbc.Col(html.H5("Time vs zUp", className="card-title-1"))
+                                                        ],justify='center'),
+
+                                                        dbc.Row([
+                                                            dbc.Col(
+                                                                dcc.Loading(parent_className='loading-graph-tz', 
+                                                                children=[dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')],
+                                                                type='circle',
+                                                                color='white'
+                                                                )  
+                                                            )
+                                                        ],justify='center')
+                                                    ])
+                                                ], color='primary',
+                                                style=graph_card_style),
+                                            ], width='auto'),
+
+                                        ], 
+                                        no_gutters=True)
+                                    ], 
+                                    fluid=True),
+
+                                    html.Br(),
+
+                                    dbc.Container([
+                                        dbc.Row([
+                                            dbc.Col(className='pr-2', children=[
+                                                dbc.Card([
+                                                    dbc.CardBody([
+                                                        dbc.Row([
+                                                            dbc.Col(html.H5("Time vs Horizontal Distance", className="card-title-1"))
+                                                        ],
+                                                        justify='center'),
+
+                                                        dbc.Row([
+                                                            dbc.Col(
+                                                                dcc.Loading(parent_className='loading-graph-tdistxy', 
+                                                                children=[dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())],
+                                                                type='circle',
+                                                                color='white'
+                                                                ) 
+                                                            )
+                                                        ],
+                                                        justify='center')
+                                                    ])
+                                                ],
+                                                color='primary',
+                                                style=graph_card_style
+                                            )],
+                                            width='auto'),
+                                            
+                                            dbc.Col(children=[
+                                                dbc.Card([
+                                                    dbc.CardBody([
+                                                        dbc.Row([
+                                                            dbc.Col(html.H5("Time vs Vertical Distance", className="card-title-1"))
+                                                        ],justify='center'),
+
+                                                        dbc.Row([
+                                                            dbc.Col(
+                                                                dcc.Loading(parent_className='loading-graph-tdistz', 
+                                                                children=[dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')],
+                                                                type='circle',
+                                                                color='white'
+                                                                ) 
+                                                            )
+                                                        ],justify='center')
+                                                    ])
+                                                ], color='primary',
+                                                style=graph_card_style),
+                                            ], width='auto')
+                                        ], no_gutters=True)
+                                    ], fluid=True),
+
+                                    html.Br(),
+
+                                    dbc.Container([
+                                        dbc.Row([
+                                            dbc.Col(className='pr-2', children=[
+                                                dbc.Card([
+                                                    dbc.CardBody([
+                                                        dbc.Row([
+                                                            dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title-1"))
+                                                        ],justify='center'),
+
+                                                        dbc.Row([
+                                                            dbc.Col(
+                                                                dcc.Loading(parent_className='loading-graph-tspeedxy', 
+                                                                children=[dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line())],
+                                                                type='circle',
+                                                                color='white'
+                                                                ) 
+                                                            )
+                                                        ],justify='center')
+                                                    ])
+                                                ], color='primary',
+                                                style=graph_card_style),
+                                            ], width='auto'),
+
+                                            dbc.Col(children=[
+                                                dbc.Card([
+                                                    dbc.CardBody([
+                                                        dbc.Row([
+                                                            dbc.Col(html.H5("Time vs Vertical Speed", className="card-title-1"))
+                                                        ],justify='center'),
+
+                                                        dbc.Row([
+                                                            dbc.Col(
+                                                                dcc.Loading(parent_className='loading-graph-tspeedz', 
+                                                                children=[dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line())],
+                                                                type='circle',
+                                                                color='white'
+                                                                ) 
+                                                            )
+                                                        ],justify='center')
+                                                    ])
+                                                ], color='primary',
+                                                style=graph_card_style),
+                                            ], width='auto')
+
+                                        ], no_gutters=True)
+                                    ], fluid=True)
+
+                                ], style={'width':'63rem', 'height':'20rem'}),
+
+                                html.Div(id='tab-2-graphs', children=[
+                                    dbc.Row([
+                                        dbc.Col(className='pr-3', children=[
+                                            dbc.Card([
+                                                    dbc.CardBody([
+                                                        dbc.Row([
+                                                            dbc.Col(html.H5("xEast vs yNorth vs zUp", className="card-title-1"))
+                                                        ],justify='center'),
+
+                                                        dbc.Row([
+                                                            dbc.Col(
+                                                                dcc.Loading(parent_className='loading-graph-xyz', 
+                                                                children=[dcc.Graph(id='editable-graph-xyz-slider', figure=px.line_3d())],
+                                                                type='circle',
+                                                                color='white'
+                                                                )    
+                                                            )
+                                                        ],justify='center')
+                                                    ])
+                                                ], 
+                                                color='primary',
+                                                style={'width':'60.5rem', 'height':'39rem'}
+                                            )
+                                        ])
+                                    ], 
+                                    no_gutters=True,
+                                    style={'margin-left':'15px'})
+                                ], 
+                                style={'display':'none'}),
+
+                                html.Div(id='tab-4-graphs', children=[
                                     dbc.Row([
                                         dbc.Col(className='pr-2', children=[
                                             dbc.Card([
                                                 dbc.CardBody([
                                                     dbc.Row([
-                                                        dbc.Col(html.H5("Time vs Horizontal Distance", className="card-title-1"))
-                                                    ],
-                                                    justify='center'),
+                                                        dbc.Col(html.H5("AC 1: xEast vs yNorth", className="card-title-1"))
+                                                    ],justify='center'),
 
                                                     dbc.Row([
                                                         dbc.Col(
-                                                            dcc.Loading(parent_className='loading-graph-tdistxy', 
-                                                            children=[dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())],
+                                                            dcc.Loading(parent_className='loading-hist-ac-1-xy', 
+                                                            children=[dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())],
                                                             type='circle',
                                                             color='white'
                                                             ) 
                                                         )
-                                                    ],
-                                                    justify='center')
+                                                    ],justify='center')
                                                 ])
                                             ],
                                             color='primary',
-                                            style=graph_card_style
-                                        )],
+                                            style={'width':'30rem', 'height':'33rem'}),
+                                        ],
                                         width='auto'),
-                                        
-                                        dbc.Col(children=[
+
+                                        dbc.Col(className='pr-2', children=[
                                             dbc.Card([
                                                 dbc.CardBody([
                                                     dbc.Row([
-                                                        dbc.Col(html.H5("Time vs Vertical Distance", className="card-title-1"))
+                                                        dbc.Col(html.H5("AC 1: Time vs zUp", className="card-title-1"))
                                                     ],justify='center'),
 
                                                     dbc.Row([
                                                         dbc.Col(
-                                                            dcc.Loading(parent_className='loading-graph-tdistz', 
-                                                            children=[dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')],
+                                                            dcc.Loading(parent_className='loading-hist-ac-1-tz', 
+                                                            children=[dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap())],
                                                             type='circle',
                                                             color='white'
                                                             ) 
                                                         )
                                                     ],justify='center')
                                                 ])
-                                            ], color='primary',
-                                            style=graph_card_style),
-                                        ], width='auto')
-                                    ], no_gutters=True)
-                                ], fluid=True),
+                                            ],
+                                            color='primary',
+                                            style={'width':'30rem', 'height':'33rem'}),
+                                        ], 
+                                        width='auto')
+                                    ],
+                                    no_gutters=True,
+                                    style={'margin-left':'15px'}),
 
-                                html.Br(),
+                                    html.Br(),
 
-                                dbc.Container([
                                     dbc.Row([
                                         dbc.Col(className='pr-2', children=[
                                             dbc.Card([
                                                 dbc.CardBody([
                                                     dbc.Row([
-                                                        dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title-1"))
+                                                        dbc.Col(html.H5("AC 2: xEast vs yNorth", className="card-title-1"))
                                                     ],justify='center'),
 
                                                     dbc.Row([
                                                         dbc.Col(
-                                                            dcc.Loading(parent_className='loading-graph-tspeedxy', 
-                                                            children=[dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line())],
+                                                            dcc.Loading(parent_className='loading-hist-ac-2-xy', 
+                                                            children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())],
                                                             type='circle',
                                                             color='white'
                                                             ) 
                                                         )
                                                     ],justify='center')
                                                 ])
-                                            ], color='primary',
-                                            style=graph_card_style),
-                                        ], width='auto'),
+                                            ],
+                                            color='primary',
+                                            style={'width':'30rem', 'height':'33rem'}),
+                                        ],
+                                        width='auto'),
 
-                                        dbc.Col(children=[
+                                        dbc.Col(className='pr-2', children=[
                                             dbc.Card([
                                                 dbc.CardBody([
                                                     dbc.Row([
-                                                        dbc.Col(html.H5("Time vs Vertical Speed", className="card-title-1"))
+                                                        dbc.Col(html.H5("AC 2: Time vs zUp", className="card-title-1"))
                                                     ],justify='center'),
 
                                                     dbc.Row([
                                                         dbc.Col(
-                                                            dcc.Loading(parent_className='loading-graph-tspeedz', 
-                                                            children=[dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line())],
-                                                            type='circle',
-                                                            color='white'
-                                                            ) 
-                                                        )
-                                                    ],justify='center')
-                                                ])
-                                            ], color='primary',
-                                            style=graph_card_style),
-                                        ], width='auto')
-
-                                    ], no_gutters=True)
-                                ], fluid=True)
-
-                            ], style={'width':'63rem', 'height':'20rem'}),
-
-                            html.Div(id='tab-2-graphs', children=[
-                                dbc.Row([
-                                    dbc.Col(className='pr-3', children=[
-                                        dbc.Card([
-                                                dbc.CardBody([
-                                                    dbc.Row([
-                                                        dbc.Col(html.H5("xEast vs yNorth vs zUp", className="card-title-1"))
-                                                    ],justify='center'),
-
-                                                    dbc.Row([
-                                                        dbc.Col(
-                                                            dcc.Loading(parent_className='loading-graph-xyz', 
-                                                            children=[dcc.Graph(id='editable-graph-xyz-slider', figure=px.line_3d())],
+                                                            dcc.Loading(parent_className='loading-hist-ac-2-tz', 
+                                                            children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap())],
                                                             type='circle',
                                                             color='white'
                                                             )    
                                                         )
                                                     ],justify='center')
                                                 ])
-                                            ], 
+                                            ],
                                             color='primary',
-                                            style={'width':'60.5rem', 'height':'39rem'}
-                                        )
-                                    ])
+                                            style={'width':'30rem', 'height':'33rem'}),
+                                        ],
+                                        width='auto')
+                                    ],
+                                    no_gutters=True,
+                                    style={'margin-left':'15px'})
                                 ], 
-                                no_gutters=True,
-                                style={'margin-left':'15px'})
-                            ], 
-                            style={'display':'none'}),
+                                style={'display':'none'})
+                            ])
+                        ],
+                        style={'margin-left':'-2rem'}),
 
-                            html.Div(id='tab-4-graphs', children=[
-                                dbc.Row([
-                                    dbc.Col(className='pr-2', children=[
-                                        dbc.Card([
-                                            dbc.CardBody([
-                                                dbc.Row([
-                                                    dbc.Col(html.H5("AC 1: xEast vs yNorth", className="card-title-1"))
-                                                ],justify='center'),
+                        html.Br(),
+                        html.Br(),
+                        dbc.Row([
+                            dbc.Col([
+                                html.Div(id='slider-bar-div', children=[
+                                    dbc.Container(
+                                        dbc.Row([
+                                            dbc.Col([
+                                                html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
+                                            ], width={'size':1, 'order':1}),
+                                            dbc.Col([
+                                                html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
+                                            ], width={'size':'auto', 'order':2})
+                                        ], 
+                                        align='start',
+                                        no_gutters=True
+                                    ), 
+                                    fluid=True)
+                                ]),
+                            ])
+                        ])
+                    ], 
+                    fluid=True),
+                ], 
+                width='auto'),
+                
+                dbc.Col(className='pl-3', children=[
+                    html.Div(id='map-create-mode-div', children=[
+                        dbc.Row([
+                                dbc.Card(id='map-create-card', children=[
+                                    dbc.CardBody([
+                                        dbc.Row([
+                                            dbc.Col(dl.Map(id='map', children=[
+                                                        dl.TileLayer(), 
+                                                        dl.LayerGroup(id='polyline-layer', children=[]),
+                                                        dl.LayerGroup(id='marker-layer', children=[], attribution='off')], 
+                                                        doubleClickZoom=False,
+                                                        style={'width':'37.7rem', 'height':'28rem'}))
+                                        ],justify='center'),
 
-                                                dbc.Row([
-                                                    dbc.Col(
-                                                        dcc.Loading(parent_className='loading-hist-ac-1-xy', 
-                                                        children=[dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())],
-                                                        type='circle',
-                                                        color='white'
-                                                        ) 
-                                                    )
-                                                ],justify='center')
-                                            ])
-                                        ],
-                                        color='primary',
-                                        style={'width':'30rem', 'height':'33rem'}),
-                                    ],
-                                    width='auto'),
+                                        dbc.Row([
+                                            dbc.Col([
+                                                dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='warning', style={'margin-top':'10px'}),
+                                                dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none', 'margin-top':'10px'})
+                                            ],
+                                            width={'size':'auto'}),
+                                            dbc.Card(id='create-mode-card', children=[
+                                                dbc.CardBody([
+                                                    dbc.Row([
+                                                        dbc.Col([
+                                                            dbc.Button('Start New Nominal Path', id='create-new-button', className='ml-2', n_clicks=0, color='primary',# outline=True,
+                                                                style={'display':'none'}), 
+                                                        ], width=5),                                                  
+                                                        dbc.Col([dbc.Button('Save Nominal Path', id='end-new-button', className='ml-4', n_clicks=0, color='primary', style={'display':'none'})
+                                                        ], width=4)
+                                                    ],
+                                                    justify='between'),
 
-                                    dbc.Col(className='pr-2', children=[
-                                        dbc.Card([
-                                            dbc.CardBody([
-                                                dbc.Row([
-                                                    dbc.Col(html.H5("AC 1: Time vs zUp", className="card-title-1"))
-                                                ],justify='center'),
+                                                    html.Br(),
+                                                    html.Hr(),
 
-                                                dbc.Row([
-                                                    dbc.Col(
-                                                        dcc.Loading(parent_className='loading-hist-ac-1-tz', 
-                                                        children=[dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap())],
-                                                        type='circle',
-                                                        color='white'
-                                                        ) 
-                                                    )
-                                                ],justify='center')
-                                            ])
-                                        ],
-                                        color='primary',
-                                        style={'width':'30rem', 'height':'33rem'}),
-                                    ], 
-                                    width='auto')
+                                                    html.Div(id='create-mode-nom-path-div', children=[
+                                                        dbc.Row(className='ml-0', children=[
+                                                            dbc.Col([
+                                                                html.Div(id='ac-input-title', children='Input AC ID:'),
+                                                                dbc.Input(id="ac-index", type="number", placeholder="AC ID", debounce=False, min=1) 
+                                                            ]), 
+                                                            dbc.Col([
+                                                                html.Div(id='time-interval-title', children='Set Time Interval (s):'),
+                                                                dbc.Input(id='time-interval-input', type='number', placeholder='1.0s',
+                                                                    debounce=True, pattern=u"^(\d+\.?\d?)$", value=1.0)
+                                                            ]),
+                                                            dbc.Col([
+                                                                html.Div(id='zUp-title', children='Set zUp (ft):'),
+                                                                dbc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
+                                                                    debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0)
+                                                            ])
+                                                        ])
+                                                    ],
+                                                    style={'display':'none'}),
+
+                                                ],
+                                                style={'padding':'.5rem'})
+                                            ],
+                                            color='light',
+                                            style={'width':'38rem', 'height':'10rem', 'margin-left':'15px', 'margin-top':'10px', 'display':'none'})
+                                        ])
+                                    ]),
                                 ],
-                                no_gutters=True,
-                                style={'margin-left':'15px'}),
-
-                                html.Br(),
-
-                                dbc.Row([
-                                    dbc.Col(className='pr-2', children=[
-                                        dbc.Card([
-                                            dbc.CardBody([
-                                                dbc.Row([
-                                                    dbc.Col(html.H5("AC 2: xEast vs yNorth", className="card-title-1"))
-                                                ],justify='center'),
-
-                                                dbc.Row([
-                                                    dbc.Col(
-                                                        dcc.Loading(parent_className='loading-hist-ac-2-xy', 
-                                                        children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())],
-                                                        type='circle',
-                                                        color='white'
-                                                        ) 
-                                                    )
-                                                ],justify='center')
-                                            ])
-                                        ],
-                                        color='primary',
-                                        style={'width':'30rem', 'height':'33rem'}),
-                                    ],
-                                    width='auto'),
-
-                                    dbc.Col(className='pr-2', children=[
-                                        dbc.Card([
-                                            dbc.CardBody([
-                                                dbc.Row([
-                                                    dbc.Col(html.H5("AC 2: Time vs zUp", className="card-title-1"))
-                                                ],justify='center'),
-
-                                                dbc.Row([
-                                                    dbc.Col(
-                                                        dcc.Loading(parent_className='loading-hist-ac-2-tz', 
-                                                        children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap())],
-                                                        type='circle',
-                                                        color='white'
-                                                        )    
-                                                    )
-                                                ],justify='center')
-                                            ])
-                                        ],
-                                        color='primary',
-                                        style={'width':'30rem', 'height':'33rem'}),
-                                    ],
-                                    width='auto')
-                                ],
-                                no_gutters=True,
-                                style={'margin-left':'15px'})
-                            ], 
-                            style={'display':'none'})
+                                color='primary',
+                                style={'width':'40.3rem', 'height':'33rem'}
+                            )
                         ])
                     ],
-                    style={'margin-left':'-2rem'}),
+                    style={'display':'block'}),
 
                     html.Br(),
-                    html.Br(),
-                    dbc.Row([
-                        dbc.Col([
-                            html.Div(id='slider-bar-div', children=[
-                                dbc.Container(
-                                    dbc.Row([
-                                        dbc.Col([
-                                            html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
-                                        ], width={'size':1, 'order':1}),
-                                        dbc.Col([
-                                            html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
-                                        ], width={'size':'auto', 'order':2})
-                                    ], 
-                                    align='start',
-                                    no_gutters=True
-                                ), 
-                                fluid=True)
-                            ]),
-                        ])
-                    ])
-                ], 
-                fluid=True),
-            ], 
-            width='auto'),
-            
-            dbc.Col(className='pl-3', children=[
-                html.Div(id='map-create-mode-div', children=[
-                    dbc.Row([
-                            dbc.Card(id='map-create-card', children=[
+
+                    html.Div(id='data-table-div', children =[
+                        dbc.Row([
+                            dbc.Card(id='data-table-card', children=[
                                 dbc.CardBody([
                                     dbc.Row([
-                                        dbc.Col(dl.Map(id='map', children=[
-                                                    dl.TileLayer(), 
-                                                    dl.LayerGroup(id='polyline-layer', children=[]),
-                                                    dl.LayerGroup(id='marker-layer', children=[], attribution='off')], 
-                                                    doubleClickZoom=False,
-                                                    style={'width':'37.7rem', 'height':'28rem'}))
-                                    ],justify='center'),
-
-                                    dbc.Row([
-                                        dbc.Col([
-                                            dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='warning', style={'margin-top':'10px'}),
-                                            dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none', 'margin-top':'10px'})
-                                        ],
-                                        width={'size':'auto'}),
-                                        dbc.Card(id='create-mode-card', children=[
-                                            dbc.CardBody([
-                                                dbc.Row([
-                                                    dbc.Col([
-                                                        dbc.Button('Start New Nominal Path', id='create-new-button', className='ml-2', n_clicks=0, color='primary',# outline=True,
-                                                            style={'display':'none'}), 
-                                                    ], width=5),                                                  
-                                                    dbc.Col([dbc.Button('Save Nominal Path', id='end-new-button', className='ml-4', n_clicks=0, color='primary', style={'display':'none'})
-                                                    ], width=4)
-                                                ],
-                                                justify='between'),
-
-                                                html.Br(),
-                                                html.Hr(),
-
-                                                html.Div(id='create-mode-nom-path-div', children=[
-                                                    dbc.Row(className='ml-0', children=[
-                                                        dbc.Col([
-                                                            html.Div(id='ac-input-title', children='Input AC ID:'),
-                                                            dbc.Input(id="ac-index", type="number", placeholder="AC ID", debounce=False, min=1) 
-                                                        ]), 
-                                                        dbc.Col([
-                                                            html.Div(id='time-interval-title', children='Set Time Interval (s):'),
-                                                            dbc.Input(id='time-interval-input', type='number', placeholder='1.0s',
-                                                                debounce=True, pattern=u"^(\d+\.?\d?)$", value=1.0)
-                                                        ]),
-                                                        dbc.Col([
-                                                            html.Div(id='zUp-title', children='Set zUp (ft):'),
-                                                            dbc.Input(id='create-mode-zUp-input', type='number', placeholder='12ft',
-                                                                debounce=True, pattern=u"^(\d+\.?\d?)$", value=12.0)
-                                                        ])
-                                                    ])
-                                                ], style={'display':'none'}),
-
-                                            ], style={'padding':'.5rem'})
-                                        ], color='light',
-                                        style={'width':'38rem', 'height':'10rem', 'margin-left':'15px', 'margin-top':'10px', 'display':'none'})
-                                    ])
+                                        html.Div([dash_table.DataTable(
+                                            id = 'editable-table',
+                                            columns = [
+                                                {"name": 'AC ID', "id": 'ac_id', 'editable': True, 'type':'numeric'},
+                                                {"name": 'Time (s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                                {"name": 'xEast (NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                                {"name": 'yNorth (NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                                {"name": f'latitude ({chr(176)})', "id": 'lat', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
+                                                {"name": f'longitude ({chr(176)})', "id": 'long', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
+                                                {"name": 'zUp/altitude   (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                                {"name": 'Horizontal Speed  (kt)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                                {"name": 'Vertical Speed (ft/min)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
+                                            editable = True,
+                                            row_deletable = True,
+                                            data=[], 
+                                            style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, #'height': '35rem',
+                                            style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
+                                        )
+                                    ]),
                                 ]),
-                            ],
+                                dbc.CardFooter([
+                                    dbc.Button('Add Row', id='add-rows-button', className='ml-0', n_clicks=0, color='light'),
+                                    dbc.Button('DONE', id='done-add-rows-button', className='ml-1', n_clicks=0, color='light', style={'display':'none'}),
+                                    dbc.Button('Update Speeds', id='update-speeds-button', className='ml-4', n_clicks=0, color='light')
+                                ]),
+                            ], 
                             color='primary',
-                            style={'width':'40.3rem', 'height':'33rem'}
-                        )
+                            style={'width':'40.3rem', 'height':'9rem'}),
+                            
+                        ])
+                    ],
+                    style={'display':'block'})
+
+                ], 
+                width='auto',
+                style={'margin-left':'0px'})
+            ], 
+            no_gutters=True,
+            style={'margin-left':'-10px'})
+        ], 
+        fluid=True),
+
+        # pop up window for setting reference point
+        html.Div(id='ref-modal-div', children=[
+            dbc.Modal([
+                dbc.ModalHeader("Edit Reference Point"),
+                html.Br(),
+                html.Br(),
+                dbc.Container([
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Row([
+                                dbc.Input(id='ref-point-input', type='text', 
+                                placeholder=f'latitude / longitutde / altitude: 0.0{chr(176)}/0.0{chr(176)}/0.0ft',
+                                debounce=True,
+                                pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
+                                style={"margin-left": "15px"}),
+                            ]) 
+                        ], width=10),
+                        dbc.Col([
+                            dbc.Button('Clear', id='clear-ref-button', color='danger', n_clicks=0)
+                        ], width=1)
                     ])
-                ], style={'display':'block'}),
+                ], fluid=True),
+
+                html.Br(),
+                html.Br(),
+                dbc.ModalFooter(children= [
+                    dbc.Button("CLOSE", id="close-ref-modal-button"),
+                    dbc.Button("SET REF POINT", id="set-ref-button", color='success', className="ml-auto")
+                    ]
+                ),
+            ],
+            id='ref-point-modal', is_open=False, size="md",
+            backdrop='static',  # Modal to not be closed by clicking on backdrop
+            centered=True,  # Vertically center modal 
+            keyboard=True,  # Close modal when escape is pressed
+            fade=False)
+        ]),
+
+        # pop-up window for generation
+        html.Div(id='gen-modal-div', children=[
+            dbc.Modal([
+                dbc.ModalHeader("Generate an Encounter Set"),
+
+                html.Br(),
+                html.Br(),
+                html.Div([
+                    html.Label([
+                        dcc.Upload(id='load-model', children = 
+                                dbc.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
+                    ])
+                ], style={"margin-left": "20px", 'display':'inline-block', 'margin-top':'15px'}),
+                dcc.Markdown(("---")),
+                html.Br(),
+                
+                # mean (nominal paths)
+                dcc.Markdown(("""Mean:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
+                html.Div([
+                    html.Div([
+                        dcc.Markdown(("""Select an Encounter:"""), style={"margin-left": "20px"}),
+                        dcc.Dropdown(id='nominal-path-enc-ids', 
+                            options=[], multi=False, value=[],
+                            style={"margin-left": "10px", "width": "105%"}),
+                    ], style={"margin-left": "20px"}),
+                    html.Div([
+                        dcc.Markdown(("""Select at least one Nominal Path:"""), style={"margin-left": "20px"}),
+                        dcc.Dropdown(id='nominal-path-ac-ids', 
+                            options=[], multi=True, value=[],
+                            style={"margin-left": "12px", "width": "100%"}),
+                    ], style={"margin-left": "30px"})
+                ], className  = 'row'),
+                
+
+                # covariance
+                html.Br(),
+                dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
+                html.Div([
+                    dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
+                    dcc.RadioItems(id='cov-radio', 
+                        options=[{'label': 'Diagonal', 'value': 'cov-radio-diag'},
+                                {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
+                        # value='cov-radio-exp',
+                        inputStyle={"margin-right": "5px"},
+                        labelStyle={'display': 'inline-block', "margin-right": "10px"},
+                        style={"margin-left": "15px"}),
+                    
+                    html.Span(
+                        "?",
+                        id="popover-target",
+                        style={"textAlign": "center", "font-size": "12px", 'font-weight': "bold",
+                                "border-radius": "90%", "height": "16px", "width": "16px", "color": "white", "background-color": "#727272", 
+                                "cursor": "pointer", "display": "inline-block"
+                        }, className="dot"),
+                    dbc.Popover(
+                        children=[dbc.PopoverBody("")],
+                        id="popover-content",
+                        style={"display": "none", 'width':'25rem'},
+                        trigger="click", # is_open=False,
+                        target="popover-target", placement="right"),
+                    
+                ], 
+                style={"margin-left": "20px"}, className  = 'row'),
+
+                
+                html.Div(id='cov-diag-input-container', children=[
+                    html.Div([
+                        #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                        dbc.Row(className='', children=[
+                            dbc.Col(className='', children=[
+                                html.H5('$\sigma_h$', style={"color": "#3273F6"}),
+                                dbc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05', debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
+                            ], width=2),
+                            dbc.Col(className='', children=[
+                                html.H5('$\sigma_v$', style={"color": "#3273F6"}),
+                                dbc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
+                            ], width=2)
+                        ], 
+                        no_gutters=False)
+                    ],
+                    style={"margin-left": "35px"}) 
+                ],
+                style={"display":"none"}, className  = 'row'),
+
+                html.Div(id='cov-exp-kernel-input-container', children=[
+                    html.Div([
+                        #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
+                        dbc.Row(className='', children=[
+                            dbc.Col(className='', children=[
+                                html.H5('$l$', style={"color": "#3273F6"}),
+                                dbc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
+                            ], width=2),
+                            dbc.Col(className='', children=[
+                                html.H5('$w_h$', style={"color": "#3273F6"}),
+                                dbc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
+                            ], width=2),
+                            dbc.Col(className='', children=[
+                                html.H5('$w_v$', style={"color": "#3273F6"}),
+                                dbc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
+                            ], width=2)
+                        ], 
+                        no_gutters=False)
+                    ],
+                    style={"margin-left": "35px"})
+                ],
+                style={"display":"none"}, className  = 'row'), #, "margin-bottom":"10px"}
+
+                
+                # number of encounter sets to generate
+                html.Br(),
+                dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
+                dbc.Input(id='num-encounters-input', type='text', placeholder='',
+                    debounce=True,# value=100,
+                    pattern=u"^(\d+)$",
+                    style={'margin-left':'20px', "width": "40%"}),
+                
+                # generation progress bar
+                html.Br(),
 
                 html.Br(),
 
-                html.Div(id='data-table-div', children =[
+                dbc.ModalFooter(children=[
+                    dbc.Button("CLOSE", id="close-button"),
+                    #dbc.Spinner(size='md', spinnerClassName='ml-auto', children=[html.Div(id='gen-spinner-output', children='nothin')]), #html.Div(id='gen-spinner-output')),
+                    dbc.Button("GENERATE", id="generate-button", color='success', className="ml-auto", n_clicks=0)
+                    ]
+                ),
+            ],
+            id='gen-modal', is_open=False, size="lg",
+            backdrop=True,  # Modal to not be closed by clicking on backdrop
+            centered=True,  # Vertically center modal 
+            keyboard=True,  # Close modal when escape is pressed
+            fade=True,
+            style={"max-width": "none", "width": "50%"})
+        ]),
+
+        # pop up window for saving
+        html.Div(id='save-modal-div', children=[
+            dbc.Modal([
+                dbc.ModalHeader("Save Generated Encounter Set", style={'font-size':'1000px'}), # className='w-100'),
+                html.Br(),
+                html.Div([
+                    dcc.Markdown(("""Select Files to Save: """), style={'font-size': '1em', "margin-left": "5px"}),
+                    dcc.Checklist(id='file-checklist', options=[
+                        {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
+                        {'label': 'Model (.json)', 'value': 'json-item'}],
+                        #value=['dat-item'],
+                        inputStyle={"margin-right": "8px"},
+                        labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1em'},
+                        style={"margin-left": "10px"}),
+                ], style={"margin-left": "20px"}, className  = 'row'),
+                html.Br(),
+                html.Div([
                     dbc.Row([
-                        dbc.Card(id='data-table-card', children=[
-                            dbc.CardBody([
-                                dbc.Row([
-                                    html.Div([dash_table.DataTable(
-                                        id = 'editable-table',
-                                        columns = [
-                                            {"name": 'AC ID', "id": 'ac_id', 'editable': True, 'type':'numeric'},
-                                            {"name": 'Time (s)', "id": 'time', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                            {"name": 'xEast (NM)', "id": 'xEast', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                            {"name": 'yNorth (NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                            {"name": f'latitude ({chr(176)})', "id": 'lat', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
-                                            {"name": f'longitude ({chr(176)})', "id": 'long', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
-                                            {"name": 'zUp/altitude   (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                            {"name": 'Horizontal Speed  (kt)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
-                                            {"name": 'Vertical Speed (ft/min)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
-                                        editable = True,
-                                        row_deletable = True,
-                                        data=[], 
-                                        style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, #'height': '35rem',
-                                        style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
-                                    )
-                                ]),
+                        dbc.Col([
+                            dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1em"}),
+                            dbc.Row([
+                                dbc.Col([
+                                    dbc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
+                                        debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
+                                        style={"margin-left": "20px", "width": "100%", "font-size":"1em"})
+                                ], width=6),
+                                dbc.Col([
+                                    dcc.RadioItems(id='dat-file-units', 
+                                        options=[{'label': 'ENU', 'value': 'dat-units-enu'},
+                                                {'label': 'GEO', 'value': 'dat-units-geo'}],
+                                        value='dat-units-enu',
+                                        inputStyle={"margin-right": "5px"},
+                                        labelStyle={'display': 'inline-block', "margin-right": "10px"},
+                                        style={'margin-left':'10px'})
+                                ], width=4)
                             ]),
-                            dbc.CardFooter([
-                                dbc.Button('Add Row', id='add-rows-button', className='ml-0', n_clicks=0, color='light'),
-                                dbc.Button('DONE', id='done-add-rows-button', className='ml-1', n_clicks=0, color='light', style={'display':'none'}),
-                                dbc.Button('Update Speeds', id='update-speeds-button', className='ml-4', n_clicks=0, color='light')
-                            ]),
-                        ], 
-                        color='primary',
-                        style={'width':'40.3rem', 'height':'9rem'}),
-                        
-                    ])
-                ], style={'display':'block'})
-
-            ], 
-            width='auto',
-            style={'margin-left':'0px'})
-        ], 
-        no_gutters=True,
-        style={'margin-left':'-10px'})
-    ], 
-    fluid=True),
-
-    # pop up window for setting reference point
-    html.Div(id='ref-modal-div', children=[
-        dbc.Modal([
-            dbc.ModalHeader("Edit Reference Point"),
-            html.Br(),
-            html.Br(),
-            dbc.Container([
-                dbc.Row([
-                    dbc.Col([
-                        dbc.Row([
-                            dbc.Input(id='ref-point-input', type='text', 
-                            placeholder=f'latitude / longitutde / altitude: 0.0{chr(176)}/0.0{chr(176)}/0.0ft',
-                            debounce=True,
-                            pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
-                            style={"margin-left": "15px"}),
-                        ]) 
-                    ], width=10),
-                    dbc.Col([
-                        dbc.Button('Clear', id='clear-ref-button', color='danger', n_clicks=0)
-                    ], width=1)
-                ])
-            ], fluid=True),
-
-            html.Br(),
-            html.Br(),
-            dbc.ModalFooter(children= [
-                dbc.Button("CLOSE", id="close-ref-modal-button"),
-                dbc.Button("SET REF POINT", id="set-ref-button", color='success', className="ml-auto")
-                ]
-            ),
-        ],
-        id='ref-point-modal', is_open=False, size="md",
-        backdrop='static',  # Modal to not be closed by clicking on backdrop
-        centered=True,  # Vertically center modal 
-        keyboard=True,  # Close modal when escape is pressed
-        fade=False)
-    ]),
-
-
-    # pop-up window for generation
-    html.Div(id='gen-modal-div', children=[
-        dbc.Modal([
-            dbc.ModalHeader("Generate an Encounter Set"),
-
-            html.Br(),
-            html.Br(),
-            html.Div([
-                html.Label([
-                    dcc.Upload(id='load-model', children = 
-                            dbc.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
-                ])
-            ], style={"margin-left": "20px", 'display':'inline-block', 'margin-top':'15px'}),
-            dcc.Markdown(("---")),
-            html.Br(),
-            
-            # mean (nominal paths)
-            dcc.Markdown(("""Mean:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
-            html.Div([
+                        ])
+                    ],
+                    style={'margin-left':'0px'})
+                ],
+                id='save-dat-div', className  = 'row', style={'display':'none'}),
                 html.Div([
-                    dcc.Markdown(("""Select an Encounter:"""), style={"margin-left": "20px"}),
-                    dcc.Dropdown(id='nominal-path-enc-ids', 
-                        options=[], multi=False, value=[],
-                        style={"margin-left": "10px", "width": "105%"}),
-                ], style={"margin-left": "20px"}),
-                html.Div([
-                    dcc.Markdown(("""Select at least one Nominal Path:"""), style={"margin-left": "20px"}),
-                    dcc.Dropdown(id='nominal-path-ac-ids', 
-                        options=[], multi=True, value=[],
-                        style={"margin-left": "12px", "width": "100%"}),
-                ], style={"margin-left": "30px"})
-            ], className  = 'row'),
-            
+                    html.Div([
+                        dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1em", "margin-top":"5px"}),
+                        dbc.Input(id='save-json-filename', type='text', placeholder='filename.json',
+                            debounce=True, pattern=u"\w+\.json", value='generation_model.json',
+                            style={"margin-left": "20px", "width": "50%", "font-size":"1em"}),
+                    ], style={"margin-left": "20px", "margin-top":"15px"})
+                ], id='save-json-div', className='row', style={'display':'none'}),
+                html.Br(),
+                dbc.ModalFooter(children= [
+                    dbc.Button("CLOSE", id="close-save-button"),
+                    dbc.Button("SAVE", id="save-filename-button", className="ml-auto")
+                    ]
+                ),
+            ],
+            id='save-modal', is_open=False, size="lg",
+            backdrop=True,  # Modal to not be closed by clicking on backdrop
+            centered=True,  # Vertically center modal 
+            keyboard=True,  # Close modal when escape is pressed
+            fade=True,
+            style={"max-width": "none", "width": "50%"})
+        ]),
 
-            # covariance
-            html.Br(),
-            dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
-            html.Div([
-                dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
-                dcc.RadioItems(id='cov-radio', 
-                    options=[{'label': 'Diagonal', 'value': 'cov-radio-diag'},
-                             {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
-                    # value='cov-radio-exp',
-                    inputStyle={"margin-right": "5px"},
-                    labelStyle={'display': 'inline-block', "margin-right": "10px"},
-                    style={"margin-left": "15px"}),
-                
-                html.Span(
-                    "?",
-                    id="popover-target",
-                    style={"textAlign": "center", "font-size": "12px", 'font-weight': "bold",
-                            "border-radius": "90%", "height": "16px", "width": "16px", "color": "white", "background-color": "#727272", 
-                            "cursor": "pointer", "display": "inline-block"
-                    }, className="dot"),
-                dbc.Popover(
-                    children=[dbc.PopoverBody("")],
-                    id="popover-content",
-                    style={"display": "none", 'width':'25rem'},
-                    trigger="click", # is_open=False,
-                    target="popover-target", placement="right"),
-                
-            ], style={"margin-left": "20px"}, className  = 'row'),
+        # style
+        html.Br(), html.Br(),
 
-            
-            html.Div([
-                html.Div([
-                    #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
-                    dbc.Row(className='', children=[
-                        dbc.Col(className='', children=[
-                            html.H5('$\sigma_h$', style={"color": "#3273F6"}),
-                            dbc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05', debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
-                        ], width=2),
-                        dbc.Col(className='', children=[
-                            html.H5('$\sigma_v$', style={"color": "#3273F6"}),
-                            dbc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
-                        ], width=2)
-                    ], 
-                    no_gutters=False)
+    ])
 
-                ], style={"margin-left": "35px"}) 
-            ], id='cov-diag-input-container', style={"display":"none"}, className  = 'row'),
-
-            html.Div([
-                html.Div([
-                    #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
-                    dbc.Row(className='', children=[
-                        dbc.Col(className='', children=[
-                            html.H5('$l$', style={"color": "#3273F6"}),
-                            dbc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
-                        ], width=2),
-                        dbc.Col(className='', children=[
-                            html.H5('$w_h$', style={"color": "#3273F6"}),
-                            dbc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
-                        ], width=2),
-                        dbc.Col(className='', children=[
-                            html.H5('$w_v$', style={"color": "#3273F6"}),
-                            dbc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
-                        ], width=2)
-                    ], 
-                    no_gutters=False)
-                ], style={"margin-left": "35px"})
-            ], id='cov-exp-kernel-input-container', style={"display":"none"}, className  = 'row'), #, "margin-bottom":"10px"}
-
-            
-            # number of encounter sets to generate
-            html.Br(),
-            dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
-            dbc.Input(id='num-encounters-input', type='text', placeholder='',
-                debounce=True,# value=100,
-                pattern=u"^(\d+)$",
-                style={'margin-left':'20px', "width": "40%"}),
-            
-            # generation progress bar
-            html.Br(),
-
-            html.Br(),
-
-            dbc.ModalFooter(children= [
-                dbc.Button("CLOSE", id="close-button"),
-                #dbc.Spinner(size='md', spinnerClassName='ml-auto', children=[html.Div(id='gen-spinner-output', children='nothin')]), #html.Div(id='gen-spinner-output')),
-                dbc.Button("GENERATE", id="generate-button", color='success', className="ml-auto", n_clicks=0)
-                ]
-            ),
-        ],
-        id='gen-modal', is_open=False, size="lg",
-        backdrop=True,  # Modal to not be closed by clicking on backdrop
-        centered=True,  # Vertically center modal 
-        keyboard=True,  # Close modal when escape is pressed
-        fade=True,
-        style={"max-width": "none", "width": "50%"})
-    ]),
-
-    # pop up window for saving
-    html.Div(id='save-div', children=[
-        dbc.Modal([
-            dbc.ModalHeader("Save Generated Encounter Set", style={'font-size':'1000px'}), # className='w-100'),
-            html.Br(),
-            html.Div([
-                dcc.Markdown(("""Select Files to Save: """), style={'font-size': '1em', "margin-left": "5px"}),
-                dcc.Checklist(id='file-checklist', options=[
-                    {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
-                    {'label': 'Model (.json)', 'value': 'json-item'}],
-                    #value=['dat-item'],
-                    inputStyle={"margin-right": "8px"},
-                    labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1em'},
-                    style={"margin-left": "10px"}),
-            ], style={"margin-left": "20px"}, className  = 'row'),
-            html.Br(),
-            html.Div([
-                dbc.Row([
-                    dbc.Col([
-                        dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1em"}),
-                        dbc.Row([
-                            dbc.Col([
-                                dbc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
-                                    debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
-                                    style={"margin-left": "20px", "width": "100%", "font-size":"1em"})
-                            ], width=6),
-                            dbc.Col([
-                                dcc.RadioItems(id='dat-file-units', 
-                                    options=[{'label': 'ENU', 'value': 'dat-units-enu'},
-                                            {'label': 'GEO', 'value': 'dat-units-geo'}],
-                                    value='dat-units-enu',
-                                    inputStyle={"margin-right": "5px"},
-                                    labelStyle={'display': 'inline-block', "margin-right": "10px"},
-                                    style={'margin-left':'10px'})
-                            ], width=4)
-                        ]),
-                    ])
-                ], style={'margin-left':'0px'})
-                # html.Div([
-                #     dcc.Markdown(("""Save waypoints as:"""), style={"margin-left": "20px", "font-size":"1em"}),
-                #     dcc.Input(id='save-dat-filename', type='text', placeholder='filename.dat',
-                #         debounce=True, pattern=u"\w+\.dat", value='generated_waypoints.dat',
-                #         style={"margin-left": "20px", "width": "70%", "font-size":"1em", 'display':'inline-block'}),
-                #     dcc.RadioItems(id='dat-file-units', 
-                #         options=[{'label': 'ENU', 'value': 'dat-units-enu'},
-                #                 {'label': 'GEO', 'value': 'dat-units-geo'}],
-                #         # value='cov-radio-exp',
-                #         inputStyle={"margin-right": "5px"},
-                #         labelStyle={'display': 'inline-block', "margin-right": "10px"},
-                #         style={"margin-left": "15px"}),
-                # ], style={"margin-left": "20px"})
-            ], id='save-dat-div', className  = 'row', style={'display':'none'}),
-            html.Div([
-                html.Div([
-                    dcc.Markdown(("""Save model as:"""), style={"margin-left": "20px", "font-size":"1em", "margin-top":"5px"}),
-                    dbc.Input(id='save-json-filename', type='text', placeholder='filename.json',
-                        debounce=True, pattern=u"\w+\.json", value='generation_model.json',
-                        style={"margin-left": "20px", "width": "50%", "font-size":"1em"}),
-                ], style={"margin-left": "20px", "margin-top":"15px"})
-            ], id='save-json-div', className='row', style={'display':'none'}),
-            html.Br(),
-            dbc.ModalFooter(children= [
-                dbc.Button("CLOSE", id="close-save-button"),
-                dbc.Button("SAVE", id="save-filename-button", className="ml-auto")
-                ]
-            ),
-        ],
-        id='save-modal', is_open=False, size="lg",
-        backdrop=True,  # Modal to not be closed by clicking on backdrop
-        centered=True,  # Vertically center modal 
-        keyboard=True,  # Close modal when escape is pressed
-        fade=True,
-        style={"max-width": "none", "width": "50%"})
-    ]),
-
-    # style
-    html.Br(), html.Br(),
-
-])
-#cc = CallbackCache(cache=SimpleCache()) #(cache_dir="cache"))
-
+app.layout = serve_layout()
 
 print('\n*****START OF CODE*****\n')
 
@@ -1092,62 +1105,108 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
 
 # ##########################################################################################
 ##########################################################################################
-@app.callback(ServersideOutput('memory-data', 'data'),
+
+# def get_encounters_data(session_id):
+#     @cache.memoize()
+#     def query_encounters_data(session_id):
+#         pass
+
+#     pass
+
+# def access_memory_data(session_id):
+#     @cache.memoize()
+#     def checkout_memory_data(session_id):
+#         # expensive computation 
+        
+
+#     return checkout_memory_data(session_id)
+
+@cache.memoize()
+def loaded_memory_data(session_id, waypoints_contents, filename):
+    encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(waypoints_contents, filename) 
+        
+    return {'session_id': session_id,
+            'encounters_data': encounters_data,
+            'encounter_indices': encounter_byte_indices,
+            'ac_ids': [ac for ac in range(1, num_ac+1)],
+            'num_encounters': num_encounters,
+            'type':'loaded'}
+
+@cache.memoize()
+def generated_memory_data(session_id, generated_data): 
+    return generated_data
+
+@cache.memoize()
+def created_memory_data(session_id, table_data):
+    encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_created_data(table_data)
+
+    return {'session_id':session_id,
+            'encounters_data': str(encounters_data),
+            'encounter_indices': encounter_byte_indices,
+            'ac_ids': [ac for ac in range(1, num_ac+1)],
+            'num_encounters': num_encounters,
+            'type':'created'}
+
+ 
+def json_memory_data(session_id, model_contents):
+    encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
+    return {'session_id':session_id,
+            'encounters_data': str(encounters_data),
+            'encounter_indices': encounter_byte_indices,
+            'ac_ids': [ac for ac in range(1, num_ac+1)],
+            'num_encounters': num_encounters,
+            'type':'json'}
+
+
+
+
+
+@app.callback(Output('memory-data', 'data'),
               [Input('load-waypoints-button', 'n_clicks'),
                Input('load-waypoints', 'contents'),
                Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
                Input('generated-encounters', 'data'),
                Input('load-model', 'contents'),
-               Input('session', 'data')],
+               Input('ref-data', 'data')],
               [State('load-waypoints', 'filename'),
                State('editable-table', 'data'),
-               State('memory-data', 'data')])
+               State('memory-data', 'data'),
+               State('session-id', 'data')])
 def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks,\
-                        generated_data, model_contents, ref_data, filename, table_data, memory_data):
+                        generated_data, model_contents, ref_data, filename, table_data, memory_data, session_id):
                         
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-mode' and create_n_clicks > 0:
         return [{}]
     elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
-        encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_created_data(table_data)
-        memory_data = {'encounters_data': str(encounters_data), 'encounter_indices': encounter_byte_indices,\
-            'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'created'}
-
-        return memory_data
+        return created_memory_data(session_id, table_data)
     
     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
         if waypoints_contents is None or not filename:
             return [{}]
 
-        encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file(waypoints_contents, filename) 
-        if encounters_data:
-            return {'encounters_data': encounters_data, 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'loaded'}
+        mem_data = loaded_memory_data(session_id, waypoints_contents, filename) 
+        if mem_data['encounters_data']:
+            return mem_data
         else:
             print('Not a .dat file')
             
     elif ctx == 'generated-encounters':
         if generated_data is not None:
-            return generated_data
+            print('do we even make it this far?')
+            return generated_memory_data(session_id, generated_data)
 
     elif ctx == 'load-model':
         if model_contents is not None:
-            content_type, content_string = model_contents.split(',')
-            encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
-            return {'encounters_data': str(encounters_data), 'encounter_indices': encounter_byte_indices, 'ac_ids': [ac for ac in range(1, num_ac+1)], 'num_encounters': num_encounters, 'type':'json'}
+            return json_memory_data(session_id, model_contents)
+            
 
-    elif ctx == 'session':
+    elif ctx == 'ref-data':
         # reference point has changed
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']:
             return dash.no_update
-
-        # if memory_data != [{}]:
-        #     df = pd.DataFrame(memory_data)
-        #     df['lat'], df['long'], _ = pm.enu2geodetic(df['xEast']*NM_TO_M, df['yNorth']*NM_TO_M, df['zUp']*FT_TO_M, 
-        #                                         ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M, 
-        #                                         ell=pm.Ellipsoid('wgs84'), deg=True)
-        #     return df.to_dict('records')
 
     return dash.no_update
 
@@ -1172,7 +1231,7 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                State('time-interval-input', 'value'),
                State('create-mode-zUp-input', 'value'),
                State('memory-data', 'data'),
-               State('session', 'data'),
+               State('ref-data', 'data'),
                State('load-waypoints', 'filename')])
 def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
                       create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, memory_data, ref_data, load_waypoints_filename):
@@ -1466,7 +1525,7 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
                Input('generate-button', 'n_clicks'),
-               Input('session', 'data')],
+               Input('ref-data', 'data')],
                [State('ac-index', 'value'),
                State('ac-ids', 'value'),
                State('memory-data', 'data')])
@@ -1509,7 +1568,7 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
         if generate_n_clicks > 0:
             return clear_enc_val, clear_ac_val
 
-    elif ctx == 'session':
+    elif ctx == 'ref-data':
         return clear_enc_val, clear_ac_val
 
     return dash.no_update, dash.no_update
@@ -1522,7 +1581,7 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
                Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
                Input('load-waypoints-button', 'n_clicks'),
-               Input('session', 'data')])
+               Input('ref-data', 'data')])
 def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, upload_n_clicks, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
@@ -1538,7 +1597,7 @@ def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start
     elif ctx == 'load-waypoints-button' and upload_n_clicks > 0:
         return False, False
         
-    elif ctx == 'session':
+    elif ctx == 'ref-data':
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             # no trajectories should be selected if there isn't a ref point
             return True, True
@@ -1652,7 +1711,7 @@ def exit_creative_mode_reset_ac_index(exit_n_clicks, upload_n_clicks, options):
 # ##########################################################################################
 @app.callback([Output('map', 'center'),
                Output('map', 'zoom')],
-              Input('session', 'data'))
+              Input('ref-data', 'data'))
 def center_map_around_ref_input(ref_data):
     if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
         # ref point was cleared - so reset to center of US and zoom out
@@ -1662,7 +1721,7 @@ def center_map_around_ref_input(ref_data):
 
 @app.callback(Output('polyline-layer', 'children'),
               [Input('editable-table', 'data'),
-              Input('session', 'data')],
+              Input('ref-data', 'data')],
               State('polyline-layer', 'children'))    
 def update_map(data, ref_data, current_polylines):
     if data is None:
@@ -1670,7 +1729,7 @@ def update_map(data, ref_data, current_polylines):
 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'editable-table': # or ctx == 'session':
+    if ctx == 'editable-table': # or ctx == 'ref-data':
         # data has changed - must update map polylines
         new_polylines = []
         
@@ -1704,7 +1763,7 @@ def update_map(data, ref_data, current_polylines):
             new_polylines.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
         
         return new_polylines
-    elif ctx == 'session':
+    elif ctx == 'ref-data':
         return []
     
     return current_polylines
@@ -1716,7 +1775,7 @@ def update_map(data, ref_data, current_polylines):
                  Input('encounter-ids', 'options'),
                  Input('ac-ids', 'value'),
                  Input(dict(tag="marker", index=ALL), 'children'),
-                 Input('session', 'data'),
+                 Input('ref-data', 'data'),
                  Input('exit-create-mode', 'n_clicks')],
                 [State('marker-layer', 'children'),
                  State('ac-index', 'value'),
@@ -1759,7 +1818,7 @@ def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_
         if exit_create_n_clicks:
             return []
 
-    elif ctx == 'session':
+    elif ctx == 'ref-data':
         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_long']:
             return []
 
@@ -1787,7 +1846,7 @@ def toggle_marker_draggable(create_n_clicks, draggable):
 @app.callback(Output(dict(tag="marker", index=ALL), 'children'),
               [Input(dict(tag="marker", index=ALL), 'position')],
               [State(dict(tag="marker", index=ALL), 'children'), 
-              State('session', 'data')])
+              State('ref-data', 'data')])
 def update_marker(new_positions, current_marker_tools, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
  
@@ -1828,12 +1887,12 @@ def toggle_ref_point_modal(open_modal_n_clicks, close_n_clicks, set_ref_n_clicks
 
 
 @app.callback([Output('ref-point-output', 'children'),
-                Output('session', 'data')],
+                Output('ref-data', 'data')],
                 [Input('set-ref-button', 'n_clicks'),
                 Input('clear-ref-button', 'n_clicks')],
                 [State('ref-point-input', 'value'),
                 State('ref-point-input', 'pattern'),
-                State('session', 'data')])
+                State('ref-data', 'data')])
 def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, ref_data):
     patt = re.compile(pattern)
     
@@ -2062,8 +2121,69 @@ def toggle_covariance_type(cov_radio_value):
         return off, on
     else:
         print("Select a covariance matrix type.") 
-                        
 
+# @cache.memoize()
+# def generate(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data, session_id):
+#     nom_enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
+#     df = pd.DataFrame(nom_enc_data)
+    
+#     gen_enc_data = deque()
+#     start = time.time()
+#     for ac in nom_ac_ids:
+#         print("AC: ", ac)
+#         ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
+        
+#         # include nominal path
+#         if len(gen_enc_data) > 0:
+#             enc_data = gen_enc_data.popleft()
+#             initial_ac_bytes = enc_data[0]
+#             update_ac_bytes = enc_data[1]
+#         else:
+#             initial_ac_bytes = []
+#             update_ac_bytes = [[],[]]
+        
+#         for waypoint in ac_df:
+#             if waypoint['time'] == 0:
+#                 initial_ac_bytes.append(struct.pack('ddd', waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
+#             else:
+#                 update_ac_bytes[ac-1].append(struct.pack('dddd', waypoint['time'], waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
+
+#         enc_data = [initial_ac_bytes, update_ac_bytes]
+#         gen_enc_data.append(enc_data) 
+    
+#         # generate samples    
+#         kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
+#         ac_time = [waypoint['time'] for waypoint in ac_df]
+        
+#         if cov_radio_value == 'cov-radio-diag':
+#             cov = [ [sigma_hor, 0, 0], 
+#                     [0, sigma_hor, 0], 
+#                     [0, 0, sigma_ver] ]
+#             waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
+            
+#             gen_enc_data = generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time)
+        
+#         elif cov_radio_value == 'cov-radio-exp':                
+#             mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
+#             waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
+#             waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3)) 
+
+#             gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
+                                
+#     # time to combine all of the bytes into one string!
+#     print('before combining generated data @ ', time.time() - start)
+#     generated_data, enc_data_indices = combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start)
+#     encoded_gen_data = base64.b64encode(generated_data)
+#     print('finished combining generated data @ ', time.time() - start, '\n')  
+
+#     return {'session_id':session_id,
+#             'encounters_data': str(encoded_gen_data),
+#             'encounter_indices': enc_data_indices,
+#             'ac_ids':nom_ac_ids,
+#             'num_encounters': int(num_encounters)+1,
+#             'type':'generated'}
+
+                        
 @app.callback(Output('generated-encounters', 'data'),
               Input('generate-button', 'n_clicks'),
               [State('nominal-path-enc-ids', 'value'),
@@ -2076,8 +2196,9 @@ def toggle_covariance_type(cov_radio_value):
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
                State('memory-data', 'data'),
-               State('session', 'data')])
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data):
+               State('ref-data', 'data'),
+               State('session-id', 'data')])
+def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data, session_id):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
@@ -2088,8 +2209,8 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
                 return {}
 
-            enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
-            df = pd.DataFrame(enc_data)
+            nom_enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
+            df = pd.DataFrame(nom_enc_data)
             
             gen_enc_data = deque()
             start = time.time()
@@ -2114,7 +2235,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
 
                 enc_data = [initial_ac_bytes, update_ac_bytes]
                 gen_enc_data.append(enc_data) 
-          
+            
                 # generate samples    
                 kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
                 ac_time = [waypoint['time'] for waypoint in ac_df]
@@ -2140,7 +2261,14 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             encoded_gen_data = base64.b64encode(generated_data)
             print('finished combining generated data @ ', time.time() - start, '\n')  
 
-            return {'encounters_data': str(encoded_gen_data), 'encounter_indices': enc_data_indices, 'ac_ids':nom_ac_ids, 'num_encounters': int(num_encounters)+1, 'type':'generated'}
+            return {'session_id':session_id,
+                    'encounters_data': str(encoded_gen_data),
+                    'encounter_indices': enc_data_indices,
+                    'ac_ids':nom_ac_ids,
+                    'num_encounters': int(num_encounters)+1,
+                    'type':'generated'}
+
+            # return generate(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data, session_id)
 
     return dash.no_update
 
@@ -2151,7 +2279,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               Output('log-histogram-ac-2-tz', 'figure'),
               Input('generated-encounters', 'data'),
               State('ac-ids', 'value'),
-              State('session', 'data'))
+              State('ref-data', 'data'))
 def on_generation_update_log_histograms(generated_data, ac_ids_selected, ref_data):
     if generated_data == {}:
         return px.density_heatmap(), px.density_heatmap(), \
@@ -2279,7 +2407,7 @@ def toggle_filename_inputs(checked_values):
                 State('save-dat-filename', 'value'),
                 State('file-checklist', 'value'),
                 State('dat-file-units', 'value'),
-                State('session', 'data')],
+                State('ref-data', 'data')],
                 prevent_initial_call=True)
 def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save, dat_file_units, ref_data):
     
@@ -2327,7 +2455,7 @@ def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_i
                 State('exp-kernel-input-c', 'value'),
                 State('save-json-filename', 'value'),
                 State('file-checklist', 'value'),
-                State('session', 'data')],
+                State('ref-data', 'data')],
                 prevent_initial_call=True)
 def on_click_save_json_file(save_n_clicks, generated_data, memory_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save, ref_data):
 

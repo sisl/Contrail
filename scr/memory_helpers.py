@@ -15,7 +15,7 @@ FT_TO_NM = FT_TO_M*M_TO_NM
 NM_TO_FT = 1/FT_TO_NM 
 
 
-def parse_dat_file(contents, filename):
+def parse_dat_file_and_set_indices(contents, filename):
     content_type, content_string = contents.split(',')
     
     if '.dat' in filename:
@@ -100,3 +100,5 @@ def convert_created_data(table_data):
             encounters_data += waypoint
     
     return base64.b64encode(encounters_data), enc_data_indices, len(ac_ids), 1
+
+
