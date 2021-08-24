@@ -113,7 +113,7 @@ def serve_layout():
         #   memory store reverts to the default on every page refresh
         dcc.Store(id='session-id', data=session_id),
 
-        dcc.Store(id='memory-data', data=[{}]),
+        dcc.Store(id='memory-data-signal', data=[{}]),
 
         dcc.Store(id='ref-data', data={'ref_lat': 40.63993,
                                     'ref_long': -73.77869,
@@ -1103,48 +1103,85 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
         return 'Time: {} (s)'.format(t_value), t_value, fig_xy, fig_tz, fig_tspeedxy, fig_tspeedz, fig_xyz, fig_tdistxy, fig_tdistz, min_values[0], max_values[0]
 
 
-# ##########################################################################################
+###########################################################################################
 ##########################################################################################
+def build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=None, loaded_filename=None, generated_data=None, table_data=None, model_contents=None):
+    @cache.memoize()
+    def loaded_memory_data(session_id, waypoints_contents, loaded_filename):
+        encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(waypoints_contents, loaded_filename) 
+            
+        return {'encounters_data': encounters_data,
+                'encounter_indices': encounter_byte_indices,
+                'ac_ids': [ac for ac in range(1, num_ac+1)],
+                'num_encounters': num_encounters,
+                'type':'loaded'}
 
-@cache.memoize()
-def loaded_memory_data(session_id, waypoints_contents, filename):
-    encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(waypoints_contents, filename) 
-        
-    return {'session_id': session_id,
-            'encounters_data': encounters_data,
-            'encounter_indices': encounter_byte_indices,
-            'ac_ids': [ac for ac in range(1, num_ac+1)],
-            'num_encounters': num_encounters,
-            'type':'loaded'}
+    @cache.memoize()
+    def generated_memory_data(session_id, generated_data): 
+        return generated_data
 
-@cache.memoize()
-def generated_memory_data(session_id, generated_data): 
-    return generated_data
+    @cache.memoize()
+    def created_memory_data(session_id, table_data):
+        encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_created_data(table_data)
 
-@cache.memoize()
-def created_memory_data(session_id, table_data):
-    encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_created_data(table_data)
+        return {'encounters_data': str(encounters_data),
+                'encounter_indices': encounter_byte_indices,
+                'ac_ids': [ac for ac in range(1, num_ac+1)],
+                'num_encounters': num_encounters,
+                'type':'created'}
 
-    return {'session_id':session_id,
-            'encounters_data': str(encounters_data),
-            'encounter_indices': encounter_byte_indices,
-            'ac_ids': [ac for ac in range(1, num_ac+1)],
-            'num_encounters': num_encounters,
-            'type':'created'}
-
- 
-def json_memory_data(session_id, model_contents):
-    encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
-    return {'session_id':session_id,
-            'encounters_data': str(encounters_data),
-            'encounter_indices': encounter_byte_indices,
-            'ac_ids': [ac for ac in range(1, num_ac+1)],
-            'num_encounters': num_encounters,
-            'type':'json'}
+    @cache.memoize()
+    def json_memory_data(session_id, model_contents):
+        encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
+        return {'encounters_data': str(encounters_data),
+                'encounter_indices': encounter_byte_indices,
+                'ac_ids': [ac for ac in range(1, num_ac+1)],
+                'num_encounters': num_encounters,
+                'type':'json'}
 
 
-@app.callback(Output('memory-data', 'data'),
-              [Input('load-waypoints-button', 'n_clicks'),
+    if memory_data_type == 'cleared':
+        return {}
+    if memory_data_type == 'loaded':
+        return loaded_memory_data(session_id, waypoints_contents, loaded_filename)
+    if memory_data_type == 'generated':
+        return generated_memory_data(session_id, generated_data)
+    if memory_data_type == 'created':
+        return created_memory_data(session_id, table_data)
+    if memory_data_type == 'json':
+        return json_memory_data(session_id, model_contents)
+
+    return {}
+
+def access_memory_data(memory_data_type, session_id, waypoints_contents=None, loaded_filename=None, generated_data=None, table_data=None, model_contents=None):
+    if memory_data_type == 'cleared':
+        print('clearing memory data')
+        return build_or_grab_memory_data(session_id, memory_data_type)
+    elif memory_data_type == 'loaded':
+        if not waypoints_contents or not loaded_filename:
+            print("LOAD ERROR")
+            return {}
+        return build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=waypoints_contents, loaded_filename=loaded_filename)
+    elif memory_data_type == 'generated':
+        if not generated_data:
+            print("GEN ERROR")
+            return {}
+        return build_or_grab_memory_data(session_id, memory_data_type, generated_data=generated_data)
+    elif memory_data_type == 'created':
+        if not table_data:
+            print("CREATE ERROR")
+            return {}
+        return build_or_grab_memory_data(session_id, memory_data_type, table_data=table_data)
+    elif memory_data_type == 'json':
+        if not model_contents:
+            print("JSON ERROR")
+            return {}
+        return build_or_grab_memory_data(session_id, memory_data_type, model_contents=model_contents)
+
+
+
+@app.callback(Output('memory-data-signal', 'data'),
+                [Input('load-waypoints-button', 'n_clicks'),
                Input('load-waypoints', 'contents'),
                Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
@@ -1153,36 +1190,31 @@ def json_memory_data(session_id, model_contents):
                Input('ref-data', 'data')],
               [State('load-waypoints', 'filename'),
                State('editable-table', 'data'),
-               State('memory-data', 'data'),
+               State('memory-data-signal', 'data'),
                State('session-id', 'data')])
-def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks,\
+def signal_change_in_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks,\
                         generated_data, model_contents, ref_data, filename, table_data, memory_data, session_id):
-                        
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-mode' and create_n_clicks > 0:
-        return [{}]
+        return 'cleared'
+
     elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
-        return created_memory_data(session_id, table_data)
+        return 'created'
     
     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
         if waypoints_contents is None or not filename:
-            return [{}]
+            return 'cleared'
 
-        mem_data = loaded_memory_data(session_id, waypoints_contents, filename) 
-        if mem_data['encounters_data']:
-            return mem_data
-        else:
-            print('Not a .dat file')
+        return 'loaded'
             
     elif ctx == 'generated-encounters':
         if generated_data is not None:
-            print('do we even make it this far?')
-            return generated_memory_data(session_id, generated_data)
+            return 'generated'
 
     elif ctx == 'load-model':
         if model_contents is not None:
-            return json_memory_data(session_id, model_contents)
+            return 'json'
             
 
     elif ctx == 'ref-data':
@@ -1191,6 +1223,58 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
             return dash.no_update
 
     return dash.no_update
+    
+
+# @app.callback(Output('memory-data', 'data'),
+#               [Input('load-waypoints-button', 'n_clicks'),
+#                Input('load-waypoints', 'contents'),
+#                Input('create-mode', 'n_clicks'),
+#                Input('end-new-button', 'n_clicks'),
+#                Input('generated-encounters', 'data'),
+#                Input('load-model', 'contents'),
+#                Input('ref-data', 'data')],
+#               [State('load-waypoints', 'filename'),
+#                State('editable-table', 'data'),
+#                State('memory-data', 'data'),
+#                State('session-id', 'data')])
+# def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks,\
+#                         generated_data, model_contents, ref_data, filename, table_data, memory_data, session_id):
+                        
+#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+#     if ctx == 'create-mode' and create_n_clicks > 0:
+#         return [{}]
+#     elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
+#         return created_memory_data(session_id, table_data)
+    
+#     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
+#         if waypoints_contents is None or not filename:
+#             return [{}]
+
+#         mem_data = loaded_memory_data(session_id, waypoints_contents, filename) 
+#         if mem_data['encounters_data']:
+#             return mem_data
+#         else:
+#             print('Not a .dat file')
+            
+#     elif ctx == 'generated-encounters':
+#         if generated_data is not None:
+#             print('do we even make it this far?')
+#             return generated_memory_data(session_id, generated_data)
+
+#     elif ctx == 'load-model':
+#         if model_contents is not None:
+#             return json_memory_data(session_id, model_contents)
+            
+
+#     elif ctx == 'ref-data':
+#         # reference point has changed
+#         if not ref_data['ref_lat'] or not ref_data['ref_long'] or not ref_data['ref_alt']:
+#             return dash.no_update
+
+#     return dash.no_update
+
+
 
 
 @app.callback([Output('editable-table', 'data'),
@@ -1212,11 +1296,15 @@ def update_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end
                State('ac-index', 'value'),
                State('time-interval-input', 'value'),
                State('create-mode-zUp-input', 'value'),
-               State('memory-data', 'data'),
                State('ref-data', 'data'),
+               State('session-id', 'data'),
+               State('memory-data-signal', 'data'),
+               State('generated-encounters', 'data'),
+               State('load-model', 'contents'),
                State('load-waypoints', 'filename')])
 def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
-                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, memory_data, ref_data, load_waypoints_filename):
+                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, gen_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, ref_data, session_id,\
+                      memory_data_type, generated_data, model_contents, loaded_filename):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
 
@@ -1228,6 +1316,9 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             return [], columns
         else:
             # encounter IDs or ac IDs have been updated or loaded in
+            
+            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents)
+
             if ctx == 'encounter-ids':
                 enc_data = parse_enc_data([encounter_id_selected], memory_data['encounter_indices'], memory_data['encounters_data'],\
                                             memory_data['ac_ids'], memory_data['ac_ids'], ref_data)
@@ -1415,18 +1506,26 @@ def toggle_data_table_speeds_button(data):
 # ##########################################################################################
 # ##########################################################################################
 @app.callback(Output('encounter-ids', 'options'),
-              [Input('memory-data', 'data'),
+              [Input('memory-data-signal', 'data'),
                Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks')],
-              [State('encounter-ids', 'options')])
-def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, options):
+              [State('encounter-ids', 'options'),
+              State('session-id', 'data'),
+              State('load-waypoints', 'contents'),
+              State('load-waypoints', 'filename'),
+              State('generated-encounters', 'data'),
+              State('editable-table', 'data'),
+              State('load-model', 'contents')])
+def update_encounter_dropdown(memory_data_type, create_n_clicks, end_new_n_clicks, options, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     #print('update_encounter_dropdown ctx: ', ctx)
     
-    if ctx == 'memory-data':
-        if memory_data == [{}]:
+    if ctx == 'memory-data-signal':
+        if memory_data_type == 'cleared':
             return []
+
+        memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents)
 
         num_encounters = memory_data['num_encounters']
         data_type = memory_data['type']
@@ -1438,8 +1537,7 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
         return options
 
     elif ctx == 'create-mode' and create_n_clicks > 0:
-        if memory_data is not [{}]: #and memory_data != []
-            return []
+        return []
     
     elif ctx == 'end-new-button' and end_new_n_clicks > 0:
         encounter_value = 0
@@ -1462,10 +1560,15 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
                State('create-new-button', 'n_clicks'),
                State('generate-button', 'n_clicks'),
                State('load-model-button', 'n_clicks'),
+               State('memory-data-signal', 'data'),
+               State('session-id', 'data'),
+               State('load-waypoints', 'contents'),
+               State('load-waypoints', 'filename'),
+               State('generated-encounters', 'data'),
                State('editable-table', 'data'),
-               State('memory-data', 'data'),
-               State('load-waypoints', 'filename')])
-def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, load_model_n_clicks, data, memory_data, load_waypoints_filename):
+               State('load-model', 'contents')])
+def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, load_model_n_clicks,\
+                        memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     
     if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
@@ -1475,6 +1578,8 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
         if encounter_id_selected == []:
             return []
         else:
+            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents)
+
             if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0 or load_model_n_clicks > 0:
                 dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
                 return dropdown_options
@@ -1510,8 +1615,15 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
                Input('ref-data', 'data')],
                [State('ac-index', 'value'),
                State('ac-ids', 'value'),
-               State('memory-data', 'data')])
-def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, generate_n_clicks, ref_data, ac_value, ac_selected, memory_data): #encounter_value, 
+               State('memory-data-signal', 'data'),
+               State('session-id', 'data'),
+               State('load-waypoints', 'contents'),
+               State('load-waypoints', 'filename'),
+               State('generated-encounters', 'data'),
+               State('editable-table', 'data'),
+               State('load-model', 'contents')])
+def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, generate_n_clicks, ref_data, ac_value, ac_selected,\
+                            memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     # print('\n--update_dropdowns_value--')
@@ -1529,7 +1641,7 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
         # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
         # ac_ids = df_filtered['ac_id'].unique()
         # return encounter_id_selected, [ac_id for ac_id in ac_ids]
-
+        memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents)
         return encounter_id_selected, [ac_id for ac_id in memory_data['ac_ids']]
 
     elif ctx == 'create-mode' and create_n_clicks > 0:
@@ -1971,9 +2083,18 @@ def set_nominal_enc_id_options(encounter_options):
 
 @app.callback(Output('nominal-path-ac-ids', 'options'),
               Input('nominal-path-enc-ids', 'value'),
-              Input('memory-data','data'))
-def set_nominal_ac_ids_options(encounter_id_selected, memory_data):
-    if encounter_id_selected != [] and memory_data != [{}]:
+              Input('memory-data-signal','data'),
+              State('session-id', 'data'),
+              State('load-waypoints', 'contents'),
+              State('load-waypoints', 'filename'),
+              State('generated-encounters', 'data'),
+              State('editable-table', 'data'),
+              State('load-model', 'contents'))
+def set_nominal_ac_ids_options(encounter_id_selected, memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents):
+    if encounter_id_selected != [] and memory_data_type != 'cleared':
+        print(memory_data_type)
+        memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents)
+
         dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
         return dropdown_options
 
@@ -2116,15 +2237,21 @@ def toggle_covariance_type(cov_radio_value):
                State('exp-kernel-input-b', 'value'),
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
-               State('memory-data', 'data'),
                State('ref-data', 'data'),
-               State('session-id', 'data')])
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data, session_id):
+               State('memory-data-signal', 'data'),
+               State('session-id', 'data'),
+               State('load-waypoints', 'contents'),
+               State('load-waypoints', 'filename'),
+               State('generated-encounters', 'data'),
+               State('editable-table', 'data'),
+               State('load-model', 'contents')])
+def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+                        memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
-
+            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents)
             # error checking
             if generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_value, 
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
@@ -2322,7 +2449,7 @@ def toggle_filename_inputs(checked_values):
 @app.callback(Output('download-waypoints', 'data'),
                 Input('save-filename-button', 'n_clicks'),
                 [State('generated-encounters', 'data'),
-                State('memory-data', 'data'),
+                State('memory-data-signal', 'data'),
                 State('nominal-path-enc-ids', 'options'),
                 State('nominal-path-ac-ids', 'options'),
                 State('save-dat-filename', 'value'),
@@ -2367,7 +2494,7 @@ def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_i
 @app.callback(Output('download-model', 'data'),
                 Input('save-filename-button', 'n_clicks'),
                 [State('generated-encounters', 'data'),
-                State('memory-data', 'data'),
+                State('memory-data-signal', 'data'),
                 State('cov-radio', 'value'),
                 State('diag-sigma-input-hor', 'value'),
                 State('diag-sigma-input-ver', 'value'),
