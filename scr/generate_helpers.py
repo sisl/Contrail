@@ -149,14 +149,14 @@ def combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start):
     
     return generated_data, enc_data_indices
 
-def parse_enc_data(enc_ids_selected, enc_indices, encounters_data, enc_ac_ids, ac_ids_selected, ref_data):
-    if encounters_data[0:2] == 'b\'':
-        encounters_data = encounters_data[2:-1]
-        difference = len(encounters_data) % 4
-        padding = '=' * difference
-        encounters_data += padding
+def parse_enc_data(enc_ids_selected, enc_indices, encounters_filename, enc_ac_ids, ac_ids_selected, ref_data):
+    # if encounters_data[0:2] == 'b\'':
+    #     encounters_data = encounters_data[2:-1]
+    #     difference = len(encounters_data) % 4
+    #     padding = '=' * difference
+    #     encounters_data += padding
 
-    decoded = base64.b64decode(encounters_data)
+    # decoded = base64.b64decode(encounters_data)
 
     enc_data_list = []
 
@@ -164,13 +164,24 @@ def parse_enc_data(enc_ids_selected, enc_indices, encounters_data, enc_ac_ids, a
     num_update_byte_size, waypoint_byte_size = 2, 8
 
     for enc_id in enc_ids_selected:
-        enc_start_id = enc_indices[enc_id]
-        if enc_id+1 >= len(enc_indices):
-            enc_data = decoded[enc_start_id:]
-        else:
-            enc_end_id = enc_indices[enc_id+1]
-            enc_data = decoded[enc_start_id:enc_end_id]
+        # enc_start_id = enc_indices[enc_id]
+        # if enc_id+1 >= len(enc_indices):
+        #     enc_data = decoded[enc_start_id:]
+        # else:
+        #     enc_end_id = enc_indices[enc_id+1]
+        #     enc_data = decoded[enc_start_id:enc_end_id]
 
+        with open(encounters_filename, 'rb') as file:
+            enc_start_ind = enc_indices[enc_id]
+            file.seek(enc_start_ind)
+            if enc_id+1 >= len(enc_indices):
+                enc_data = file.read()
+            else:
+                enc_end_ind = enc_indices[enc_id+1]
+                num_bytes = enc_end_ind - enc_start_ind
+                print('num_bytes: ', num_bytes)
+                enc_data = file.read(num_bytes)
+        print(type(enc_data))
         cursor = 0
         for ac in enc_ac_ids:
             [x,y,z] = struct.unpack('ddd', enc_data[cursor:cursor+(waypoint_byte_size*initial_dim)])

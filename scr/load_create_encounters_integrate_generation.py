@@ -1111,6 +1111,7 @@ def loaded_memory_data(session_id, waypoints_contents, loaded_filename):
     encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(waypoints_contents, loaded_filename) 
 
     return {'encounters_data': encounters_data,
+            'filename':loaded_filename,
             'encounter_indices': encounter_byte_indices,
             'ac_ids': [ac for ac in range(1, num_ac+1)],
             'num_encounters': num_encounters,
@@ -1118,7 +1119,6 @@ def loaded_memory_data(session_id, waypoints_contents, loaded_filename):
 
 @cache.memoize()
 def generated_memory_data(session_id, generated_data, ref_data): 
-
     with open(generated_data['filename']) as file:
         encounters_data = file.read()
     
@@ -1150,6 +1150,7 @@ def json_memory_data(session_id, model_contents):
 
 def build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=None, loaded_filename=None, generated_data=None, ref_data=None, table_data=None, model_contents=None):
     if memory_data_type == 'cleared':
+        cache.clear()
         return {}
     if memory_data_type == 'loaded':
         return loaded_memory_data(session_id, waypoints_contents, loaded_filename)
@@ -1168,7 +1169,11 @@ def access_memory_data(memory_data_type, session_id, waypoints_contents=None, lo
         return build_or_grab_memory_data(session_id, memory_data_type)
     elif memory_data_type == 'loaded':
         #print('accessing loaded data')
-        if not waypoints_contents or not loaded_filename:
+        print('\nid: ', session_id)
+        # print('contents: ', waypoints_contents)
+        print('filename: ', loaded_filename)
+        #if not waypoints_contents or not loaded_filename:
+        if not loaded_filename:
             print("LOAD ERROR")
             return {}
         return build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=waypoints_contents, loaded_filename=loaded_filename)
@@ -1194,25 +1199,29 @@ def access_memory_data(memory_data_type, session_id, waypoints_contents=None, lo
 
 
 @app.callback(Output('memory-data-signal', 'data'),
-                [Input('load-waypoints-button', 'n_clicks'),
-               Input('load-waypoints', 'contents'),
+                [Input('load-waypoints', 'contents'),
                Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
                Input('generated-data', 'data'),
                Input('ref-data', 'data'),
                Input('load-model', 'contents')],
-              State('load-waypoints', 'filename'))
-def signal_change_in_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, loaded_filename):
+               State('load-waypoints-button', 'n_clicks'),
+               State('load-waypoints', 'filename'))
+def signal_change_in_memory_data(waypoints_contents, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, upload_n_clicks, loaded_filename):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-mode' and create_n_clicks > 0:
+        #return {}
         return 'cleared'
 
     elif ctx == 'end-new-button' and end_new_n_clicks > 0: 
         return 'created'
     
     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
-        if waypoints_contents is None or not loaded_filename:
+        print('loaded a file')
+
+        #if waypoints_contents is None or not loaded_filename:
+        if not loaded_filename:
             return 'cleared'
 
         return 'loaded'
@@ -1276,12 +1285,24 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             # encounter IDs or ac IDs have been updated or loaded in
 
             memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents)
+            # enc_indices = memory_data['encounter_indices']
+            # with open(memory_data['filename'], 'r') as file:
+            #     enc_start_ind = enc_indices[encounter_id_selected]
+            #     file.seek(enc_start_ind)
+            #     if encounter_id_selected+1 >= len(enc_indices):
+            #         enc_data = file.read()
+            #     else:
+            #         enc_end_ind = enc_indices[encounter_id_selected+1]
+            #         num_bytes = enc_end_ind - enc_start_ind
+            #         enc_data = file.read(num_bytes)
+
+                # encounters_data = file.read()
 
             if ctx == 'encounter-ids':
-                enc_data = parse_enc_data([encounter_id_selected], memory_data['encounter_indices'], memory_data['encounters_data'],\
+                enc_data = parse_enc_data([encounter_id_selected], memory_data['encounter_indices'], memory_data['filename'], #memory_data['encounters_data'],\
                                             memory_data['ac_ids'], memory_data['ac_ids'], ref_data)
             else:
-                enc_data = parse_enc_data([encounter_id_selected], memory_data['encounter_indices'], memory_data['encounters_data'],\
+                enc_data = parse_enc_data([encounter_id_selected], memory_data['encounter_indices'], memory_data['filename'], # memory_data['encounters_data'],\
                                             memory_data['ac_ids'], ac_ids_selected, ref_data)
             
             enc_data_df = pd.DataFrame(enc_data)
@@ -1484,8 +1505,11 @@ def update_encounter_dropdown(memory_data_type, create_n_clicks, end_new_n_click
         if memory_data_type == 'cleared':
             return []
 
+        print(memory_data_type)
+        print(not waypoints_contents)
+        print(loaded_filename)
         memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents)
-
+        
         num_encounters = memory_data['num_encounters']
         data_type = memory_data['type']
         if data_type == 'generated' or data_type == 'json' or data_type == 'created':
@@ -2210,13 +2234,14 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
         if gen_n_clicks > 0:
 
             memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, None, ref_data, table_data, model_contents)
-    
+            # with open(memory_data['filename'], 'r') as file:
+            #     encounters_data = file.read()
             # error checking
             if generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
                 return {}
 
-            nom_enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
+            nom_enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['filename'], memory_data['ac_ids'], nom_ac_ids, ref_data)
             df = pd.DataFrame(nom_enc_data)
             
             gen_enc_data = deque()
@@ -2290,9 +2315,9 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               Input('generated-data', 'data'),
               State('ref-data', 'data'))
 def on_generation_update_log_histograms(generated_data, ref_data):
-    if generated_data == {}:
-        return px.density_heatmap(), px.density_heatmap(), \
-            px.density_heatmap(), px.density_heatmap(), False
+    # if generated_data == {}:
+    return px.density_heatmap(), px.density_heatmap(), \
+        px.density_heatmap(), px.density_heatmap(), False
 
     start = time.time()
     print('\n--CREATING HISTOGRAMS--\n')
@@ -2446,17 +2471,26 @@ def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_sav
             num_enc = generated_data['num_encounters']
             file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
 
+            print('trying to save')
             with open(file_name, 'wb') as file_to_save, open(generated_data_filename, 'r') as gen_file:
                 encounters_data = gen_file.read()
                 
                 encs_data_bytes = base64.b64decode(encounters_data)
 
-                data_to_save = struct.pack('<II', num_enc-1, len(nom_ac_ids)) # remove nominal encounter
-                data_to_save += encs_data_bytes[enc_indices[1]:]
-
+                print('grabbed data')
+                data_to_save = bytearray()
+                data_to_save.extend(struct.pack('<II', num_enc-1, len(nom_ac_ids))) # remove nominal encounter
+                data_to_save.extend(encs_data_bytes[enc_indices[1]:])
+                # encoded = base64.b64encode(data_to_save)
+                print('combined data')
                 file_to_save.write(data_to_save)
+                print('finished writing, now trying to send')
 
-            return dcc.send_file(file_name)
+
+            # FIXME: the dcc.download restricts the size of our data
+            # maybe instead of the user getting it as a download, the user should specify a 
+            # file path so we can just write to that destination on the user's computer...
+            return dash.no_update
         else:
             print('Must generate an encounter set')
 
@@ -2483,11 +2517,11 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_
             if 'json-item' in files_to_save:
                 model_json = {}
                 
-                with open(generated_data['filename'], 'r') as file:
-                    encounters_data = file.read()
+                # with open(generated_data['filename'], 'r') as file:
+                #     encounters_data = file.read()
                     # encs_data_bytes = base64.b64decode(encounters_data)
 
-                enc_data = parse_enc_data([0], generated_data['encounter_indices'], encounters_data, generated_data['ac_ids'], generated_data['ac_ids'], ref_data)
+                enc_data = parse_enc_data([0], generated_data['encounter_indices'], memory_data['filename'], generated_data['ac_ids'], generated_data['ac_ids'], ref_data)
                 df_enc = pd.DataFrame(enc_data)
                 ac_ids = generated_data['ac_ids']
             

@@ -16,17 +16,21 @@ NM_TO_FT = 1/FT_TO_NM
 
 
 def parse_dat_file_and_set_indices(contents, filename):
-    content_type, content_string = contents.split(',')
+    if not contents:
+        with open(filename, 'r') as file:
+            content_string = file.read()
+    else:
+        content_type, content_string = contents.split(',')
     
     if '.dat' in filename:
         decoded = base64.b64decode(content_string)
         num_enc = int.from_bytes(decoded[0:4], byteorder='little')
-        print(num_enc)
+        print('parse num_enc: ', num_enc)
 
         encounter_byte_indices = [None] * (num_enc+1)
     
         num_ac = int.from_bytes(decoded[4:8], byteorder='little')
-        print(num_ac)
+        print('parse num_ac: ', num_ac)
         cursor = 8
         initial_bytes = num_ac * INITIAL_DIM * WAYPOINT_BYTE_SIZE
 
