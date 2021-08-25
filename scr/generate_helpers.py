@@ -91,7 +91,7 @@ def generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start) -> dic
     for enc_id, waypoints in enumerate(waypoints_list):
 
         if enc_id % 10000 == 0: 
-            print('enc_id: ', enc_id, ' @ ', time.time()-start)
+            print('\tenc_id: ', enc_id, ' @ ', time.time()-start)
 
         if len(gen_enc_data) > enc_id+1:
             enc_data = gen_enc_data.popleft()
@@ -243,17 +243,17 @@ def convert_and_combine_data(data, ref_data) -> list:
     pool = mp.Pool(num_processes)
 
     start = time.time()
-    print('before multiprocessing @ ', 0)
+    print('\tbefore multiprocessing convert @ ', 0)
     results = pool.starmap(parse_enc_data, zip(enc_ids, enc_indices, encs_data, ac_ids, ac_ids_selected, ref_data_repeats))
-    print('finished multiprocessing @ ',time.time() - start)
+    print('\tfinished multiprocessing convert @ ',time.time() - start)
     pool.close()
     pool.join()
 
-    print('before enumerating @ ', time.time() - start)
+    print('\tbefore combining @ ', time.time() - start)
     combined_data = []
     for i, result in enumerate(results):
         combined_data += result
 
-    print('finished enumerating @ ', time.time() - start)
+    print('\tfinished combining @ ', time.time() - start)
 
     return combined_data
