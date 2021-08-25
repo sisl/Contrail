@@ -45,10 +45,10 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
 
     return K_mean, K_cov
 
-def generation_error_found(memory_data, nom_ac_ids, num_encounters, cov_radio_value, 
+def generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
                  sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c) -> bool:
     error = False
-    if memory_data == [{}]: # or memory_data == []:
+    if memory_data_type == 'cleared': # or memory_data == []:
         print('Must create a nominal encounter or load a waypoint file')
         error = True
     if not nom_ac_ids:
@@ -206,18 +206,24 @@ def parse_enc_data(enc_ids_selected, enc_indices, encounters_data, enc_ac_ids, a
                     enc_data_list += [data_point]
 
                 cursor += (waypoint_byte_size*update_dim)
-    
+
     return enc_data_list
 
 def convert_and_combine_data(data, ref_data) -> list:
     num_encs = data['num_encounters']
     num_processes = mp.cpu_count()
-    num_enc_per_cpu = num_encs // num_processes
-    num_enc_per_partition = num_enc_per_cpu // 3
+
+    if num_encs > num_processes:
+        num_enc_per_cpu = num_encs // num_processes
+        num_enc_per_partition = num_enc_per_cpu // 3
+    else:
+        num_enc_per_partition = num_encs
     
     start, size, end = 0, num_enc_per_partition, num_enc_per_partition
     enc_ids = []
-    total_partitions = 3 * num_processes
+    
+    total_partitions = num_encs // num_enc_per_partition
+    if total_partitions > (3*num_processes): total_partitions = 3 * num_processes
     for i in range(total_partitions):
         if i == total_partitions - 1:
             end = num_encs
@@ -226,11 +232,13 @@ def convert_and_combine_data(data, ref_data) -> list:
         end += size
         enc_ids.append(encs)
 
-    enc_indices = repeat(data['encounter_indices'], num_encs)
-    encs_data = repeat(data['encounters_data'], num_encs)
-    ac_ids = repeat(data['ac_ids'], num_encs)
-    ac_ids_selected = repeat(data['ac_ids'], num_encs)
-    ref_data_repeats = repeat(ref_data, num_encs)
+    
+
+    enc_indices = repeat(data['encounter_indices'], total_partitions)
+    encs_data = repeat(data['encounters_data'], total_partitions)
+    ac_ids = repeat(data['ac_ids'], total_partitions)
+    ac_ids_selected = repeat(data['ac_ids'], total_partitions)
+    ref_data_repeats = repeat(ref_data, total_partitions)
 
     pool = mp.Pool(num_processes)
 
@@ -246,6 +254,6 @@ def convert_and_combine_data(data, ref_data) -> list:
     for i, result in enumerate(results):
         combined_data += result
 
-    print('finished enumerating @ ', time.time() - start, '\n')
+    print('finished enumerating @ ', time.time() - start)
 
     return combined_data

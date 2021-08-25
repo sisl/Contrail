@@ -1117,10 +1117,14 @@ def loaded_memory_data(session_id, waypoints_contents, loaded_filename):
             'type':'loaded'}
 
 @cache.memoize()
-def generated_memory_data(session_id, generated_data): 
-    # generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-    #     memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
-    return generated_data
+def generated_memory_data(session_id, generation_params): 
+    
+    nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters = generation_params
+    memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+        memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+    
+    
+    return memory_data
 
 @cache.memoize()
 def created_memory_data(session_id, table_data):
@@ -1141,13 +1145,13 @@ def json_memory_data(session_id, model_contents):
             'num_encounters': num_encounters,
             'type':'json'}
 
-def build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=None, loaded_filename=None, table_data=None, model_contents=None):
+def build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=None, loaded_filename=None, generation_params=None, table_data=None, model_contents=None):
     if memory_data_type == 'cleared':
         return {}
     if memory_data_type == 'loaded':
         return loaded_memory_data(session_id, waypoints_contents, loaded_filename)
-    # if memory_data_type == 'generated':
-    #     return generated_memory_data(session_id, generated_data)
+    if memory_data_type == 'generated':
+        return generated_memory_data(session_id, generation_params)
     if memory_data_type == 'created':
         return created_memory_data(session_id, table_data)
     if memory_data_type == 'json':
@@ -1155,7 +1159,7 @@ def build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=N
 
     return {}
 
-def access_memory_data(memory_data_type, session_id, waypoints_contents=None, loaded_filename=None, table_data=None, model_contents=None):
+def access_memory_data(memory_data_type, session_id, waypoints_contents=None, loaded_filename=None, generation_params=None, table_data=None, model_contents=None):
     if memory_data_type == 'cleared':
         print('clearing memory data')
         return build_or_grab_memory_data(session_id, memory_data_type)
@@ -1164,11 +1168,15 @@ def access_memory_data(memory_data_type, session_id, waypoints_contents=None, lo
             print("LOAD ERROR")
             return {}
         return build_or_grab_memory_data(session_id, memory_data_type, waypoints_contents=waypoints_contents, loaded_filename=loaded_filename)
-    # elif memory_data_type == 'generated':
-    #     if not generated_data:
-    #         print("GEN ERROR")
-    #         return {}
-    #     return build_or_grab_memory_data(session_id, memory_data_type, generated_data=generated_data)
+    elif memory_data_type == 'generated':
+        if not generation_params:
+            print("GEN ERROR")
+            return {}
+        return build_or_grab_memory_data(session_id, memory_data_type, generation_params=generation_params)
+        # if not generated_data:
+        #     print("GEN ERROR")
+        #     return {}
+        # return build_or_grab_memory_data(session_id, memory_data_type, generated_data=generated_data)
     elif memory_data_type == 'created':
         if not table_data:
             print("CREATE ERROR")
@@ -1191,13 +1199,14 @@ def access_memory_data(memory_data_type, session_id, waypoints_contents=None, lo
             #    Input('log-histogram-ac-1-xy', 'figure'),
                Input('histogram-signal', 'children'),
                Input('load-model', 'contents'),
+               Input('generate-button', 'n_clicks'),
                Input('ref-data', 'data')],
               [State('load-waypoints', 'filename'),
                State('editable-table', 'data'),
                State('memory-data-signal', 'data'),
                State('session-id', 'data')])
 def signal_change_in_memory_data(upload_n_clicks, waypoints_contents, create_n_clicks, end_new_n_clicks,\
-                        generated_data_signal, histogram_signal, model_contents, ref_data, filename, table_data, memory_data, session_id):
+                        generated_data_signal, histogram_signal, model_contents, gen_n_clicks, ref_data, filename, table_data, memory_data, session_id):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     print("CTX: ", ctx)
@@ -1214,9 +1223,14 @@ def signal_change_in_memory_data(upload_n_clicks, waypoints_contents, create_n_c
 
         return 'loaded'
             
-    elif ctx == 'generated-encounters-signal' or ctx == 'histogram-signal':
-        if generated_data_signal and histogram_signal:
+    elif ctx == 'generate-button':
+        if gen_n_clicks:
+            access_memory_data(memory_data_type, session_id, waypoints_contents=None, loaded_filename=None, generation_params=None, table_data=None, model_contents=None):
             return 'generated'
+    
+        # ctx == 'generated-encounters-signal' or ctx == 'histogram-signal':
+        # if generated_data_signal and histogram_signal:
+        #     return 'generated'
 
     elif ctx == 'load-model':
         if model_contents is not None:
@@ -1332,11 +1346,12 @@ def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected
             return [], columns
         else:
             # encounter IDs or ac IDs have been updated or loaded in
-            if memory_data_type == 'generated':
-                memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                                                    memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
-            else:
-                memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+            generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
+            # if memory_data_type == 'generated':
+            #     memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+            #                                         memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+            # else:
+            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents, generation_params)
 
             if ctx == 'encounter-ids':
                 enc_data = parse_enc_data([encounter_id_selected], memory_data['encounter_indices'], memory_data['encounters_data'],\
@@ -1556,11 +1571,12 @@ def update_encounter_dropdown(memory_data_type, create_n_clicks, end_new_n_click
         if memory_data_type == 'cleared':
             return []
 
-        if memory_data_type == 'generated':
-            memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                                                memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
-        else:
-            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+        generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
+        # if memory_data_type == 'generated':
+        #     memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+        #                                         memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+        # else:
+        memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents,generation_params)
 
         num_encounters = memory_data['num_encounters']
         data_type = memory_data['type']
@@ -1625,11 +1641,12 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
         if encounter_id_selected == []:
             return []
         else:
-            if memory_data_type == 'generated':
-                memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                                                    memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
-            else:
-                memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+            generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
+            # if memory_data_type == 'generated':
+            #     memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+            #                                         memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+            # else:
+            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents, generation_params)
 
             if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0 or load_model_n_clicks > 0:
                 dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
@@ -1703,11 +1720,12 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
         # df_filtered = df.loc[df['encounter_id'] == encounter_id_selected]
         # ac_ids = df_filtered['ac_id'].unique()
         # return encounter_id_selected, [ac_id for ac_id in ac_ids]
-        if memory_data_type == 'generated':
-            memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                                                memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
-        else:
-            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+        generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
+        # if memory_data_type == 'generated':
+        #     memory_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+        #                                         memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+        # else:
+        memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents, generation_params)
 
         return encounter_id_selected, [ac_id for ac_id in memory_data['ac_ids']]
 
@@ -2171,11 +2189,12 @@ def set_nominal_enc_id_options(encounter_options):
 def set_nominal_ac_ids_options(encounter_id_selected, memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents,\
                                 gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data):
     if encounter_id_selected != [] and memory_data_type != 'cleared':
-        if memory_data_type == 'generated':
-            memory_data = generate_encounters(nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                                                memory_data_type, session_id, waypoints_contents, loaded_filename,  table_data, model_contents)
-        else:
-            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+        generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
+        # if memory_data_type == 'generated':
+        #     memory_data = generate_encounters(nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+        #                                         memory_data_type, session_id, waypoints_contents, loaded_filename,  table_data, model_contents)
+        # else:
+        memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents, generation_params)
 
         dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
         return dropdown_options
@@ -2326,8 +2345,10 @@ def generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigm
     # print(loaded_filename)
     # print(table_data)
     # print(model_contents)
-    memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
-    print("MEM TYPE: ", type(memory_data))
+    print("MEM TYPE: ", memory_data_type)
+    generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
+    memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents, generation_params)
+    
     # error checking
     if generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
                                 sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
@@ -2420,8 +2441,8 @@ def signal_generated_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
 
-            generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                                memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+            # generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+            #                     memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
             return True
     return False
                         
@@ -2433,7 +2454,7 @@ def signal_generated_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_
               Output('log-histogram-ac-2-xy', 'figure'),
               Output('log-histogram-ac-2-tz', 'figure')],
               Output('histogram-signal', 'children'),
-              Input('generated-encounters-signal', 'data'),
+              Input('memory-data-signal', 'data'),
               State('ac-ids', 'value'),
               State('memory-data-signal', 'data'),
               State('session-id', 'data'),
@@ -2453,9 +2474,9 @@ def signal_generated_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
                State('ref-data', 'data'))
-def on_generation_update_log_histograms(generated_data_signal, ac_ids_selected, memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents,\
+def on_generation_update_log_histograms(memory_data_signal, ac_ids_selected, memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents,\
                                 gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data):
-    if not generated_data_signal:
+    if not memory_data_signal or memory_data_type != 'generated':
         return px.density_heatmap(), px.density_heatmap(), \
             px.density_heatmap(), px.density_heatmap(), False
 
@@ -2478,8 +2499,10 @@ def on_generation_update_log_histograms(generated_data_signal, ac_ids_selected, 
     # print(loaded_filename)
     # print(table_data)
     # print(model_contents)
-    generated_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                                            memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
+    generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
+    generated_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents, generation_params)
+    # generated_data = generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
+    #                                         memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents)
     
     gen_data = convert_and_combine_data(generated_data, ref_data)
 
