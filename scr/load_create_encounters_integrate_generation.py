@@ -831,7 +831,7 @@ def serve_layout():
                 # number of encounter sets to generate
                 html.Br(),
                 dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
-                dbc.Input(id='num-encounters-input', type='text', placeholder='',
+                dbc.Input(id='num-encounters-input', type='number', placeholder='',
                     debounce=True,# value=100,
                     pattern=u"^(\d+)$",
                     style={'margin-left':'20px', "width": "40%"}),
@@ -1109,7 +1109,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
 @cache.memoize()
 def loaded_memory_data(session_id, waypoints_contents, loaded_filename):
     encounters_data, encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(waypoints_contents, loaded_filename) 
-        
+
     return {'encounters_data': encounters_data,
             'encounter_indices': encounter_byte_indices,
             'ac_ids': [ac for ac in range(1, num_ac+1)],
@@ -1122,15 +1122,11 @@ def generated_memory_data(session_id, generated_data, ref_data):
     with open(generated_data['filename']) as file:
         encounters_data = file.read()
     
-    generated_data = {'encounters_data':encounters_data,
-                        'encounter_indices':generated_data['indices'],
-                        'ac_ids':generated_data['ac_ids'],
-                        'num_encounters':generated_data['num_encounters'],
-                        'type':'generated'}
-    #memory_data = convert_and_combine_data(generated_data, ref_data)
-    # print(memory_data.keys())
-    
-    return generated_data
+    return {'encounters_data':encounters_data,
+            'encounter_indices':generated_data['encounter_indices'],
+            'ac_ids':generated_data['ac_ids'],
+            'num_encounters':generated_data['num_encounters'],
+            'type':'generated'}
 
 @cache.memoize()
 def created_memory_data(session_id, table_data):
@@ -1145,6 +1141,7 @@ def created_memory_data(session_id, table_data):
 @cache.memoize()
 def json_memory_data(session_id, model_contents):
     encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
+    
     return {'encounters_data': str(encounters_data),
             'encounter_indices': encounter_byte_indices,
             'ac_ids': [ac for ac in range(1, num_ac+1)],
@@ -2185,94 +2182,6 @@ def toggle_covariance_type(cov_radio_value):
     else:
         print("Select a covariance matrix type.") 
 
-# @cache.memoize()
-# def generate_encounters(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-#                         memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents):
-#     # print(nom_enc_id)
-#     # print(nom_ac_ids)
-#     # print(cov_radio_value)
-#     # print(sigma_hor)
-#     # print(sigma_ver)
-#     # print(exp_kernel_a)
-#     # print(exp_kernel_b)
-#     # print(exp_kernel_c)
-#     # print(num_encounters)
-#     # print(ref_data)
-#     # print(memory_data_type)
-#     # print(session_id)
-#     # #print(waypoints_contents)
-#     # print(loaded_filename)
-#     # print(table_data)
-#     # print(model_contents)
-#     print("MEM TYPE: ", memory_data_type)
-#     generation_params = (nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data)
-#     memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, table_data, model_contents, generation_params)
-    
-#     # error checking
-#     if generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
-#                                 sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
-#         return {}
-
-#     nom_enc_data = parse_enc_data([nom_enc_id], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], nom_ac_ids, ref_data)
-#     df = pd.DataFrame(nom_enc_data)
-    
-#     gen_enc_data = deque()
-#     start = time.time()
-#     for ac in nom_ac_ids:
-#         print("AC: ", ac)
-#         ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
-        
-#         # include nominal path
-#         if len(gen_enc_data) > 0:
-#             enc_data = gen_enc_data.popleft()
-#             initial_ac_bytes = enc_data[0]
-#             update_ac_bytes = enc_data[1]
-#         else:
-#             initial_ac_bytes = []
-#             update_ac_bytes = [[],[]]
-        
-#         for waypoint in ac_df:
-#             if waypoint['time'] == 0:
-#                 initial_ac_bytes.append(struct.pack('ddd', waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-#             else:
-#                 update_ac_bytes[ac-1].append(struct.pack('dddd', waypoint['time'], waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-
-#         enc_data = [initial_ac_bytes, update_ac_bytes]
-#         gen_enc_data.append(enc_data) 
-    
-#         # generate samples    
-#         kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
-#         ac_time = [waypoint['time'] for waypoint in ac_df]
-        
-#         if cov_radio_value == 'cov-radio-diag':
-#             cov = [ [sigma_hor, 0, 0], 
-#                     [0, sigma_hor, 0], 
-#                     [0, 0, sigma_ver] ]
-#             waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
-            
-#             gen_enc_data = generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time)
-        
-#         elif cov_radio_value == 'cov-radio-exp':                
-#             mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-#             waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
-#             waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3)) 
-
-#             gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
-                                
-#     # time to combine all of the bytes into one string!
-#     print('before combining generated data @ ', time.time() - start)
-#     generated_data, enc_data_indices = combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start)
-#     encoded_gen_data = base64.b64encode(generated_data)
-#     print('finished combining generated data @ ', time.time() - start, '\n')  
-
-#     return {'encounters_data': str(encoded_gen_data),
-#             'encounter_indices': enc_data_indices,
-#             'ac_ids':nom_ac_ids,
-#             'num_encounters': int(num_encounters)+1,
-#             'type':'generated'}
-
-            # return generate(nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, memory_data, ref_data, session_id)
-
 
 @app.callback(Output('generated-data', 'data'),
               Input('generate-button', 'n_clicks'),
@@ -2300,7 +2209,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
         print('\n--GENERATING--\n')
         if gen_n_clicks > 0:
 
-            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, None, table_data, model_contents)
+            memory_data = access_memory_data(memory_data_type, session_id, waypoints_contents, loaded_filename, None, ref_data, table_data, model_contents)
     
             # error checking
             if generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
@@ -2342,13 +2251,13 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     cov = [ [sigma_hor, 0, 0], 
                             [0, sigma_hor, 0], 
                             [0, 0, sigma_ver] ]
-                    waypoints_list = [np.random.multivariate_normal(mean,cov,int(num_encounters)) for mean in kernel_inputs]
+                    waypoints_list = [np.random.multivariate_normal(mean,cov,num_encounters) for mean in kernel_inputs]
                     
                     gen_enc_data = generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time)
                 
                 elif cov_radio_value == 'cov-radio-exp':                
                     mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-                    waypoints_list = np.random.multivariate_normal(mean,cov,int(num_encounters))
+                    waypoints_list = np.random.multivariate_normal(mean,cov,num_encounters)
                     waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3)) 
 
                     gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
@@ -2363,16 +2272,10 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             with open(generated_data_filename, mode='wb') as file:
                 file.write(encoded_gen_data)
 
-            # return {'encounters_data': str(encoded_gen_data),
-            #         'encounter_indices': enc_data_indices,
-            #         'ac_ids':nom_ac_ids,
-            #         'num_encounters': int(num_encounters)+1,
-            #         'type':'generated'}
-
             return {'filename':generated_data_filename,
-                    'indices':enc_data_indices,
+                    'encounter_indices':enc_data_indices,
                     'ac_ids':nom_ac_ids,
-                    'num_encounters': int(num_encounters)+1}
+                    'num_encounters': num_encounters+1}
 
     return {}
                         
@@ -2399,7 +2302,7 @@ def on_generation_update_log_histograms(generated_data, ref_data):
         encounters_data = file.read()
     
     generated_data = {'encounters_data':encounters_data,
-                        'encounter_indices':generated_data['indices'],
+                        'encounter_indices':generated_data['encounter_indices'],
                         'ac_ids':generated_data['ac_ids'],
                         'num_encounters':generated_data['num_encounters'],
                         'type':'generated'}
@@ -2517,43 +2420,43 @@ def toggle_filename_inputs(checked_values):
 
 @app.callback(Output('download-waypoints', 'data'),
                 Input('save-filename-button', 'n_clicks'),
-                [State('generated-data', 'data'),
-                State('memory-data-signal', 'data'),
-                State('nominal-path-enc-ids', 'options'),
-                State('nominal-path-ac-ids', 'options'),
+                [State('nominal-path-ac-ids', 'options'),
                 State('save-dat-filename', 'value'),
                 State('file-checklist', 'value'),
                 State('dat-file-units', 'value'),
-                State('ref-data', 'data')],
+                State('memory-data-signal', 'data'),
+                State('session-id', 'data'),
+               State('load-waypoints', 'contents'),
+               State('load-waypoints', 'filename'),
+               State('generated-data', 'data'),
+               State('ref-data', 'data'),
+               State('editable-table', 'data'),
+               State('load-model', 'contents')],
                 prevent_initial_call=True)
-def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_ids, nom_ac_ids, dat_filename, files_to_save, dat_file_units, ref_data):
+def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_save, dat_file_units, memory_data_type, session_id, waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents):
     
     if save_n_clicks > 0:
-        if generated_data:
-            if 'dat-item' in files_to_save:
-                file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
-                file = open(file_name, mode='wb')
+        if generated_data != {} and 'dat-item' in files_to_save:
 
-                num_enc = memory_data['num_encounters']
-                data_to_save = struct.pack('<II', int(num_enc)-1, len(nom_ac_ids)) # remove nominal encounter
-                enc_indices = memory_data['encounter_indices']
+            if dat_file_units == 'dat-units-geo':
+                print("UNSUPPORTED OPTION")
 
-                encounters_data = memory_data['encounters_data']
+            generated_data_filename = generated_data['filename']
+            enc_indices = generated_data['encounter_indices']
+            num_enc = generated_data['num_encounters']
+            file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
 
-                # make sure in base64 standard
-                if encounters_data[0:2] == 'b\'':
-                    encounters_data = encounters_data[2:-1]
-                    difference = len(encounters_data) % 4
-                    padding = '=' * difference
-                    encounters_data += padding
-
-                encs_data_bytes = base64.b64decode(encounters_data)
-                data_to_save += encs_data_bytes[enc_indices[1]:] # remove nominal encounter
+            with open(file_name, 'wb') as file_to_save, open(generated_data_filename, 'r') as gen_file:
+                encounters_data = gen_file.read()
                 
-                file.write(data_to_save)
-                file.close()
+                encs_data_bytes = base64.b64decode(encounters_data)
 
-                return dcc.send_file(file_name)
+                data_to_save = struct.pack('<II', num_enc-1, len(nom_ac_ids)) # remove nominal encounter
+                data_to_save += encs_data_bytes[enc_indices[1]:]
+
+                file_to_save.write(data_to_save)
+
+            return dcc.send_file(file_name)
         else:
             print('Must generate an encounter set')
 
@@ -2563,7 +2466,6 @@ def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_i
 @app.callback(Output('download-model', 'data'),
                 Input('save-filename-button', 'n_clicks'),
                 [State('generated-data', 'data'),
-                State('memory-data-signal', 'data'),
                 State('cov-radio', 'value'),
                 State('diag-sigma-input-hor', 'value'),
                 State('diag-sigma-input-ver', 'value'),
@@ -2574,16 +2476,20 @@ def on_click_save_dat_file(save_n_clicks, generated_data, memory_data, nom_enc_i
                 State('file-checklist', 'value'),
                 State('ref-data', 'data')],
                 prevent_initial_call=True)
-def on_click_save_json_file(save_n_clicks, generated_data, memory_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save, ref_data):
+def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save, ref_data):
 
     if save_n_clicks > 0:
         if generated_data:
             if 'json-item' in files_to_save:
                 model_json = {}
+                
+                with open(generated_data['filename'], 'r') as file:
+                    encounters_data = file.read()
+                    # encs_data_bytes = base64.b64decode(encounters_data)
 
-                enc_data = parse_enc_data([0], memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], memory_data['ac_ids'], ref_data)
+                enc_data = parse_enc_data([0], generated_data['encounter_indices'], encounters_data, generated_data['ac_ids'], generated_data['ac_ids'], ref_data)
                 df_enc = pd.DataFrame(enc_data)
-                ac_ids = memory_data['ac_ids']
+                ac_ids = generated_data['ac_ids']
             
                 model_json['mean'] = {'num_ac': len(ac_ids)}
 
@@ -2687,15 +2593,6 @@ def toggle_map_create_mode_div(active_tab, style):
 
     return style
 
-# @app.callback(Output('map-table-col', 'className'),
-#                 Input('tabs','active_tab'))
-# def adjust_margins_on_active_tab(active_tab):
-#     if active_tab == 'tab-2':
-#         return 'pl-5'
-
-#     return 'pl-4'
-
-# cc.register(app)
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=8333)

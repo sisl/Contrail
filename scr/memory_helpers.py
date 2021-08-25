@@ -21,10 +21,12 @@ def parse_dat_file_and_set_indices(contents, filename):
     if '.dat' in filename:
         decoded = base64.b64decode(content_string)
         num_enc = int.from_bytes(decoded[0:4], byteorder='little')
+        print(num_enc)
 
         encounter_byte_indices = [None] * (num_enc+1)
     
         num_ac = int.from_bytes(decoded[4:8], byteorder='little')
+        print(num_ac)
         cursor = 8
         initial_bytes = num_ac * INITIAL_DIM * WAYPOINT_BYTE_SIZE
 
