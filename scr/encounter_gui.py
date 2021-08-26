@@ -4,8 +4,6 @@ from typing import Container
 import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
-#from dash_extensions.callback import CallbackCache
-# from dash_extensions.enrich import Dash, ServersideOutput, FileSystemStore
 
 import dash_table
 import dash_core_components as dcc
@@ -96,6 +94,7 @@ M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
 FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
 FT_TO_NM = FT_TO_M*M_TO_NM
 NM_TO_FT = 1/FT_TO_NM 
+MB = 1000000
 
 COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
 DASHBOARD_LOGO = app.get_asset_url('dashboard_logo.png')
@@ -430,7 +429,6 @@ def serve_layout():
                                 style={'display':'none'}),
 
                                 html.Div(id='tab-4-graphs', children=[
-                                    html.Div(id='histogram-signal', children=False),
                                     dbc.Row([
                                         dbc.Col(className='pr-2', children=[
                                             dbc.Card([
@@ -1119,7 +1117,7 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
                State('editable-table', 'data'),
                State('load-waypoints-button', 'n_clicks'),
                State('load-waypoints', 'contents'))
-def signal_change_in_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, table_data, upload_n_clicks, waypoints_contents):
+def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, table_data, upload_n_clicks, waypoints_contents):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-mode' and create_n_clicks > 0:
@@ -1178,7 +1176,6 @@ def signal_change_in_memory_data(loaded_filename, create_n_clicks, end_new_n_cli
 @app.callback([Output('editable-table', 'data'),
                Output('editable-table', 'columns')],
               [Input('load-waypoints-button', 'n_clicks'),
-               Input('load-waypoints', 'contents'),
                Input('encounter-ids', 'value'),
                Input('ac-ids', 'value'),
                Input('update-speeds-button', 'n_clicks'),
@@ -1194,14 +1191,10 @@ def signal_change_in_memory_data(loaded_filename, create_n_clicks, end_new_n_cli
                State('time-interval-input', 'value'),
                State('create-mode-zUp-input', 'value'),
                State('ref-data', 'data'),
-               State('session-id', 'data'),
-               State('memory-data', 'data'),
-               State('generated-data', 'data'),
-               State('load-model', 'contents'),
-               State('load-waypoints', 'filename')])
-def update_data_table(upload_n_clicks, waypoints_contents, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
-                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, ref_data, session_id,\
-                      memory_data, generated_data, model_contents, loaded_filename):
+               State('memory-data', 'data')])
+def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
+                      create_n_clicks, start_new_n_clicks, end_new_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, ref_data,\
+                      memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     # print('update_data_table: ', ctx)
@@ -1402,36 +1395,31 @@ def toggle_data_table_speeds_button(data):
 # ##########################################################################################
 @app.callback(Output('encounter-ids', 'options'),
               [Input('memory-data', 'data'),
-               Input('create-mode', 'n_clicks'),
                Input('end-new-button', 'n_clicks')],
-              [State('encounter-ids', 'options'),
-              State('session-id', 'data'),
-              State('load-waypoints', 'contents'),
-              State('load-waypoints', 'filename'),
-              State('generated-data', 'data'),
-              State('ref-data', 'data'),
-              State('editable-table', 'data'),
-              State('load-model', 'contents')])
-def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, options, session_id, waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents):
+               State('encounter-ids', 'options'))
+def update_encounter_dropdown(memory_data, end_new_n_clicks, options):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     # print('update_encounter_dropdown ctx: ', ctx)
     
     if ctx == 'memory-data':
-        if memory_data['type'] == 'cleared':
+        if memory_data == {}:
             return []
 
         num_encounters = memory_data['num_encounters']
         data_type = memory_data['type']
-        if data_type == 'generated' or data_type == 'json' or data_type == 'created':
-            enc_range = range(num_encounters)
-        else: # type = loaded 
+
+        if data_type == 'loaded': 
+            # no encounter 0 or nominal path to account for
             enc_range = range(1, num_encounters+1)
+        else: 
+            enc_range = range(num_encounters)
+            
         options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Encounter'} for encounter_id in enc_range]
         return options
 
-    elif ctx == 'create-mode' and create_n_clicks > 0:
-        return []
+    # elif ctx == 'create-mode' and create_n_clicks > 0:
+    #     return []
     
     elif ctx == 'end-new-button' and end_new_n_clicks > 0:
         encounter_value = 0
@@ -1452,31 +1440,22 @@ def update_encounter_dropdown(memory_data, create_n_clicks, end_new_n_clicks, op
               [State('ac-index', 'value'),
                State('ac-ids', 'options'),
                State('create-new-button', 'n_clicks'),
-               State('generate-button', 'n_clicks'),
-               State('load-model-button', 'n_clicks'),
-               State('memory-data', 'data'),
-               State('session-id', 'data'),
-               State('load-waypoints', 'contents'),
-               State('load-waypoints', 'filename'),
-               State('generated-data', 'data'),
-               State('ref-data', 'data'),
-               State('editable-table', 'data'),
-               State('load-model', 'contents')])
-def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, generate_n_clicks, load_model_n_clicks,\
-                        memory_data, session_id, waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents):
+               State('memory-data', 'data')])
+def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     
     # print('update_ac_dropdown: ', ctx)
 
-    if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
-        return []  
+    if ctx == 'load-waypoints-button':
+        if upload_n_clicks > 0:
+            return []  
 
     elif ctx == 'encounter-ids':
         if encounter_id_selected == []:
             return []
         else:
-            if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0 or load_model_n_clicks > 0:
-                start = time.time()
+            #if (upload_n_clicks > 0 and end_new_n_clicks == 0) or generate_n_clicks > 0 or load_model_n_clicks > 0:
+            if memory_data != {}:
                 dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
                 return dropdown_options
     
@@ -1484,18 +1463,19 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
         if create_n_clicks > 0 and start_new_n_clicks == 0 and end_new_n_clicks == 0:
             return []  
 
-    elif ctx == 'end-new-button' and end_new_n_clicks > 0:
-        if ac_value is not None:
-            new_option = {'value': ac_value, 'label': 'AC '+ str(ac_value)}
-            if options is None or options == []:
-                options = [new_option]
-            elif new_option not in options:
-                options.append(new_option)
+    elif ctx == 'end-new-button':
+        if end_new_n_clicks > 0:
+            if ac_value is not None:
+                new_option = {'value': ac_value, 'label': 'AC '+ str(ac_value)}
+                if options is None or options == []:
+                    options = [new_option]
+                elif new_option not in options:
+                    options.append(new_option)
+                else:
+                    print('AC ID already taken. Select a new one.')
+                return options
             else:
-                print('AC ID already taken. Select a new one.')
-            return options
-        else:
-            print('Enter an AC ID.')
+                print('Enter an AC ID.')
     
     return dash.no_update
 
@@ -1511,21 +1491,16 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
                Input('ref-data', 'data')],
                [State('ac-index', 'value'),
                State('ac-ids', 'value'),
-               State('memory-data', 'data'),
-               State('session-id', 'data'),
-               State('load-waypoints', 'contents'),
-               State('load-waypoints', 'filename'),
-               State('generated-data', 'data'),
-               State('editable-table', 'data'),
-               State('load-model', 'contents')])
+               State('memory-data', 'data')])
 def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clicks, start_new_n_clicks, end_new_n_clicks, generate_n_clicks, ref_data, ac_value, ac_selected,\
-                            memory_data, session_id, waypoints_contents, loaded_filename, generated_data, table_data, model_contents):
+                            memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     # print('update_dropdowns_value: ', ctx)
     clear_enc_val, clear_ac_val = [], []
     
-    if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
-        return clear_enc_val, clear_ac_val
+    if ctx == 'load-waypoints-button':
+        if upload_n_clicks > 0:
+            return clear_enc_val, clear_ac_val
     elif ctx == 'encounter-ids':
         if encounter_id_selected is None or encounter_id_selected == []:
             return clear_enc_val, clear_ac_val
@@ -1558,13 +1533,11 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
 
 @app.callback([Output('encounter-ids', 'disabled'),
                Output('ac-ids', 'disabled')],
-              [Input('create-mode', 'n_clicks'),
-               Input('exit-create-mode', 'n_clicks'),
-               Input('create-new-button', 'n_clicks'),
+              [Input('create-new-button', 'n_clicks'),
                Input('end-new-button', 'n_clicks'),
                Input('load-waypoints-button', 'n_clicks'),
                Input('ref-data', 'data')])
-def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, upload_n_clicks, ref_data):
+def creative_mode_disable_dropdowns(start_new_n_clicks, end_new_n_clicks, upload_n_clicks, ref_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-new-button' and start_new_n_clicks > 0:
@@ -1609,7 +1582,8 @@ def creative_mode_disable_dropdowns(create_n_clicks, exit_create_n_clicks, start
                State('end-new-button', 'style'),
                State('create-mode-card', 'style'),
                State('map-create-card', 'style')])
-def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks, create_style, start_new_style, exit_create_style, create_mode_div_style, end_new_style, create_card_style, map_create_style):
+def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, start_new_n_clicks, end_new_n_clicks,\
+                        create_style, start_new_style, exit_create_style, create_mode_div_style, end_new_style, create_card_style, map_create_style):
     reset_create_clicks, reset_exit_create_clicks = create_n_clicks, exit_create_n_clicks
     reset_start_new_clicks, reset_end_new_clicks = start_new_n_clicks, end_new_n_clicks
 
@@ -1617,36 +1591,29 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
     if create_n_clicks > 0:
         if ctx == 'create-mode':
             reset_exit_create_clicks = 0 
+
             create_style['display'] = 'none'
             exit_create_style['display'], start_new_style['display'] = 'block', 'block'
             create_card_style['display'] = 'block'
             map_create_style['height']  = '44rem'
-            
-            # exit_create_style['display'] = 'block'
 
         if ctx == 'create-new-button' and start_new_n_clicks > 0:
             reset_end_new_clicks = 0
-            # ac_style['display'], end_new_style['display'] = 'block', 'block'
-            # interval_style['display'], zUp_style['display'] = 'block', 'block'
+
             create_mode_div_style['display'] = 'block'
             end_new_style['display'] = 'block'
             create_card_style['display'] = 'block'
-            #map_create_style['height']  = '50rem'
             
         if ctx == 'end-new-button' and end_new_n_clicks > 0:
             reset_start_new_clicks = 0
-            # ac_style['display'], end_new_style['display'] = 'none', 'none'
-            # interval_style['display'], zUp_style['display'] = 'none', 'none'
+
             create_mode_div_style['display'] = 'none'
             end_new_style['display'] = 'none'
-            #create_card_style['display'] = 'none'
-            #map_create_style['height']  = '33rem'
             
         if ctx == 'exit-create-mode' and exit_create_n_clicks > 0:
             reset_create_clicks = 0
             reset_start_new_clicks, reset_end_new_clicks = 0, 0
-            # exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
-            # ac_style['display'], interval_style['display'], zUp_style['display'] = 'none', 'none', 'none'
+
             start_new_style['display'], exit_create_style['display'] = 'none', 'none'
             create_mode_div_style['display'] = 'none'
             end_new_style['display'] = 'none'
@@ -1658,8 +1625,7 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
         if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
             reset_create_clicks, reset_exit_create_clicks = 0, 0
             reset_start_new_clicks, reset_end_new_clicks = 0, 0
-            # exit_create_style['display'], start_new_style['display'], end_new_style['display'] ='none', 'none', 'none'
-            # ac_style['display'], interval_style['display'], zUp_style['display'] = 'none', 'none', 'none'
+
             start_new_style['display'], exit_create_style['display'] = 'none', 'none'
             create_mode_div_style['display'] = 'none'
             end_new_style['display'] = 'none'
@@ -1672,9 +1638,8 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
 
 @app.callback(Output('ac-index', 'value'),
               Input('exit-create-mode', 'n_clicks'),
-              Input('load-waypoints-button', 'n_clicks'),
-              State('ac-ids', 'options'))
-def exit_creative_mode_reset_ac_index(exit_n_clicks, upload_n_clicks, options):
+              Input('load-waypoints-button', 'n_clicks'))
+def exit_creative_mode_reset_ac_index(exit_n_clicks, upload_n_clicks):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     if ctx == 'exit-create-mode' and exit_n_clicks > 0:
         return None    
@@ -1739,6 +1704,7 @@ def update_map(data, ref_data, current_polylines):
             new_polylines.append(dl.PolylineDecorator(positions=lat_lng_dict, patterns=map_patterns))
         
         return new_polylines
+
     elif ctx == 'ref-data':
         return []
     
@@ -1781,8 +1747,9 @@ def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_
             else:
                 print('Enter an AC ID.')
         
-    elif ctx == 'create-new-button' and start_new_n_clicks > 0:
-        return []
+    elif ctx == 'create-new-button':
+        if start_new_n_clicks > 0:
+            return []
 
     elif ctx == 'exit-create-mode':
         if exit_create_n_clicks:
@@ -1959,15 +1926,8 @@ def set_nominal_enc_id_options(encounter_options):
 
 @app.callback(Output('nominal-path-ac-ids', 'options'),
               Input('nominal-path-enc-ids', 'value'),
-              Input('memory-data','data'),
-              State('session-id', 'data'),
-              State('load-waypoints', 'contents'),
-              State('load-waypoints', 'filename'),
-              State('generated-data', 'data'),
-              State('ref-data', 'data'),
-              State('editable-table', 'data'),
-              State('load-model', 'contents'))
-def set_nominal_ac_ids_options(encounter_id_selected, memory_data, session_id, waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents):
+              Input('memory-data','data'))
+def set_nominal_ac_ids_options(encounter_id_selected, memory_data):
     if encounter_id_selected != [] and memory_data != {}:
         dropdown_options = [{'value': ac_id, 'label': 'AC '+ str(ac_id)} for ac_id in memory_data['ac_ids']]
         return dropdown_options
@@ -2112,21 +2072,15 @@ def toggle_covariance_type(cov_radio_value):
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
                State('ref-data', 'data'),
-               State('memory-data', 'data'),
-               State('session-id', 'data'),
-               State('load-waypoints', 'contents'),
-               State('load-waypoints', 'filename'),
-               State('editable-table', 'data'),
-               State('load-model', 'contents')])
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c, num_encounters, ref_data,\
-                        memory_data, session_id, waypoints_contents, loaded_filename, table_data, model_contents):
+               State('memory-data', 'data')])
+def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
+                        exp_kernel_c, num_encounters, ref_data, memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
-        print('\n--GENERATING--\n')
         if gen_n_clicks > 0:
 
-
+            print('\n--GENERATING--\n')
             # error checking
             if generation_error_found(memory_data['type'], nom_ac_ids, num_encounters, cov_radio_value, 
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
@@ -2179,10 +2133,10 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
               
             # time to combine all of the bytes into one string!
-            print('\nbefore combining generated data @ ', time.time() - start)
+            print('\nbefore combining generated data @ ', time.time() - start, ' seconds')
             generated_data, enc_data_indices = combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start)
             #encoded_gen_data = base64.b64encode(generated_data)
-            print('finished combining generated data @ ', time.time() - start, '\n') 
+            print('finished combining generated data @ ', time.time() - start, ' seconds\n') 
 
             generated_data_filename = 'generated_data.dat'
             with open(generated_data_filename, mode='wb') as file:
@@ -2194,72 +2148,85 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     'num_encounters': num_encounters+1,
                     'type':'generated'}
 
-    return {}
+    return dash.no_update
                         
 
 @app.callback([Output('log-histogram-ac-1-xy', 'figure'),
               Output('log-histogram-ac-1-tz', 'figure'),
               Output('log-histogram-ac-2-xy', 'figure'),
               Output('log-histogram-ac-2-tz', 'figure')],
-              Output('histogram-signal', 'children'),
               Input('generated-data', 'data'),
               State('ref-data', 'data'))
 def on_generation_update_log_histograms(generated_data, ref_data):
     if generated_data == {}:
-        return px.density_heatmap(), px.density_heatmap(), \
-            px.density_heatmap(), px.density_heatmap(), False
+        return px.density_heatmap(), px.density_heatmap(), px.density_heatmap(), px.density_heatmap()
 
     start = time.time()
     print('\n--CREATING HISTOGRAMS--\n')
 
-    if generated_data['num_encounters'] > 10000:
-        print('\n***expect this to take a while***\n')
+    with open(generated_data['filename'], 'rb') as file:
+        data = file.read()
+        print('NUM ENC: ', generated_data['num_encounters'])
+        print('SIZE OF GEN DATA: {:,}'.format(len(data)))
 
-    print('parsing all data @', 0)
+    #return px.density_heatmap(), px.density_heatmap(), px.density_heatmap(), px.density_heatmap()
+
+    # if len(data) > 10 * MB:
+    #     # larger than 10mb, going to be too big for the histograms
+    #     print('Size of generated data is too big for generating histograms')
+    #     # FIXME: Add an alert that pops up informing the user that the num encounters
+    #     # is too large
+    #     return px.density_heatmap(), px.density_heatmap(),  px.density_heatmap(), px.density_heatmap()
+    # else:
+    print('parsing all data @', 0, ' mins')
     gen_data = convert_and_combine_data(generated_data, ref_data)
-    print('finished parsing all data @', time.time()-start)
+    print('finished parsing all data @', (time.time()-start)/60, ' mins')
 
     # organize generated data by ac_id then enc_id
     df = pd.DataFrame(gen_data)
     df_group_by_ac = [pd.DataFrame(data) for i, data in df.groupby('ac_id', as_index=False)]
-    df_to_interpolate = [pd.DataFrame(data) for data_df in df_group_by_ac for i, data in data_df.groupby('encounter_id')]
+    print(len(df_group_by_ac))
+    # df_to_interpolate = [pd.DataFrame(data) for data_df in df_group_by_ac for i, data in data_df.groupby('encounter_id')]
     
     num_processes = mp.cpu_count()
-    num_partitions = int(len(df_to_interpolate)/2)
+    # num_partitions = int(len(df_to_interpolate)/2)
 
-    pool = mp.Pool(num_processes)
+    # pool = mp.Pool(num_processes)
 
-    ac_ids = [[1] for i in range(num_partitions)]
-    ac_ids += [[2] for i in range(num_partitions)]
+    # ac_ids = [[1] for i in range(num_partitions)]
+    # ac_ids += [[2] for i in range(num_partitions)]
 
-    print('\nbefore interpolating @', time.time()-start)
-    results = pool.starmap(interpolate_df_time, zip(df_to_interpolate, ac_ids))
-    print('finished interpolating @', time.time()-start)
+    # print('\nbefore interpolating @', (time.time()-start)/60, ' mins')
+    # results = pool.starmap(interpolate_df_time, zip(df_to_interpolate, ac_ids))
+    # print('finished interpolating @', (time.time()-start)/60, ' mins')
 
-    pool.close()
-    pool.join()
+    # pool.close()
+    # pool.join()
 
-    df_ac_1_interp = pd.concat([result[0] for result in results[:num_partitions]])
+    # df_ac_1_interp = pd.concat([result[0] for result in results[:num_partitions]])
+    
 
-    df_ac_2_interp = pd.concat([result[0] for result in results[num_partitions:]])
+    # df_ac_2_interp = pd.concat([result[0] for result in results[num_partitions:]])
 
-    print('\norganized: ', time.time()-start)
+    # print('\norganized: ', (time.time()-start)/60, ' mins')
 
     num_partitions = 4 # number of histograms
-    df_ac = [df_ac_1_interp, df_ac_1_interp, df_ac_2_interp, df_ac_2_interp]
+    #df_ac = [df_ac_1_interp, df_ac_1_interp, df_ac_2_interp, df_ac_2_interp]
+    # df_acs = [pd.DataFrame(data) for data in df_group_by_ac]
+    df_ac = [df_group_by_ac[0], df_group_by_ac[0], df_group_by_ac[1], df_group_by_ac[1]]
     x = ['xEast', 'time','xEast', 'time']
     y = ['yNorth', 'zUp', 'yNorth', 'zUp']
 
     pool = mp.Pool(num_processes)
 
-    print('\nbefore creating histograms @', time.time()-start)
+    print('\nbefore creating histograms @', (time.time()-start)/60, ' mins')
     histograms = pool.starmap(create_histogram, zip(df_ac, x, y))
-    print('finished building histograms @', time.time()-start,'\n')
+    print('finished building histograms @', (time.time()-start)/60,' mins\n')
 
     pool.close()
     pool.join()
 
-    return histograms[0], histograms[1], histograms[2], histograms[3], True
+    return histograms
     
 
 def create_histogram(df_data, x, y):
@@ -2364,7 +2331,7 @@ def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_sav
             # FIXME: the dcc.download restricts the size of our data
             # maybe instead of the user getting it as a download, the user should specify a 
             # file path so we can just write to that destination on the user's computer...
-            return dash.no_update
+            return dcc.send_file(file_name)
         else:
             print('Must generate an encounter set')
 

@@ -195,12 +195,6 @@ def convert_and_combine_data(data, ref_data) -> list:
         end += size
         enc_ids.append(encs)
 
-    # enc_indices = repeat(data['encounter_indices'], total_partitions)
-    # encs_data = repeat(data['encounters_data'], total_partitions)
-    # ac_ids = repeat(data['ac_ids'], total_partitions)
-    # ac_ids_selected = repeat(data['ac_ids'], total_partitions)
-    # ref_data_repeats = repeat(ref_data, total_partitions)
-
     mem_data = repeat(data, total_partitions)
     ac_ids_selected = repeat(data['ac_ids'], total_partitions)
     ref_data_repeats = repeat(ref_data, total_partitions)
@@ -208,18 +202,18 @@ def convert_and_combine_data(data, ref_data) -> list:
     pool = mp.Pool(num_processes)
 
     start = time.time()
-    print('\tbefore multiprocessing convert @ ', 0)
-    #results = pool.starmap(parse_enc_data, zip(enc_ids, enc_indices, encs_data, ac_ids, ac_ids_selected, ref_data_repeats))
+    print('\tbefore converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
     results = pool.starmap(parse_enc_data, zip(mem_data, enc_ids, ac_ids_selected, ref_data_repeats))
-    print('\tfinished multiprocessing convert @ ',time.time() - start)
+    print('\tfinished converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
+
     pool.close()
     pool.join()
 
-    print('\tbefore combining @ ', time.time() - start)
+    print('\tbefore combining @ ', (time.time() - start)/60, ' mins')
     combined_data = []
     for i, result in enumerate(results):
         combined_data += result
 
-    print('\tfinished combining @ ', time.time() - start)
+    print('\tfinished combining @ ', (time.time() - start)/60, ' mins')
 
     return combined_data
