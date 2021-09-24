@@ -68,6 +68,58 @@ def generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_rad
     
     return error
 
+
+def generate_diag(waypoints_lists, ac_times, filename, num_encounters):
+
+    # print('len(waypoints_lists): ', len(waypoints_lists)) # should be length 2
+    # print('num_encounters: ', num_encounters)
+    # for key in waypoints_lists.keys():
+    #     print('len(waypoints_lists[',key,']): ', len(waypoints_lists[key]))
+    #     print(len(waypoints_lists[key][0]))
+
+    enc_data_indices = [None] * (num_encounters+1)
+
+    with open(filename, mode='wb') as file:
+
+        ac_ids = waypoints_lists.keys()
+        file.write(struct.pack('<II', num_encounters+1, len(ac_ids)))
+        cursor = 2 * INFO_BYTE_SIZE
+
+        for enc_id in range(num_encounters+1):
+
+            #print('--ENC_ID ', enc_id, '--\n')
+
+            # set encounter index cursor
+            enc_data_indices[enc_id] = cursor
+            
+            # stream initial waypoints
+            for ac in ac_ids:
+                waypoint = waypoints_lists[ac][0][enc_id]
+                waypoint_data = struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2])
+                file.write(waypoint_data)
+
+            cursor += len(ac_ids) * INITIAL_DIM * WAYPOINT_BYTE_SIZE
+
+            # stream update waypoints
+            for ac in ac_ids:
+                updates = waypoints_lists[ac][1:] # ignore initial waypoint
+                #print('num updates: ', len(updates))
+                num_updates = struct.pack('<H', len(updates)) 
+                file.write(num_updates)
+                cursor += NUM_UPDATE_BYTE_SIZE
+
+                ac_time = ac_times[ac][1:] # ignore initial waypoint
+                for i, update in enumerate(updates):
+                    waypoint = update[enc_id]
+                    waypoint_data = struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2])
+                    file.write(waypoint_data)
+
+                cursor += len(updates) * UPDATE_DIM * WAYPOINT_BYTE_SIZE
+        
+    return enc_data_indices
+    
+
+
 def generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time) -> dict:
     for i, waypoints in enumerate(waypoints_list):
         for enc_id, waypoint in enumerate(waypoints):
