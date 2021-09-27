@@ -18,33 +18,6 @@ FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
 FT_TO_NM = FT_TO_M*M_TO_NM
 NM_TO_FT = 1/FT_TO_NM 
 
-def exp_kernel_func(inputs, param_a, param_b, param_c): 
-    inputs = np.array(inputs)
-    N = inputs.shape[0]*inputs.shape[1]
-
-    K_mean = inputs.reshape((N,))
-    K_cov = np.zeros((N, N))  
-    
-    param_a, param_b, param_c = float(param_a), float(param_b), float(param_c)
-    
-    for i, inputs_i in enumerate(inputs):
-        for j, inputs_j in enumerate(inputs):
-            if i == j or i < j:           
-                [x_i,y_i,z_i] = inputs_i
-                [x_j,y_j,z_j] = inputs_j
-                
-                dist_xy = [[(x_i-x_j)**2, (x_i-y_j)**2], 
-                           [(y_i-x_j)**2, (y_i-y_j)**2]]
-                K_cov[3*i:3*i+2, 3*j:3*j+2] = np.exp(-(param_b * np.power(dist_xy, 2)) / (2 * param_a**2))
-                
-                dist_z = [(z_i-z_j)]
-                K_cov[3*i+2, 3*j+2] = np.exp(-(param_c * np.power(dist_z, 2)) / (2 * param_a**2))
-
-                if i != j:
-                    K_cov[3*j:3*j+3, 3*i:3*i+3] = np.transpose(K_cov[3*i:3*i+3, 3*j:3*j+3])
-
-    return K_mean, K_cov
-
 def generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
                  sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c) -> bool:
     error = False
@@ -68,33 +41,52 @@ def generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_rad
     
     return error
 
+def exp_kernel_func(inputs, param_a, param_b, param_c): 
+    inputs = np.array(inputs)
+    N = inputs.shape[0]*inputs.shape[1]
 
-def generate_diag(waypoints_lists, ac_times, filename, num_encounters):
+    K_mean = inputs.reshape((N,))
+    K_cov = np.zeros((N, N))  
+    
+    for i, inputs_i in enumerate(inputs):
+        for j, inputs_j in enumerate(inputs):
+            #if i == j or i < j:   
+            if i <= j:        
+                [x_i,y_i,z_i] = inputs_i
+                [x_j,y_j,z_j] = inputs_j
+                
+                dist_xy = [ [(x_i-x_j)**2, (x_i-y_j)**2], 
+                            [(y_i-x_j)**2, (y_i-y_j)**2] ]
 
-    # print('len(waypoints_lists): ', len(waypoints_lists)) # should be length 2
-    # print('num_encounters: ', num_encounters)
-    # for key in waypoints_lists.keys():
-    #     print('len(waypoints_lists[',key,']): ', len(waypoints_lists[key]))
-    #     print(len(waypoints_lists[key][0]))
+                K_cov[3*i:3*i+2, 3*j:3*j+2] = np.exp(-(param_b * np.power(dist_xy, 2)) / (2 * param_a**2))
+                
+                dist_z = [(z_i-z_j)]
+                K_cov[3*i+2, 3*j+2] = np.exp(-(param_c * np.power(dist_z, 2)) / (2 * param_a**2))
 
+                if i != j:
+                    K_cov[3*j:3*j+3, 3*i:3*i+3] = np.transpose(K_cov[3*i:3*i+3, 3*j:3*j+3])
+
+    return K_mean, K_cov
+
+
+def stream_generated_data(waypoints_lists, ac_times, filename, num_encounters):
+    
     enc_data_indices = [None] * (num_encounters+1)
+    ac_ids = waypoints_lists.keys()
 
     with open(filename, mode='wb') as file:
-
-        ac_ids = waypoints_lists.keys()
+        
         file.write(struct.pack('<II', num_encounters+1, len(ac_ids)))
+        
         cursor = 2 * INFO_BYTE_SIZE
 
         for enc_id in range(num_encounters+1):
-
-            #print('--ENC_ID ', enc_id, '--\n')
-
-            # set encounter index cursor
             enc_data_indices[enc_id] = cursor
             
             # stream initial waypoints
             for ac in ac_ids:
-                waypoint = waypoints_lists[ac][0][enc_id]
+                waypoint = waypoints_lists[ac][enc_id][0] #initial waypoint
+                
                 waypoint_data = struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2])
                 file.write(waypoint_data)
 
@@ -102,107 +94,20 @@ def generate_diag(waypoints_lists, ac_times, filename, num_encounters):
 
             # stream update waypoints
             for ac in ac_ids:
-                updates = waypoints_lists[ac][1:] # ignore initial waypoint
-                #print('num updates: ', len(updates))
+                updates = waypoints_lists[ac][enc_id][1:] # ignore initial waypoint
+
                 num_updates = struct.pack('<H', len(updates)) 
                 file.write(num_updates)
                 cursor += NUM_UPDATE_BYTE_SIZE
 
                 ac_time = ac_times[ac][1:] # ignore initial waypoint
-                for i, update in enumerate(updates):
-                    waypoint = update[enc_id]
+                for i, waypoint in enumerate(updates):
                     waypoint_data = struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2])
                     file.write(waypoint_data)
 
                 cursor += len(updates) * UPDATE_DIM * WAYPOINT_BYTE_SIZE
         
     return enc_data_indices
-    
-
-
-def generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time) -> dict:
-    for i, waypoints in enumerate(waypoints_list):
-        for enc_id, waypoint in enumerate(waypoints):
-            if len(gen_enc_data) > enc_id+1:
-                enc_data = gen_enc_data.popleft()
-                initial_ac_bytes = enc_data[0]
-                update_ac_bytes = enc_data[1] 
-            else:
-                initial_ac_bytes = []
-                update_ac_bytes = [[],[]]
-
-            if ac_time[i] == 0:
-                initial_ac_bytes.append(struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
-            else:
-                update_ac_bytes[ac-1].append(struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
-        
-            enc_data = [initial_ac_bytes, update_ac_bytes] 
-            gen_enc_data.append(enc_data)
-
-    return gen_enc_data
-
-def generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start) -> dict:
-    for enc_id, waypoints in enumerate(waypoints_list):
-
-        if enc_id % 10000 == 0: 
-            print('\tenc_id: ', enc_id, ' @ ', time.time()-start)
-
-        if len(gen_enc_data) > enc_id+1:
-            enc_data = gen_enc_data.popleft()
-            initial_ac_bytes = enc_data[0]
-            update_ac_bytes = enc_data[1] 
-        else:
-            initial_ac_bytes = []
-            update_ac_bytes = [[],[]]
-        
-        for i, waypoint in enumerate(waypoints):
-            if ac_time[i] == 0:
-                initial_ac_bytes.append(struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
-            else:
-                update_ac_bytes[ac-1].append(struct.pack('dddd', ac_time[i], waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2]))
-
-        enc_data = [initial_ac_bytes, update_ac_bytes] 
-        gen_enc_data.append(enc_data)
-        
-    return gen_enc_data
-
-def combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start):
-    generated_data = bytearray(struct.pack('<II', int(num_encounters)+1, len(nom_ac_ids)))
-    cursor = 2 * INFO_BYTE_SIZE
-
-    enc_data_indices = [None] * (int(num_encounters)+1)
-    
-    enc_id = 0
-    while gen_enc_data:
-        enc = gen_enc_data.popleft()
-        enc_data_indices[enc_id] = cursor
-        enc_data_combined = bytes()
-        
-        initial_waypoints = enc[0]
-        for i, waypoint in enumerate(initial_waypoints):
-            enc_data_combined += waypoint
-
-        cursor += len(initial_waypoints) * INITIAL_DIM * WAYPOINT_BYTE_SIZE
-
-        updates = enc[1]
-        for ac_id, update in enumerate(updates):
-            num_updates = struct.pack('<H', len(update))
-            cursor += NUM_UPDATE_BYTE_SIZE
-            enc_data_combined += num_updates
-
-            for i, waypoint in enumerate(update):
-                enc_data_combined += waypoint
-
-            cursor += len(update) * UPDATE_DIM * WAYPOINT_BYTE_SIZE
-
-        generated_data.extend(enc_data_combined)
-
-        del enc
-        del enc_data_combined
-        enc_id += 1
-    
-    return generated_data, enc_data_indices
-
     
     
 '''

@@ -28,6 +28,7 @@ def parse_enc_data_from_filename(enc_ids_selected, enc_indices, encounters_filen
     num_update_byte_size, waypoint_byte_size = 2, 8
 
     for enc_id in enc_ids_selected:
+        # print('** ENC_ID ', enc_id, '**')
         with open(encounters_filename, 'rb') as file:
             enc_start_ind = enc_indices[enc_id]
             file.seek(enc_start_ind)
@@ -57,6 +58,7 @@ def parse_enc_data_from_filename(enc_ids_selected, enc_indices, encounters_filen
         
         for ac in enc_ac_ids:
             num_updates = int.from_bytes(enc_data[cursor:cursor+num_update_byte_size], byteorder='little')
+            # print('num_updates: ', num_updates)
             cursor += num_update_byte_size
             for i in range(num_updates): 
                 [time,x,y,z] = struct.unpack('dddd', enc_data[cursor:cursor+(waypoint_byte_size*update_dim)])

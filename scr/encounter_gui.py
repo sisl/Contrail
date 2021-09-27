@@ -1,34 +1,20 @@
-#from logging import error, lastResort
-#from types import new_class
-#from typing import Container
 import dash
+
+from dash import dash_table
+from dash import dcc
+from dash import html
+
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 
-#import dash_table
-from dash import dash_table
-#import dash_core_components as dcc
-from dash import dcc
-#import dash_html_components as html
-from dash import html
 import dash_bootstrap_components as dbc
-#from dash import dbc
 import dash_leaflet as dl
-#from dash import dash_leaflet as dl
-
-from flask_caching import Cache
-
-
-#from pkg_resources import resource_filename, resource_string
 
 import collections
-from collections import deque
 
 import plotly.express as px
-#import plotly.graph_objects as go
 
 import multiprocessing as mp
-#import tqdm
 from itertools import repeat
 
 import pandas as pd
@@ -55,15 +41,6 @@ import uuid
 external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
 
 app = dash.Dash(__name__, external_scripts=external_scripts)
-# cache = Cache(app.server, config={
-#     'CACHE_TYPE': 'filesystem',
-#     'CACHE_DIR': 'cache',
-
-#     # should be equal to maximum number of users on the app at a single time
-#     # higher numbers will store more data in the filesystem / redis cache
-#     'CACHE_THRESHOLD': 0,
-#     'CACHE_TIMEOUT': 0
-# })
 
 def calculate_horizontal_vertical_speeds_df(df):
     dataf = df.copy()
@@ -190,10 +167,10 @@ def serve_layout():
 
         html.Br(),
 
-        # Encounter and AC ID dropdown menus
+        # Encounter and AC ID dropdown menus and Reference Point Div
         dbc.Container(
             dbc.Row([
-                dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID",  className='ml-2', multi=False), 
+                dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID",  className='m--15', multi=False), 
                         width={"size": 2, "order": 1}),
 
                 dbc.Col(dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True,  className='ml-2'),
@@ -222,7 +199,7 @@ def serve_layout():
                 width={"size": 'auto', "order": 4, 'offset':2},
                 align='right')  
             ],
-            align='right',
+            align='left',
             justify='center',
             no_gutters=True),
         fluid=True
@@ -798,11 +775,11 @@ def serve_layout():
                         dbc.Row(className='', children=[
                             dbc.Col(className='', children=[
                                 html.H5('$\sigma_h$', style={"color": "#3273F6"}),
-                                dbc.Input(id='diag-sigma-input-hor', type='text', placeholder='default sigma_hor = 0.05', debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
+                                dbc.Input(id='diag-sigma-input-hor', type='number', placeholder='default sigma_hor = 0.05', debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
                             ], width=2),
                             dbc.Col(className='', children=[
                                 html.H5('$\sigma_v$', style={"color": "#3273F6"}),
-                                dbc.Input(id='diag-sigma-input-ver', type='text', placeholder='default sigma_ver = 10.0', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
+                                dbc.Input(id='diag-sigma-input-ver', type='number', placeholder='default sigma_ver = 10.0', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
                             ], width=2)
                         ], 
                         no_gutters=False)
@@ -817,15 +794,15 @@ def serve_layout():
                         dbc.Row(className='', children=[
                             dbc.Col(className='', children=[
                                 html.H5('$l$', style={"color": "#3273F6"}),
-                                dbc.Input(id='exp-kernel-input-a', type='text', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
+                                dbc.Input(id='exp-kernel-input-a', type='number', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
                             ], width=2),
                             dbc.Col(className='', children=[
                                 html.H5('$w_h$', style={"color": "#3273F6"}),
-                                dbc.Input(id='exp-kernel-input-b', type='text', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
+                                dbc.Input(id='exp-kernel-input-b', type='number', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
                             ], width=2),
                             dbc.Col(className='', children=[
                                 html.H5('$w_v$', style={"color": "#3273F6"}),
-                                dbc.Input(id='exp-kernel-input-c', type='text', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
+                                dbc.Input(id='exp-kernel-input-c', type='number', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
                             ], width=2)
                         ], 
                         no_gutters=False)
@@ -2088,7 +2065,8 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
 
-            print('\n--GENERATING--\n')
+            # print('\n--GENERATING--\n')
+
             # error checking
             if generation_error_found(memory_data['type'], nom_ac_ids, num_encounters, cov_radio_value, 
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
@@ -2097,117 +2075,47 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             nom_enc_data = parse_enc_data(memory_data, [nom_enc_id], nom_ac_ids, ref_data)
             df = pd.DataFrame(nom_enc_data)
 
-            # print('\n----NOM_ENC_DATA-----')
-            # for enc in nom_enc_data:
-            #     print(enc)
-
-            # print('----------------------\n')
-
-            # sample all waypoints for all AC for num_encounters encounters
-
             waypoints_lists, ac_times = {}, {}
 
             for ac in nom_ac_ids:
-                print("\nAC : ", ac)
                 ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
 
                 kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
                 ac_times[ac] = [waypoint['time'] for waypoint in ac_df]
-
+                encounters = None
 
                 if cov_radio_value == 'cov-radio-diag':
                     cov = [ [sigma_hor, 0, 0], 
                             [0, sigma_hor, 0], 
                             [0, 0, sigma_ver] ]
 
-                    waypoints_list = [np.random.multivariate_normal(mean,cov,num_encounters) for mean in kernel_inputs]
+                    encounters = [[] for _ in range(num_encounters+1)]
+                    encounters[0] = kernel_inputs
 
-                    # add nominal path values to waypoints lists
-                    for i, waypoints in enumerate(waypoints_list):
-                        waypoints_list[i] = [kernel_inputs[i]] + list(waypoints)
-                       
-                    waypoints_lists[ac] = waypoints_list
-                
-                # elif cov_radio_value == 'cov-radio-exp':                
-                #     mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-                #     print(mean)
-                #     waypoints_list = np.random.multivariate_normal(mean,cov,num_encounters)
-                #     waypoints_lists[ac] = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3)) 
+                    for i, mean in enumerate(kernel_inputs):
+                        gen_waypoints = np.random.multivariate_normal(mean,cov,num_encounters)
+
+                        for enc_id, waypoint in enumerate(gen_waypoints):
+                            encounters[enc_id+1].append(waypoint.tolist())
+
+
+                elif cov_radio_value == 'cov-radio-exp':                
+                    mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
+                    waypoints_list = np.random.multivariate_normal(mean,cov,num_encounters)
+                    waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3))
+
+                    encounters = [kernel_inputs] + waypoints_list.tolist()
+                    
+                waypoints_lists[ac] = encounters
 
             generated_data_filename = 'generated_data.dat'
-            enc_data_indices = generate_diag(waypoints_lists, ac_times, generated_data_filename, num_encounters)
-            # gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
-
-            # gen_enc_data = generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time)
-
+            enc_data_indices = stream_generated_data(waypoints_lists, ac_times, generated_data_filename, num_encounters)
 
             return {'filename':generated_data_filename,
                     'encounter_indices':enc_data_indices,
                     'ac_ids':nom_ac_ids,
                     'num_encounters': num_encounters+1,
                     'type':'generated'}
-                
-
-
-            # df = pd.DataFrame(nom_enc_data)
-            # # gen_enc_data = deque()
-            # # start = time.time()
-            # for ac in nom_ac_ids:
-            #     print("\nAC : ", ac)
-            #     ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
-                
-            #     # include nominal path
-            #     if len(gen_enc_data) > 0:
-            #         enc_data = gen_enc_data.popleft()
-            #         initial_ac_bytes = enc_data[0]
-            #         update_ac_bytes = enc_data[1]
-            #     else:
-            #         initial_ac_bytes = []
-            #         update_ac_bytes = [[],[]]
-                
-            #     for waypoint in ac_df:
-            #         if waypoint['time'] == 0:
-            #             initial_ac_bytes.append(struct.pack('ddd', waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-            #         else:
-            #             update_ac_bytes[ac-1].append(struct.pack('dddd', waypoint['time'], waypoint['xEast']*NM_TO_FT, waypoint['yNorth']*NM_TO_FT, waypoint['zUp']))
-
-            #     enc_data = [initial_ac_bytes, update_ac_bytes]
-            #     gen_enc_data.append(enc_data) 
-            
-            #     # generate samples    
-            #     kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
-            #     ac_time = [waypoint['time'] for waypoint in ac_df]
-                
-            #     if cov_radio_value == 'cov-radio-diag':
-            #         cov = [ [sigma_hor, 0, 0], 
-            #                 [0, sigma_hor, 0], 
-            #                 [0, 0, sigma_ver] ]
-            #         waypoints_list = [np.random.multivariate_normal(mean,cov,num_encounters) for mean in kernel_inputs]
-                    
-            #         gen_enc_data = generate_helper_diag(waypoints_list, gen_enc_data, ac, ac_time)
-                
-            #     elif cov_radio_value == 'cov-radio-exp':                
-            #         mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-            #         waypoints_list = np.random.multivariate_normal(mean,cov,num_encounters)
-            #         waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3)) 
-
-            #         gen_enc_data = generate_helper_exp(waypoints_list, gen_enc_data, ac, ac_time, start)
-              
-            # # time to combine all of the bytes into one string!
-            # print('\nbefore combining generated data @ ', time.time() - start, ' seconds')
-            # generated_data, enc_data_indices = combine_data_set_cursor(gen_enc_data, num_encounters, nom_ac_ids, start)
-            # #encoded_gen_data = base64.b64encode(generated_data)
-            # print('finished combining generated data @ ', time.time() - start, ' seconds\n') 
-
-            # generated_data_filename = 'generated_data.dat'
-            # with open(generated_data_filename, mode='wb') as file:
-            #     file.write(generated_data)
-
-            # return {'filename':generated_data_filename,
-            #         'encounter_indices':enc_data_indices,
-            #         'ac_ids':nom_ac_ids,
-            #         'num_encounters': num_encounters+1,
-            #         'type':'generated'}
 
     return dash.no_update
                         
