@@ -72,11 +72,11 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
 def stream_generated_data(waypoints_lists, ac_times, filename, num_encounters):
     
     enc_data_indices = [None] * (num_encounters+1)
-    ac_ids = waypoints_lists.keys()
+    ac_ids = len(waypoints_lists)
 
     with open(filename, mode='wb') as file:
         
-        file.write(struct.pack('<II', num_encounters+1, len(ac_ids)))
+        file.write(struct.pack('<II', num_encounters+1, ac_ids))
         
         cursor = 2 * INFO_BYTE_SIZE
 
@@ -84,16 +84,16 @@ def stream_generated_data(waypoints_lists, ac_times, filename, num_encounters):
             enc_data_indices[enc_id] = cursor
             
             # stream initial waypoints
-            for ac in ac_ids:
+            for ac in range(ac_ids):
                 waypoint = waypoints_lists[ac][enc_id][0] #initial waypoint
                 
                 waypoint_data = struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2])
                 file.write(waypoint_data)
 
-            cursor += len(ac_ids) * INITIAL_DIM * WAYPOINT_BYTE_SIZE
+            cursor += ac_ids * INITIAL_DIM * WAYPOINT_BYTE_SIZE
 
             # stream update waypoints
-            for ac in ac_ids:
+            for ac in range(ac_ids):
                 updates = waypoints_lists[ac][enc_id][1:] # ignore initial waypoint
 
                 num_updates = struct.pack('<H', len(updates)) 
