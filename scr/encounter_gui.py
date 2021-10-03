@@ -2065,8 +2065,6 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
 
-            # print('\n--GENERATING--\n')
-
             # error checking
             if generation_error_found(memory_data['type'], nom_ac_ids, num_encounters, cov_radio_value, 
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
@@ -2077,142 +2075,34 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
 
             kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
             ac_times = [ [waypoint['time'] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
-            
-            # print('len(kernel_inputs): ', len(kernel_inputs))
-            # print('len(kernel_inputs[0]: ', len(kernel_inputs[0]))
-            # print('len(kernel_inputs[1]: ', len(kernel_inputs[1]))
-            # print('len(ac_times): ', len(ac_times))
-            # print('len(ac_times[0]): ', len(ac_times[0]))
-            # print('len(ac_times[0]): ', len(ac_times[1]))
 
             if cov_radio_value == 'cov-radio-diag':
                 cov = [ [sigma_hor, 0, 0], 
                         [0, sigma_hor, 0], 
                         [0, 0, sigma_ver] ]
 
+                # generate waypoints
                 generated_waypoints = np.array([ [np.random.multivariate_normal(mean,cov,num_encounters) for mean in ac] for ac in kernel_inputs])
-                
-                num_ac = len(generated_waypoints)
-                num_waypoints = [len(generated_waypoints[0]), len(generated_waypoints[1])]
-                
-                # print(np.shape(generated_waypoints))
-                # print(np.shape(generated_waypoints[0]))
-                # print(np.shape(generated_waypoints[1]))
-                # generated_waypoints[0] = np.reshape(generated_waypoints[0], (num_encounters, num_waypoints[0], 3))
-                # generated_waypoints[1] = np.reshape(generated_waypoints[1], (num_encounters, num_waypoints[1], 3))
-                # generated_waypoints[0] = np.reshape(generated_waypoints[0], (num_encounters, -1, 3))
-                # generated_waypoints[1] = np.reshape(generated_waypoints[1], (num_encounters, -1, 3))
 
                 generated_waypoints[0] = np.moveaxis(generated_waypoints[0], 0, 1)
                 generated_waypoints[1] = np.moveaxis(generated_waypoints[1], 0, 1)
 
-                # print(np.shape(generated_waypoints))
-                # print(np.shape(generated_waypoints[0]))
-                # print(np.shape(generated_waypoints[1]))
-
-
+                # include nominal encounter
                 generated_waypoints[0] = np.array([kernel_inputs[0]] + generated_waypoints[0].tolist())
                 generated_waypoints[1] = np.array([kernel_inputs[1]] + generated_waypoints[1].tolist())
 
-                # print(np.shape(generated_waypoints))
-                # print(np.shape(generated_waypoints[0]))
-                # print(np.shape(generated_waypoints[1]))
-                
-                # generated_waypoints = np.reshape(generated_waypoints, (generated_waypoints.shape[0], -1))
-
-                # print('\nnum_encounters: ', num_encounters)
-                # print('len(generated_waypoints): ', len(generated_waypoints))
-                # print('len(generated_waypoints[0]): ', len(generated_waypoints[0]))
-                # print('len(generated_waypoints[1]): ', len(generated_waypoints[1]))
-                # print('\nlen(generated_waypoints[0][0]): ', len(generated_waypoints[0][0]))
-                # print('len(generated_waypoints[1][0]): ', len(generated_waypoints[1][0]))
-                # print('\nlen(generated_waypoints[0][0][0]): ', len(generated_waypoints[0][0][0]))
-                # print('len(generated_waypoints[1][0][0]): ', len(generated_waypoints[1][0][0]))
-
-                # reshaped_g_w = [ [ [[] for _ in range(num_waypoints[ac_id])] for _ in range(num_encounters+1)] for ac_id in range(num_ac)]
-                # reshaped_g_w[0][0] = kernel_inputs[0]
-                # reshaped_g_w[1][0] = kernel_inputs[1]
-
-
-                # print('\nlen(reshaped_g_ws): ', len(reshaped_g_w))
-                # print('len(reshaped_g_w[0]): ', len(reshaped_g_w[0]))
-                # print('len(reshaped_g_w[1]): ', len(reshaped_g_w[1]))
-                # print('\nlen(reshaped_g_w[0][0]): ', len(reshaped_g_w[0][1]))
-                # print('len(reshaped_g_w[1][0]): ', len(reshaped_g_w[1][1]))
-
-                # reshaped_g_w = [ [reshaped_g_w[i][k+1] + [waypoint] for j, waypoints in enumerate(ac_waypoints) for k, waypoint in enumerate(waypoints)] for i, ac_waypoints in enumerate(generated_waypoints)]
-
-                # #reshaped_g_w = [ [reshaped_g_w[][] + [waypoints[k]] if  for j, waypoints in enumerate(ac_waypoints)] for i, ac_waypoints in enumerate(generated_waypoints)]
-
-
-
-
-                # print("\nWITH VALUES")
-                # print('\nlen(reshaped_g_ws): ', len(reshaped_g_w))
-                # print('len(reshaped_g_w[0]): ', len(reshaped_g_w[0]))
-                # print('len(reshaped_g_w[1]): ', len(reshaped_g_w[1]))
-                # print('\nlen(reshaped_g_w[0][0]): ', len(reshaped_g_w[0][0]))
-                # print('len(reshaped_g_w[1][0]): ', len(reshaped_g_w[1][0]))
-                # print('\nlen(reshaped_g_w[0][0][0]): ', len(reshaped_g_w[0][0][0]))
-                # print('len(reshaped_g_w[1][0][0]): ', len(reshaped_g_w[1][0][0]))
-
-                # print()
-
-
-
-
-                # print(type(generated_waypoints))
-                # print(np.array(generated_waypoints))
-                # print(type(generated_waypoints))
-                # print(np.shape(generated_waypoints[0]))
-                # print(np.shape(generated_waypoints[0][0]))
-
-
-                # generated_waypoints = np.shape(generated_waypoints)
-                # insert kernel inputs AKA nominal trajectory data
-                # generated_waypoints = [nominal+generated for nominal, generated in zip(kernel_inputs,generated_waypoints)]
-                
-                
-
-
-                # generated_waypoints[0] : AC1, generated_waypoints[1] : AC2
-                # AC1[i], AC2[i] = num_encounters
-
-            elif cov_radio_value == 'cov-radio-exp':     
-                print("exp cov")    
-                
-            # waypoints_lists, ac_times = {}, {}
-
-            # for ac in nom_ac_ids:
-            #     ac_df = (df.loc[df['ac_id'] == ac]).to_dict('records')
-
-            #     kernel_inputs = [[waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in ac_df]
-            #     ac_times[ac] = [waypoint['time'] for waypoint in ac_df]
-            #     encounters = None
-
-                # if cov_radio_value == 'cov-radio-diag':
-                #     cov = [ [sigma_hor, 0, 0], 
-                #             [0, sigma_hor, 0], 
-                #             [0, 0, sigma_ver] ]
-
-            #         encounters = [[] for _ in range(num_encounters+1)]
-            #         encounters[0] = kernel_inputs
-
-            #         for i, mean in enumerate(kernel_inputs):
-            #             gen_waypoints = np.random.multivariate_normal(mean,cov,num_encounters)
-
-            #             for enc_id, waypoint in enumerate(gen_waypoints):
-            #                 encounters[enc_id+1].append(waypoint.tolist())
-
-
-            #     elif cov_radio_value == 'cov-radio-exp':                
-            #         mean, cov = exp_kernel_func(kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-            #         waypoints_list = np.random.multivariate_normal(mean,cov,num_encounters)
-            #         waypoints_list = np.reshape(waypoints_list, (waypoints_list.shape[0], -1, 3))
-
-            #         encounters = [kernel_inputs] + waypoints_list.tolist()
+            elif cov_radio_value == 'cov-radio-exp':  
+                generated_waypoints = np.empty([2,], dtype=object)
+                for ac_id, ac_kernel_inputs in enumerate(kernel_inputs):
+                    mean, cov = exp_kernel_func(ac_kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
                     
-            #     waypoints_lists[ac] = encounters
+                    # generate waypoints
+                    generated_waypoints[ac_id] = np.random.multivariate_normal(mean,cov,num_encounters)
+                    generated_waypoints[ac_id] = np.reshape(generated_waypoints[ac_id], (generated_waypoints[ac_id].shape[0], -1, 3))
+                    
+                    # include nominal encounter
+                    generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
+
 
             generated_data_filename = 'generated_data.dat'
             enc_data_indices = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)

@@ -69,10 +69,9 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
     return K_mean, K_cov
 
 
-def stream_generated_data(waypoints_lists, ac_times, filename, num_encounters):
-    
+def stream_generated_data(generated_data, ac_times, filename, num_encounters):
     enc_data_indices = [None] * (num_encounters+1)
-    ac_ids = len(waypoints_lists)
+    ac_ids = len(generated_data)
 
     with open(filename, mode='wb') as file:
         
@@ -85,7 +84,7 @@ def stream_generated_data(waypoints_lists, ac_times, filename, num_encounters):
             
             # stream initial waypoints
             for ac in range(ac_ids):
-                waypoint = waypoints_lists[ac][enc_id][0] #initial waypoint
+                waypoint = generated_data[ac][enc_id][0] #initial waypoint
                 
                 waypoint_data = struct.pack('ddd', waypoint[0]*NM_TO_FT, waypoint[1]*NM_TO_FT, waypoint[2])
                 file.write(waypoint_data)
@@ -94,7 +93,7 @@ def stream_generated_data(waypoints_lists, ac_times, filename, num_encounters):
 
             # stream update waypoints
             for ac in range(ac_ids):
-                updates = waypoints_lists[ac][enc_id][1:] # ignore initial waypoint
+                updates = generated_data[ac][enc_id][1:] # ignore initial waypoint
 
                 num_updates = struct.pack('<H', len(updates)) 
                 file.write(num_updates)
