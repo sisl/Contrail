@@ -3,16 +3,7 @@ import base64
 import struct
 import pandas as pd
 
-INITIAL_DIM = 3
-UPDATE_DIM = 4
-NUM_UPDATE_BYTE_SIZE = 2
-INFO_BYTE_SIZE = 4
-WAYPOINT_BYTE_SIZE = 8
-
-M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
-FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
-FT_TO_NM = FT_TO_M*M_TO_NM
-NM_TO_FT = 1/FT_TO_NM 
+from constants import *
 
 
 '''
@@ -27,12 +18,13 @@ NM_TO_FT = 1/FT_TO_NM
     dcc.Upload contents component. This takes FOREVER for large files... So I didn't
     know exactly what to do here. 
 '''
-def parse_dat_file_and_set_indices(filename):
-    # FIXME:
-    with open(filename, 'rb') as file:
+def parse_dat_file_and_set_indices(filepath):
+    # filepath = DEFAULT_DATA_FILE_PATH + filename
+    # print(filepath)
+    with open(filepath, 'rb') as file:
         contents = file.read()
 
-    if '.dat' in filename:
+    if '.dat' in filepath:
         num_enc = int.from_bytes(contents[0:4], byteorder='little')
         num_ac = int.from_bytes(contents[4:8], byteorder='little')
 

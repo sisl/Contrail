@@ -1,4 +1,5 @@
 import dash
+import os
 
 from dash import dash_table
 from dash import dcc
@@ -33,14 +34,19 @@ from read_file import *
 from generate_helpers import *
 from parse_encounter_helpers import *
 from memory_data_helpers import *
+from constants import *
 
 import time
 import struct
 import uuid
 
+
 external_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML']
 
 app = dash.Dash(__name__, external_scripts=external_scripts)
+DASHBOARD_LOGO = app.get_asset_url('dashboard_logo.png')
+
+DATA_FILE_PATH = DEFAULT_DATA_FILE_PATH
 
 def calculate_horizontal_vertical_speeds_df(df):
     dataf = df.copy()
@@ -75,14 +81,6 @@ def populate_lat_lng_xEast_yNorth(data, ref_data):
     return data
 
 
-M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
-FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
-FT_TO_NM = FT_TO_M*M_TO_NM
-NM_TO_FT = 1/FT_TO_NM 
-MB = 1000000
-
-COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
-DASHBOARD_LOGO = app.get_asset_url('dashboard_logo.png')
 
 map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
@@ -95,6 +93,9 @@ def serve_layout():
     session_id = str(uuid.uuid4())
 
     return html.Div([
+
+        dbc.Input(id="file-path-input", type="text", placeholder="FILEPATH", debounce=False, value=DEFAULT_DATA_FILE_PATH, style={'display':'none'}),
+
         #   memory store reverts to the default on every page refresh
         dcc.Store(id='session-id', data=session_id),
 
@@ -143,11 +144,13 @@ def serve_layout():
         #load waypoints, gen and save buttons
         dbc.Container(
             dbc.Row([
-                dbc.Col(
+                dbc.Col([
+                    #dbc.Input(id="load-waypoints-input", type="file", value='', placeholder='filename'),
                     html.Label([
+                            
                             dcc.Upload(id='load-waypoints', children = 
-                            dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-2")),#, style={'margin-left':'10px'}))
-                        ]),
+                            dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-2"))#, style={'margin-left':'10px'}))
+                        ])],
                     width={"size": 'auto', "order": 1}),
 
                 dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning", className="ml-2"), #, style={'margin-left':'15px'}), 
@@ -160,9 +163,8 @@ def serve_layout():
                         width={"size": 'auto', "order": 3}),
             ],
             align='start',
-            no_gutters=True
-            ),
-            fluid=True
+            no_gutters=True),
+        fluid=True
         ),
 
         html.Br(),
@@ -1101,8 +1103,9 @@ def update_graph_slider(t_value, data, encounter_id_selected, ac_ids_selected, a
                Input('load-model', 'contents')],
                State('editable-table', 'data'),
                State('load-waypoints-button', 'n_clicks'),
-               State('load-waypoints', 'contents'))
-def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, table_data, upload_n_clicks, waypoints_contents):
+               State('load-waypoints', 'contents'),
+               State('file-path-input', 'value'))
+def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, table_data, upload_n_clicks, waypoints_contents, file_path):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'create-mode' and create_n_clicks > 0:
@@ -1118,10 +1121,17 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
                 'type':'created'}
     
     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
+        # for root,dirs,files in os.walk("/"):
+        #     print('checkin')
+        #     for f in files:
+        #         if f == loaded_filename:
+        #             print("found it!")
+        #             print(os.path.join(root,files))
+
         if not loaded_filename:
             return {}
 
-        encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(loaded_filename) 
+        encounter_byte_indices, num_ac, num_encounters = parse_dat_file_and_set_indices(file_path+loaded_filename) 
 
         return {'filename':loaded_filename,
                 'encounter_indices': encounter_byte_indices,
@@ -1176,10 +1186,11 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
                State('time-interval-input', 'value'),
                State('create-mode-zUp-input', 'value'),
                State('ref-data', 'data'),
-               State('memory-data', 'data')])
+               State('memory-data', 'data'),
+               State('file-path-input', 'value')])
 def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
                       create_n_clicks, start_new_n_clicks, end_new_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, ref_data,\
-                      memory_data):
+                      memory_data, file_path):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     # print('update_data_table: ', ctx)
@@ -1194,10 +1205,10 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
         else:
             # encounter IDs or ac IDs have been updated or loaded in
             if ctx == 'encounter-ids':
-                enc_data = parse_enc_data(memory_data, [encounter_id_selected], memory_data['ac_ids'], ref_data)
+                enc_data = parse_enc_data(memory_data, [encounter_id_selected], memory_data['ac_ids'], ref_data, file_path)
             else:
                 # ac selected changed
-                enc_data = parse_enc_data(memory_data, [encounter_id_selected], ac_ids_selected, ref_data)
+                enc_data = parse_enc_data(memory_data, [encounter_id_selected], ac_ids_selected, ref_data, file_path)
             
             enc_data_df = pd.DataFrame(enc_data)
             enc_data_df_sorted = enc_data_df.sort_values(by=['ac_id', 'time'])
@@ -1829,7 +1840,7 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
                 ref_data['ref_long'] = float(vals[1])
                 ref_data['ref_alt'] = float(vals[2])
             else:
-                return '!!invalid format!!', ref_data
+                return 'MUST BE IN 0.0/0.0/0.0 FORMAT', ref_data
 
     elif ctx == 'clear-ref-button':
         if clear_n_clicks > 0:
@@ -2057,9 +2068,10 @@ def toggle_covariance_type(cov_radio_value):
                State('exp-kernel-input-c', 'value'),
                State('num-encounters-input', 'value'),
                State('ref-data', 'data'),
-               State('memory-data', 'data')])
+               State('memory-data', 'data'),
+               State('file-path-input', 'value')])
 def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
-                        exp_kernel_c, num_encounters, ref_data, memory_data):
+                        exp_kernel_c, num_encounters, ref_data, memory_data, file_path):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
@@ -2070,7 +2082,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
                 return {}
 
-            nom_enc_data = parse_enc_data(memory_data, [nom_enc_id], nom_ac_ids, ref_data)
+            nom_enc_data = parse_enc_data(memory_data, [nom_enc_id], nom_ac_ids, ref_data, file_path)
             df = pd.DataFrame(nom_enc_data)
 
             kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
@@ -2121,8 +2133,9 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               Output('log-histogram-ac-2-xy', 'figure'),
               Output('log-histogram-ac-2-tz', 'figure')],
               Input('generated-data', 'data'),
-              State('ref-data', 'data'))
-def on_generation_update_log_histograms(generated_data, ref_data):
+              State('ref-data', 'data'),
+              State('file-path-input', 'value'))
+def on_generation_update_log_histograms(generated_data, ref_data, file_path):
     #if generated_data == {}:
     
     return px.density_heatmap(), px.density_heatmap(), px.density_heatmap(), px.density_heatmap()
@@ -2130,7 +2143,7 @@ def on_generation_update_log_histograms(generated_data, ref_data):
     start = time.time()
     print('\n--CREATING HISTOGRAMS--\n')
 
-    with open(generated_data['filename'], 'rb') as file:
+    with open(file_path + generated_data['filename'], 'rb') as file:
         data = file.read()
         print('NUM ENC: ', generated_data['num_encounters'])
         print('SIZE OF GEN DATA: {:,}'.format(len(data)))
@@ -2270,9 +2283,11 @@ def toggle_filename_inputs(checked_values):
                State('generated-data', 'data'),
                State('ref-data', 'data'),
                State('editable-table', 'data'),
-               State('load-model', 'contents')],
+               State('load-model', 'contents'),
+               State('file-path-input', 'value')],
                 prevent_initial_call=True)
-def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_save, dat_file_units, memory_data, session_id, waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents):
+def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_save, dat_file_units, memory_data, session_id,\
+                            waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents, file_path):
     
     if save_n_clicks > 0:
         if generated_data != {} and 'dat-item' in files_to_save:
@@ -2285,7 +2300,7 @@ def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_sav
             num_enc = generated_data['num_encounters']
             file_name = dat_filename if dat_filename else 'generated_waypoints.dat'
 
-            with open(file_name, 'wb') as file_to_save, open(generated_data_filename, 'rb') as gen_file:
+            with open(file_path + file_name, 'wb') as file_to_save, open(file_path + generated_data_filename, 'rb') as gen_file:
                 encounters_data = gen_file.read()
                 #encs_data_bytes = base64.b64decode(encounters_data)
                 data_to_save = bytearray()
@@ -2297,7 +2312,7 @@ def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_sav
             # FIXME: the dcc.download restricts the size of our data
             # maybe instead of the user getting it as a download, the user should specify a 
             # file path so we can just write to that destination on the user's computer...
-            return dcc.send_file(file_name)
+            return dcc.send_file(file_path + file_name)
         else:
             print('Must generate an encounter set')
 
@@ -2315,16 +2330,17 @@ def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_sav
                 State('exp-kernel-input-c', 'value'),
                 State('save-json-filename', 'value'),
                 State('file-checklist', 'value'),
-                State('ref-data', 'data')],
+                State('ref-data', 'data'),
+                State('file-path-input', 'value')],
                 prevent_initial_call=True)
-def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save, ref_data):
+def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save, ref_data, file_path):
 
     if save_n_clicks > 0:
         if generated_data:
             if 'json-item' in files_to_save:
                 model_json = {}
                 
-                enc_data = parse_enc_data(generated_data, [0], generated_data['ac_ids'], ref_data)
+                enc_data = parse_enc_data(generated_data, [0], generated_data['ac_ids'], ref_data, file_path)
                 df_enc = pd.DataFrame(enc_data)
                 ac_ids = generated_data['ac_ids']
             
@@ -2355,10 +2371,10 @@ def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_
                     }
 
                 file_name = json_filename if json_filename else 'generation_model.json'
-                with open(file_name, 'w') as outfile:
+                with open(file_path + file_name, 'w') as outfile:
                     json.dump(model_json, outfile, indent=4)
 
-                return dcc.send_file(file_name)
+                return dcc.send_file(file_path + file_name)
         else:
             print('Must generate an encounter set')
 

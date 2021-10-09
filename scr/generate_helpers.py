@@ -5,18 +5,7 @@ import multiprocessing as mp
 from itertools import repeat
 from parse_encounter_helpers import *
 
-INITIAL_DIM = 3
-UPDATE_DIM = 4
-NUM_UPDATE_BYTE_SIZE = 2
-INFO_BYTE_SIZE = 4
-WAYPOINT_BYTE_SIZE = 8
-
-STANDARD_NUM_PARTITIONS = 3
-
-M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
-FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
-FT_TO_NM = FT_TO_M*M_TO_NM
-NM_TO_FT = 1/FT_TO_NM 
+from constants import *
 
 def generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
                  sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c) -> bool:
@@ -73,7 +62,7 @@ def stream_generated_data(generated_data, ac_times, filename, num_encounters):
     enc_data_indices = [None] * (num_encounters+1)
     ac_ids = len(generated_data)
 
-    with open(filename, mode='wb') as file:
+    with open(DEFAULT_DATA_FILE_PATH + filename, mode='wb') as file:
         
         file.write(struct.pack('<II', num_encounters+1, ac_ids))
         

@@ -2,18 +2,7 @@ import struct
 import pymap3d as pm
 import base64
 
-INITIAL_DIM = 3
-UPDATE_DIM = 4
-NUM_UPDATE_BYTE_SIZE = 2
-INFO_BYTE_SIZE = 4
-WAYPOINT_BYTE_SIZE = 8
-
-STANDARD_NUM_PARTITIONS = 3
-
-M_TO_NM = 0.000539957; NM_TO_M = 1/M_TO_NM
-FT_TO_M = .3048; M_TO_FT = 1/FT_TO_M
-FT_TO_NM = FT_TO_M*M_TO_NM
-NM_TO_FT = 1/FT_TO_NM 
+from constants import *
 
 '''
     Used when a user selects an enc from the dropdown and memory_data['type']
@@ -148,8 +137,8 @@ def parse_enc_data_from_encounters_data(enc_ids_selected, enc_indices, encounter
     return enc_data_list
 
 
-def parse_enc_data(memory_data, enc_ids_selected, ac_ids_selected, ref_data):
+def parse_enc_data(memory_data, enc_ids_selected, ac_ids_selected, ref_data, file_path):
     if memory_data['type'] == 'created' or memory_data['type'] == 'json':
         return parse_enc_data_from_encounters_data(enc_ids_selected, memory_data['encounter_indices'], memory_data['encounters_data'], memory_data['ac_ids'], ac_ids_selected, ref_data)
     else:
-        return parse_enc_data_from_filename(enc_ids_selected, memory_data['encounter_indices'], memory_data['filename'], memory_data['ac_ids'], ac_ids_selected, ref_data)
+        return parse_enc_data_from_filename(enc_ids_selected, memory_data['encounter_indices'], file_path+memory_data['filename'], memory_data['ac_ids'], ac_ids_selected, ref_data)
