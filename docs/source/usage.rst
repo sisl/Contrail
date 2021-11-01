@@ -67,19 +67,19 @@ To enter create mode, click the "Enter Create Mode" button below the map on the 
 
 Nominal Path Creation:
 
-    To create a new nominal path (trajectory), click "Start New Nominal Path." First, indicate the 
-    AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other
-    AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1. Next, 
-    indicate your desired time interval between waypoints (this can either be consistent for your entire trajectory 
-    or you can change it from waypoint to waypoint). Lastly, input the zUp value for your first waypoint.
+- To create a new nominal path (trajectory), click "Start New Nominal Path." First, indicate the 
+  also AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other
+  AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1. Next, 
+  indicate your desired time interval between waypoints (this can either be consistent for your entire trajectory 
+  or you can change it from waypoint to waypoint). Lastly, input the zUp value for your first waypoint.
 
-    After setting those three values, you can begin creating a trajectory for your nominal encounter. Use your mouse
-    to double click on the map; this will create a blue tool tip representing the location of your waypoint. You can 
-    click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new
-    waypoint is in the correct position. Repeat this process until you have created all of the waypoints that you
-    want for the current trajectory. Click "Save Nominal Path" when you are satisfied with the nominal path created.
+- After setting those three values, you can begin creating a trajectory for your nominal encounter. Use your mouse
+  to double click on the map; this will create a blue tool tip representing the location of your waypoint. You can 
+  click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new
+  waypoint is in the correct position. Repeat this process until you have created all of the waypoints that you
+  want for the current trajectory. Click "Save Nominal Path" when you are satisfied with the nominal path created.
 
-    Repeat this process until you have created two nominal paths.
+- Repeat this process until you have created two nominal paths.
     
 Click the "Exit Create Mode" button to leave create mode. You can visualize your nominal encounter in the same way 
 described in the Visualization section of this doc. 
