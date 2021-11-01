@@ -11,8 +11,7 @@ aircraft encounters (.dat) or use EGGUI to create a nominal encounter with at le
 The user will then select one encounter to represent the nominal encounter for the generation 
 process. 
 
-..
-    .. figure:: images/EGGUI_nominal_encounter.png
+.. video:: videos/EGGUI_nominal_encounter
    :scale: 50 %
    :alt: Using EncounterGenerationGUI interface to upload/create encounters.
    :align: center
