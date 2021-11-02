@@ -11,5 +11,5 @@ Primary Use Case: experts in the field applying knowledge on aircraft encounter 
 generate realistic aircraft encounter data sets. These data sets can then be used for 
 aircraft decision making software verification.
 
-Secondary Use Case: amaetures interested in generating aircraft encounter data sets for 
+Secondary Use Case: amatures interested in generating aircraft encounter data sets for 
 visualization and learning purposes!
