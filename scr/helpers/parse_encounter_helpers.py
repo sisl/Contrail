@@ -2,7 +2,7 @@ import struct
 import pymap3d as pm
 import base64
 
-from constants import *
+from helpers.constants import *
 
 '''
     Used when a user selects an enc from the dropdown and memory_data['type']

@@ -9,7 +9,7 @@ from scipy.interpolate import PchipInterpolator
 
 import pymap3d as pm
 
-from constants import *
+from helpers.constants import *
 
 
 def interpolate_df_time(df, ac_ids_selected):

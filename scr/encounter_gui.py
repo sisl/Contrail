@@ -31,10 +31,10 @@ import pymap3d as pm
 import re
 
 from read_file import *
-from generate_helpers import *
-from parse_encounter_helpers import *
-from memory_data_helpers import *
-from constants import *
+from helpers.generate_helpers import *
+from helpers.parse_encounter_helpers import *
+from helpers.memory_data_helpers import *
+from helpers.constants import *
 
 import time
 import struct

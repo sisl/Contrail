@@ -3,9 +3,9 @@ import time
 import numpy as np
 import multiprocessing as mp
 from itertools import repeat
-from parse_encounter_helpers import *
 
-from constants import *
+from helpers.parse_encounter_helpers import *
+from helpers.constants import *
 
 def generation_error_found(memory_data_type, nom_ac_ids, num_encounters, cov_radio_value, 
                  sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c) -> bool:

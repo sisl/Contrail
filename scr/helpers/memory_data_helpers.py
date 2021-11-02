@@ -3,7 +3,7 @@ import base64
 import struct
 import pandas as pd
 
-from constants import *
+from helpers.constants import *
 
 
 '''
