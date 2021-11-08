@@ -5,7 +5,7 @@ Overview of Waypoints File
 
 .. _waypoint-description:
 
-1 File Description
+File Description
 ===============
 
 The waypoints file contains a set of encounters. Each encounter is
@@ -16,7 +16,7 @@ in seconds since the beginning of the encounter.
 
 .. _waypoint-structure:
 
-2 File Structure
+File Structure
 ===============
 
 The file is organized as follows:
