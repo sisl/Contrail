@@ -9,31 +9,36 @@ Tutorial
 1 Introduction
 ===============
 
-This tutorial is intended for readers to learn how to use this package on their own device. Familiarity with the underlying theory is recommended, but is not strictly necessary for use. Please install the package before proceeding.
-
-.. _tutorial-about-ast:
-
-1.1 About Aircraft Encounter Modeling
------------------
-
-SOME THINGS HERE
-
-A few things will be needed:
-
-* note 
-* note
-* note
-* note
+This tutorial is intended for readers to learn how to use this package on their own device. 
+Familiarity with the underlying aircraft encounter modeling theory is recommended, 
+but is not strictly necessary for use. Please install the package before proceeding. 
+For help with installation, please refer to the README LINK.
 
 .. _tutorial-visualization:
+
+1 Preliminary Steps
+===============
+
+If you are having issues running the package locally, follow this quideline to troubleshoot.
+
+1. Confirm you have a local version downloaded
+  * If you do not, refer to README LINK for installation instructions.
+2. Using a Terminal instance, step into the scr folder within the local directory for EGGUI
+3. Enter 'python run.py' into the command line
+4. Command click on the http address displayed to open the interface in your preferred browser
+
+After following these steps, you should have the EGGUI open in the browser of your choosing. As long
+as the terminal instance you performed step 3 in stays active, you will be able to use the tool. To
+restart the tool, ctrl-c in the running terminal instance and rerun step 3.
 
 2 Visualization
 ======================
 
-First, let's discuss how to visualize already generated data sets using the interface. To do so,
+Now, let's discuss how to visualize already generated data sets using the interface. To do so,
 click the "Load Waypoints" button in the upper left-hand corner; this will prompt
-you to upload a waypoint file (.dat). Reference THIS DOC to understand exactly what
-a waypoint file is and the required structure for the file type (.dat). 
+you to upload a waypoint file (.dat). Reference to THIS DOC to understand exactly what
+a waypoint file is and the required structure for this file type (.dat). We have provided a
+test waypoint file that you can find in the data folder.
 
 After uploading a waypoint file, the Encounter (ENC) ID dropdown menu options will update accordingly. 
 You can use the ENC ID dropdown menu to select an encounter to visualize, which
