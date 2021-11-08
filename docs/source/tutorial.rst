@@ -6,17 +6,17 @@ Tutorial
 
 *This tutorial is up-to-date for version `0`*
 
-1 Introduction
+#. Introduction
 ===============
 
 This tutorial is intended for readers to learn how to use this package on their own device. 
 Familiarity with the underlying aircraft encounter modeling theory is recommended, 
-but is not strictly necessary for use. Please install the package before proceeding. 
-For help with installation, please refer to the README LINK.
+but is not strictly necessary for use. Please download/install the package before proceeding. 
+For help with installation, please refer to the README:ref:'readme-aem'.
 
 .. _tutorial-visualization:
 
-1 Preliminary Steps
+#. Preliminary Steps
 ===============
 
 If you are having issues running the package locally, follow this quideline to troubleshoot.
@@ -31,7 +31,7 @@ After following these steps, you should have the EGGUI open in the browser of yo
 as the terminal instance you performed step 3 in stays active, you will be able to use the tool. To
 restart the tool, ctrl-c in the running terminal instance and rerun step 3.
 
-2 Visualization
+#. Visualization
 ======================
 
 Now, let's discuss how to visualize already generated data sets using the interface. To do so,
@@ -80,7 +80,7 @@ waypoints to see your changes propogated correctly.
 
 .. _tutorial_create_mode:
 
-2 Create Mode
+#. Create Mode
 ======================
 
 EGGUI provides users with a create mode functionality that allows them to forgo uploading a waypoint 
@@ -112,7 +112,7 @@ after exiting create mode.
 
 .. _tutorial_generation:
 
-2 Generation
+#. Generation
 ======================
 
 In order to generate new encounters, the user must have either uploaded a waypoint file or used EGGUI 
@@ -139,7 +139,7 @@ generate, then the process was successful.
 
 .. _tutorial_saving:
 
-2 Saving
+#. Saving
 ======================
 
 

@@ -18,5 +18,12 @@ Intended purpose of the EncounterGenerationGUI (EGGUI) is for users to generate,
 encounter data sets in order to develop and verify aircraft collision avoidance software. 
 For a more detailed explanation on the usage of this product, please refer to USAGE LINK. 
 
+.. _aem-intall-protocol:
 
+2 Install Protocol
+===============
+Please follow the instructions outlined below for downloading and installing the EGGUI tool.
 
+* step 1
+* step 2
+* continue
