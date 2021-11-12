@@ -22,9 +22,6 @@ Preliminary Steps
 If you are having issues running the package locally, follow these steps to troubleshoot:
 
 #. Confirm you have downloaded the lastest version of the Contrail repository to your local computer
-
-  * If you have not, refer to the README LINK for installation instructions.
-  
 #. Using any Terminal instance, step into the scr/ folder within the directory of your local repository
 #. Enter 'python scr/run.py' into the command line
 #. Command click on the http address displayed to open the interface in your preferred browser
@@ -44,15 +41,18 @@ Visualization
 Now, let's discuss how to visualize already generated data sets using the interface. 
 
 Steps to Set Up Visualization:
+
 #. Click **Load Waypoints** which will prompt you to upload a waypoint file
 #. Upload the provided test_waypoint.dat file or any generated .dat file located in the data folder of your repository
-#. Click **Encounter (ENC) ID** menu to select an encounter to visualize. This will populate the 2d-graphs, 3-graph, map and data table.
-#. Use the **Aircraft (AC) ID** menu to select the AC IDs you would like to visualize. Default setting is to visualize both aircrafts in the selected encounter.
+#. Click **Encounter ID** menu to select an encounter to visualize. This will populate the 2d-graphs, 3-graph, map and data table.
+#. Use the **Aircraft ID** menu to select the AC IDs you would like to visualize. Default setting is to visualize both 
+   aircrafts in the selected encounter.
 #. Explore the components of the home page!
 
 Understanding the Components of the Home Page:
 
-* 2D-GRAPHS: xEast vs yNorth, Time vs zUp, Time vs Horizontal Distance, Time vs Vertical Distance, Time vs Horizontal Speed, and Time vs Vertical Speed. 
+* 2D-GRAPHS: xEast vs yNorth, Time vs zUp, Time vs Horizontal Distance, Time vs Vertical Distance, Time vs Horizontal Speed, and 
+  Time vs Vertical Speed. 
 
   * Use the scroll funcitonality to the right of the graphs to adjust which of the 2d-graphs you can see. 
   * Drag the slider bar beneath these plots to step through the waypoints in the visualized trajectories. 
@@ -63,21 +63,28 @@ Understanding the Components of the Home Page:
   
 * MAP: displays the selected trajecotries with respect to a set reference point.
 
-  * Hovering the mouse over the map enables the click-and-drag functionality to adjust the center of the map and scroll to zoom in and zoom out. 
+  * Hovering the mouse over the map enables the click-and-drag functionality to adjust the center of the map and scroll to zoom 
+    in and zoom out. 
   
-* REFERENCE POINT: represented by latitude (°) / longitute (°) / altitude (ft) coordinates. 
-  * To change it, click **Set Reference Point**. This will generate a popup window that
-  gives you the ability to clear and set a new reference point. If cleared and never reset,
-  the reference point will be invalid and you won't be able to visualize any encounters. 
-  You must type in a valid reference point value in the form x.x/x.x/x.x and click **Save**
-  in order to begin visualizing again. You should see the updated reference point value in the grey section
-  above the map. 
+* REFERENCE POINT: represented by latitude (°) / longitute (°) / altitude (ft) coordinates.
+   
+  * To change it, click **Set Reference Point**. This will generate a popup window that gives you the ability to clear and set 
+    a new reference point. If cleared and never reset, the reference point will be invalid and you won't be able to visualize 
+    any encounters
+  * Must type in a valid reference point value in the form x.x/x.x/x.x and click **Save** in order to begin visualizing again
+  * See the updated reference point value in the grey section above the map
 
 * DATA TABLE: displays every waypoint for the visualized aircraft trajectories.
+
   * This data table is editable
-    * To change the altitude for the waypoint at time 0, click the altitude box in that row and begin typing your desired value and hit enter to confirm your update
+    * To change the altitude for the waypoint at time 0, click the altitude box in that row and begin typing your desired value 
+    and hit enter to confirm your update
+
       * Must click **Update Data Table** to see your changes propogated correctly
-    * To add a waypoint to any exisitng AC trajectory, click **Add Row** to create an empty row in which you can input the AC ID and fill in the rest of the columns with your desired values
+  
+    * To add a waypoint to any exisitng AC trajectory, click **Add Row** to create an empty row in which you can input the AC ID 
+      and fill in the rest of the columns with your desired values
+
       * Must click **Update Speeds** after adding any new waypoints to see your changes propogated correctly
 
 .. _tutorial_create_mode:
@@ -85,28 +92,29 @@ Understanding the Components of the Home Page:
 Create Mode
 ======================
 
-EGGUI provides users with create mode functionality that allows them to forgo uploading a waypoint 
+Contrail provides users with create mode functionality that allows them to forgo uploading a waypoint 
 file and instead directly create a nominal encounter. 
 
-To enter create mode, click the "Enter Create Mode" button below the map on the right side. 
+To enter create mode, click **Enter Create Mode** below the map. 
 
 Steps for Nominal Path Creation:
 
-- Click "Start New Nominal Path." First, indicate the 
-  AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other
-  AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1. Next, 
-  indicate the desired time interval between waypoints (this can either be constant for your entire trajectory 
-  or you can change it from waypoint to waypoint). Lastly, input the zUp value for your first waypoint.
+#. Click **Start New Nominal Path.**
 
-- After setting those three values, you can begin creating a trajectory for your nominal encounter. Use your mouse
-  to double click on the map; this will create a blue tool tip representing the location of your waypoint. You can 
-  click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new
-  waypoint is in the correct position. Repeat this process until you have created all of the waypoints that you
-  want for the current trajectory. Click "Save Nominal Path" when you are satisfied with the nominal path created.
+  #. Indicate the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs 
+  in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1.
+  #. Indicate the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from waypoint to waypoint).
+  #. Input the zUp value for your first waypoint.
 
-- Repeat this process until you have created two nominal paths.
+#. After setting those three values, you can begin creating a trajectory for your nominal encounter. 
+
+  #. Double click on the map; this will create a blue tool tip representing the location of your new waypoint. You can click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new waypoint is in the correct position. 
+  #. Repeat this process until you have created all of the waypoints that you want for the current trajectory. 
+  #. Click **Save Nominal Path** when you are satisfied with the nominal path created.
+
+#. Repeat this process until you have created two nominal paths inside of one nominal encounter.
     
-Click the "Exit Create Mode" button to leave create mode. You can visualize your nominal encounter in the same way 
+Click **Exit Create Mode** to leave create mode. You can visualize your nominal encounter in the same way 
 described in the Visualization section of this doc. 
 
 You CANNOT edit the data table directly when in create mode - please do so
