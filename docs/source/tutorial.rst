@@ -22,8 +22,8 @@ Preliminary Steps
 If you are having issues running the package locally, follow these steps to troubleshoot:
 
 #. Confirm you have downloaded the lastest version of the Contrail repository to your local computer
-#. Using any Terminal instance, step into the scr/ folder within the directory of your local repository
-#. Enter 'python scr/run.py' into the command line
+#. Using any Terminal instance, step into the /scr folder within the directory of your local repository
+#. Enter 'python run.py' into the command line
 #. Command click on the http address displayed to open the interface in your preferred browser
 
 After following these steps, you should have Contrail open in the browser of your choosing. As long
@@ -41,15 +41,17 @@ Visualization
 Now, let's discuss how to visualize already generated data sets using the interface. 
 
 Steps to Set Up Visualization:
+-------------------------------
 
 #. Click **Load Waypoints** which will prompt you to upload a waypoint file
-#. Upload the provided test_waypoint.dat file or any generated .dat file located in the data folder of your repository
+#. Upload the provided test_waypoint.dat file or any generated (.dat) file located in the /data folder of your repository
 #. Click **Encounter ID** menu to select an encounter to visualize. This will populate the 2d-graphs, 3-graph, map and data table.
 #. Use the **Aircraft ID** menu to select the AC IDs you would like to visualize. Default setting is to visualize both 
    aircrafts in the selected encounter.
 #. Explore the components of the home page!
 
 Understanding the Components of the Home Page:
+--------------------------------------------------------------
 
 * 2D-GRAPHS: xEast vs yNorth, Time vs zUp, Time vs Horizontal Distance, Time vs Vertical Distance, Time vs Horizontal Speed, and 
   Time vs Vertical Speed. 
@@ -98,6 +100,7 @@ file and instead directly create a nominal encounter.
 To enter Create Mode, click **Enter Create Mode** below the map. 
 
 Steps for Nominal Path Creation:
+-------------------------------------
 
 #. Click **Start New Nominal Path**.
 
@@ -128,11 +131,15 @@ In order to generate new encounters, you must have either uploaded a waypoint fi
 to create a nominal encounter with at least two aircrafts. 
 
 Steps to Generate an Encounter Set:
+-------------------------------------
+
 #. Click the **Generate Encounter Set**. This will trigger a popup window. 
 #. Either load in a predefined model or input the necessary values for a new generation model. 
 
 
 How to Create a New Generation Model:
+-------------------------------------
+
 #. Select a nominal encounter.
 #. Select which AC IDs you would like to generate from (if you only select one AC ID, then the generated data will not be of encounters but rather single aircraft trajectories). 
 #. Select which generation protocol you would like to use. 
@@ -164,6 +171,8 @@ Contrail allows users to save both generated data sets (.dat) and previously use
 You can refer to THIS DOC for what a generation model is and how it is structured. 
 
 Steps to Save Waypoints and Models:
+-------------------------------------
+
 #. Click **Save Waypoints (.dat) or Model (.json)** button; this will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
 #. Fill in the names for the desired files and then click **Save.** 
 
