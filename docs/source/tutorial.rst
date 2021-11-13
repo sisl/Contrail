@@ -104,15 +104,15 @@ Steps for Nominal Path Creation:
 
 #. Click *Start New Nominal Path*.
 
-  #. Input the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1.
-  #. Input the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from waypoint to waypoint).
-  #. Input the zUp value for your first waypoint.
+   #. Input the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1.
+   #. Input the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from waypoint to waypoint).
+   #. Input the zUp value for your first waypoint.
   
 #. After setting those three values, you can begin creating a trajectory for your nominal encounter:
 
-  #. Double click on the map; this will create a blue tool tip representing the location of your new waypoint. You can click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new waypoint is in the correct position. 
-  #. Repeat this process until you have created all of the waypoints that you want for the current trajectory. 
-  #. Click *Save Nominal Path* when you are satisfied with the nominal path created.
+   #. Double click on the map; this will create a blue tool tip representing the location of your new waypoint. You can click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new waypoint is in the correct position. 
+   #. Repeat this process until you have created all of the waypoints that you want for the current trajectory. 
+   #. Click *Save Nominal Path* when you are satisfied with the nominal path created.
   
 #. Repeat this process until you have created two nominal paths inside of one nominal encounter.
     
@@ -144,7 +144,7 @@ How to Create a New Generation Model:
 #. Select which AC IDs you would like to generate from (if you only select one AC ID, then the generated data will not be of encounters but rather single aircraft trajectories). 
 #. Select which generation protocol you would like to use. 
 
-  * Currently, the tool defines diagonal covariance and exponential kernal covariance models. The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for these multivariate probability distributions during generation.
+   * Currently, the tool defines diagonal covariance and exponential kernal covariance models. The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for these multivariate probability distributions during generation.
 
 #. Indicate how many encounters you would like to generate using the model you just defined.
 #. Click *Generate*. 
@@ -176,7 +176,7 @@ Steps to Save Waypoints and Models:
 #. Click *Save Waypoints (.dat) or Model (.json)* button; this will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
 #. Fill in the names for the desired files and then click *Save.* 
 
-  * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
-  *  If the files are not too large, the browser will also present the files as a download. 
+   * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
+   *  If the files are not too large, the browser will also present the files as a download. 
 
 You can only save after generating a data set, not after uploading a waypoints file or creating a nominal encounter.
