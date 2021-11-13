@@ -104,15 +104,15 @@ Steps for Nominal Path Creation:
 
 #. Click *Start New Nominal Path*.
 
-  #. Input the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1.
-  #. Input the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from waypoint to waypoint).
-  #. Input the zUp value for your first waypoint.
+  * Input the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1.
+  * Input the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from waypoint to waypoint).
+  * Input the zUp value for your first waypoint.
 
 #. After setting those three values, you can begin creating a trajectory for your nominal encounter:
 
-  #. Double click on the map; this will create a blue tool tip representing the location of your new waypoint. You can click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new waypoint is in the correct position. 
-  #. Repeat this process until you have created all of the waypoints that you want for the current trajectory. 
-  #. Click *Save Nominal Path* when you are satisfied with the nominal path created.
+  * Double click on the map; this will create a blue tool tip representing the location of your new waypoint. You can click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new waypoint is in the correct position. 
+  * Repeat this process until you have created all of the waypoints that you want for the current trajectory. 
+  * Click *Save Nominal Path* when you are satisfied with the nominal path created.
 
 #. Repeat this process until you have created two nominal paths inside of one nominal encounter.
     
