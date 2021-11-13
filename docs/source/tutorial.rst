@@ -141,11 +141,10 @@ How to Create a New Generation Model:
 -------------------------------------
 
 #. Select a nominal encounter.
-#. Select which AC IDs you would like to generate from (if you only select one AC ID, then the generated data will not be of encounters but rather single aircraft trajectories). 
+#. Select which AC IDs you would like to generate from
+   * If you only select one AC ID, then the generated data will not be of encounters but rather single aircraft trajectories. 
 #. Select which generation protocol you would like to use. 
-
    * Currently, the tool defines diagonal covariance and exponential kernal covariance models. The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for these multivariate probability distributions during generation.
-
 #. Indicate how many encounters you would like to generate using the model you just defined.
 #. Click *Generate*. 
 
@@ -157,9 +156,15 @@ generate, then the process was successful.
 
 Visualize your newly generated data using the same technique described in the Visualization section above. 
 
-!HISTOGRAMS!
+Statistics
+-------------------------------------
+
+Refer to the statistics tab for information on your newly generated encounter set.
+As of right now, Contrail displays 
 Additionally, after generating a new encounter set, click on the "Statistics" tab. This will display the 2d-histograms
 with xEast vs yNorth for the generated data. 
+
+EXPLAIN THE HISTOGRAMS
 
 
 .. _tutorial_saving:
@@ -173,9 +178,9 @@ You can refer to THIS DOC for what a generation model is and how it is structure
 Steps to Save Waypoints and Models:
 -------------------------------------
 
-#. Click *Save Waypoints (.dat) or Model (.json)* button; this will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
+#. Click *Save Waypoints (.dat) or Model (.json)*
+   * This will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
 #. Fill in the names for the desired files and then click *Save.* 
-
    * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
    *  If the files are not too large, the browser will also present the files as a download. 
 
