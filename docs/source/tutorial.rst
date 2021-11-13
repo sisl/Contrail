@@ -70,43 +70,42 @@ Understanding the Components of the Home Page:
    
   * To change it, click **Set Reference Point**. This will generate a popup window that gives you the ability to clear and set 
     a new reference point. If cleared and never reset, the reference point will be invalid and you won't be able to visualize 
-    any encounters
-  * Must type in a valid reference point value in the form x.x/x.x/x.x and click **Save** in order to begin visualizing again
-  * See the updated reference point value in the grey section above the map
+    any encounters.
+  * Must type in a valid reference point value in the form x.x/x.x/x.x and click **Save** in order to begin visualizing again.
+  * See the current reference point value in the grey section above the map.
 
 * DATA TABLE: displays every waypoint for the visualized aircraft trajectories.
 
-  * This data table is editable
-    * To change the altitude for the waypoint at time 0, click the altitude box in that row and begin typing your desired value 
-    and hit enter to confirm your update
+  * This data table is editable.
+  
+    * To change the altitude for the waypoint at time 0, click the altitude box in that row and begin typing your desired value and hit enter to confirm your update.
 
-      * Must click **Update Data Table** to see your changes propogated correctly
+      * Must click **Update Data Table** to see your changes propogated correctly.
   
     * To add a waypoint to any exisitng AC trajectory, click **Add Row** to create an empty row in which you can input the AC ID 
-      and fill in the rest of the columns with your desired values
+      and fill in the rest of the columns with your desired values.
 
-      * Must click **Update Speeds** after adding any new waypoints to see your changes propogated correctly
+      * Must click **Update Speeds** after adding any new waypoints to see your changes propogated correctly.
 
 .. _tutorial_create_mode:
 
 Create Mode
 ======================
 
-Contrail provides users with create mode functionality that allows them to forgo uploading a waypoint 
+Contrail provides users with a Create Mode that allows them to forgo uploading a waypoint 
 file and instead directly create a nominal encounter. 
 
-To enter create mode, click **Enter Create Mode** below the map. 
+To enter Create Mode, click **Enter Create Mode** below the map. 
 
 Steps for Nominal Path Creation:
 
-#. Click **Start New Nominal Path.**
+#. Click **Start New Nominal Path**.
 
-  #. Indicate the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs 
-  in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1.
-  #. Indicate the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from waypoint to waypoint).
+  #. Input the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1.
+  #. Input the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from waypoint to waypoint).
   #. Input the zUp value for your first waypoint.
 
-#. After setting those three values, you can begin creating a trajectory for your nominal encounter. 
+#. After setting those three values, you can begin creating a trajectory for your nominal encounter:
 
   #. Double click on the map; this will create a blue tool tip representing the location of your new waypoint. You can click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new waypoint is in the correct position. 
   #. Repeat this process until you have created all of the waypoints that you want for the current trajectory. 
@@ -125,33 +124,34 @@ after exiting create mode.
 Generation
 ======================
 
-In order to generate new encounters, you must have either uploaded a waypoint file or used create mode
+In order to generate new encounters, you must have either uploaded a waypoint file or used Create Mode
 to create a nominal encounter with at least two aircrafts. 
 
-To generate an encounter set, click the "Generate Encounter Set" button located in the top-left corner.
-This will trigger a popup window. You will get the option to either load in a predefined model or 
-input the necessary values for a new generation model. You must have previously created and saved a
-generation model in order to load in a predefined model, so let's discuss how to create and save
-a new generation model first.
+Steps to Generate an Encounter Set:
+#. Click the **Generate Encounter Set**. This will trigger a popup window. 
+#. Either load in a predefined model or input the necessary values for a new generation model. 
 
-To create a new generation model, you must first select a nominal encounter.  Next, select
-which AC IDs you would like to generate from (if you only select one AC ID, then the generated data
-will not be of encounters but rather single aircraft trajectories). 
 
-Next, you will select which generation protocol you would like to use. Currently, the tool defines 
-diagonal covariance and exponential kernal covariance models. The waypoints of the
-trajectories in this selected nominal encounter will serve as the mean values for these
-multivariate probability distributions during generation.
+How to Create a New Generation Model:
+#. Select a nominal encounter.
+#. Select which AC IDs you would like to generate from (if you only select one AC ID, then the generated data will not be of encounters but rather single aircraft trajectories). 
+#. Select which generation protocol you would like to use. 
 
-Lastly, indicate how many encounters you would like to generate using the model you just defined, and
-click "Generate." You will be redirected back to the home page where you will see a spinner; the 
+  * Currently, the tool defines diagonal covariance and exponential kernal covariance models. The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for these multivariate probability distributions during generation.
+
+#. Indicate how many encounters you would like to generate using the model you just defined.
+#. Click **Generate**. 
+
+You will be redirected back to the home page where you will see a spinner; the 
 spinner will continue to spin until the generation process has been completed. Once the spinner disappears,
-you can click on the ENC ID dropdown menu to confirm the generation process worked correctly. If you see 
+you can click on the **Encounter ID** dropdown menu to confirm the generation process worked correctly. If you see 
 that the number of encounters avaliable in the dropdown menu equals the number of encounters you hoped to
 generate, then the process was successful. 
 
-Visualize your newly generated data using the same technique described in the above section. Additionally,
-after generating a new encounter set, click on the "Statistics" tab. This will display the 2d-histograms
+Visualize your newly generated data using the same technique described in the Visualization section above. 
+
+!HISTOGRAMS!
+Additionally, after generating a new encounter set, click on the "Statistics" tab. This will display the 2d-histograms
 with xEast vs yNorth for the generated data. 
 
 
@@ -160,17 +160,14 @@ with xEast vs yNorth for the generated data.
 Saving
 ======================
 
-The EGGUI allows users to save both generated data sets (.dat) and previously used generation models (.json).
+Contrail allows users to save both generated data sets (.dat) and previously used generation models (.json).
 You can refer to THIS DOC for what a generation model is and how it is structured. 
 
-To save, click the "Save Waypoints (.dat) or Model (.json)" button in the top-left corner. This will trigger
-a popup window where you can select whether you'd like to save the generated waypoints, the generation model,
-or both. Fill in the names for the desired files and then click "Save." This will automatically save the waypoint files 
-to the scr/data folder and the generation models to the scr/models folder within the local repository. If the
-files are not too large, the browser will also present the files as a download. 
+Steps to Save Waypoints and Models:
+#. Click **Save Waypoints (.dat) or Model (.json)** button; this will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
+#. Fill in the names for the desired files and then click **Save.** 
+
+  * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
+  *  If the files are not too large, the browser will also present the files as a download. 
 
 You can only save after generating a data set, not after uploading a waypoints file or creating a nominal encounter.
-
-LEAD USERS TO THE PAGE DESCRIBING HOW THE SETTINGS PAGE WORKS. 
-
-
