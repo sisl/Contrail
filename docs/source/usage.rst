@@ -4,10 +4,10 @@
 Usage
 =====
 
-The EncounterGenerationGUI (EGGUI) allows users to leverage aircraft encounter modeling
+Contrail allows users to leverage aircraft encounter modeling
 by specifying models from which to generate, visualize and save large aircraft encounter data sets. 
 
-Primary Use Case: experts in the field applying knowledge of aircraft encounter dynamics to
+Primary Use Case: experts in the field applying knowledge of encounter flight dynamics to
 generate realistic aircraft encounter data sets. These data sets can then be used to verify 
 aircraft decision making software.
 

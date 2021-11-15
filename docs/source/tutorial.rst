@@ -5,7 +5,7 @@ Tutorial
 
 .. _tutorial-introduction:
 
-*This tutorial is up-to-date for version `0`*
+*This tutorial is up-to-date for version `0.0.0`*
 
 Introduction
 ======================
@@ -13,7 +13,7 @@ Introduction
 This tutorial is intended for readers to learn how to use the Contrail tool on their own device. 
 Familiarity with the underlying aircraft encounter modeling theory is recommended, 
 but is not strictly necessary for use. Please download/install the package before proceeding. 
-For help with installation, please refer to the README:ref:'readme-aem'.
+For help with installation, please refer to the :ref:'readme'.
 
 .. _tutorial-visualization:
 
@@ -179,7 +179,7 @@ generation models (generated_model.json).
 
 Refer to :doc:`waypoints_overview` for the structure of a waypoint file. 
 
-Refer to :doc:`generation_model_overview>` for the structure of a generation model file.
+Refer to :doc:`generation_model_overview` for the structure of a generation model file.
 
 Steps to Save Waypoints and Models:
 -------------------------------------
