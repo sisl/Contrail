@@ -1,4 +1,4 @@
-.. _waypoint-overview:
+.. _waypoint:
 
 Overview of Waypoints File
 ******************

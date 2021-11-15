@@ -1,4 +1,4 @@
-.. _model-overview:
+.. _model:
 
 Overview of Generation Model File
 ************************************
