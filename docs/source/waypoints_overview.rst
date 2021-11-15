@@ -1,12 +1,12 @@
-.. _waypoint:
+.. _waypoints-overview:
 
-Overview of Waypoints File
+Waypoints Overview
 ******************
 
 .. _waypoint-description:
 
 File Description
-===============
+================
 
 The waypoints file contains a set of encounters. Each encounter is
 defined by a set of waypoints associated with a fixed number of

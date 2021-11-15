@@ -1,6 +1,6 @@
-.. _model:
+.. _generation-model-overview:
 
-Overview of Generation Model File
+Generation Model Overview
 ************************************
 
 .. _model-description:
