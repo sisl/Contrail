@@ -18,7 +18,7 @@ File Structure
 
 The file is organized as follows:
 
-{
+\{
     "mean" : {
         "num_ac" : n,
         "1" : {
