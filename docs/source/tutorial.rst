@@ -177,8 +177,8 @@ Saving
 Contrail allows users to save both generated data sets (generated_waypoints.dat) and previously used 
 generation models (generated_model.json).
 
-Refer to :ref:`waypoint-overview` for the structure of a waypoint file. 
-Refer to :ref:`model-overviewfor` for the structure of a generation model file.
+Refer to :doc:`Waypoint File Overview ../waypoint-overview` for the structure of a waypoint file. 
+Refer to :doc:`Generation Model File Overview ../model-overview` for the structure of a generation model file.
 
 Steps to Save Waypoints and Models:
 -------------------------------------
