@@ -17,35 +17,23 @@ Misc Variables:
 '''
 
 import dash
-import os
-
 from dash import dash_table
 from dash import dcc
 from dash import html
-
 from dash.dependencies import Input, Output, State, ALL
-from dash.exceptions import PreventUpdate
 
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
 
-import collections
-
+import numpy as np
+import pandas as pd
+import pymap3d as pm
 import plotly.express as px
 
-import multiprocessing as mp
-from itertools import repeat
-
-import pandas as pd
-from pandas.core.frame import DataFrame
-
-import numpy as np
-
-from scipy.interpolate import PchipInterpolator
-
+import collections
 import json
+import struct
 import base64
-import pymap3d as pm
 import re
 
 from read_file import *
@@ -55,14 +43,8 @@ from helpers.memory_data_helpers import *
 from helpers.waypoint_helpers import *
 from helpers.constants import *
 
-import time
-import struct
-import uuid
-
-
 # Import Dash App Instance #
 from app import app
-
 
 map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
