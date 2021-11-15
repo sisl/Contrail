@@ -117,7 +117,7 @@ Steps for Nominal Path Creation:
 #. Repeat this process until you have created two nominal paths inside of one nominal encounter.
     
 Click *Exit Create Mode* to leave create mode. You can visualize your nominal encounter in the same way 
-described in the Visualization section of this doc. 
+described in the Visualization section above. 
 
 You CANNOT edit the data table directly when in create mode - please do so
 after exiting create mode. 
@@ -142,29 +142,30 @@ How to Create a New Generation Model:
 
 #. Select a nominal encounter.
 #. Select which AC IDs you would like to generate from
+   
    * If you only select one AC ID, then the generated data will not be of encounters but rather single aircraft trajectories. 
+
 #. Select which generation protocol you would like to use. 
+   
    * Currently, the tool defines diagonal covariance and exponential kernal covariance models. The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for these multivariate probability distributions during generation.
+
 #. Indicate how many encounters you would like to generate using the model you just defined.
 #. Click *Generate*. 
 
-You will be redirected back to the home page where you will see a spinner; the 
-spinner will continue to spin until the generation process has been completed. Once the spinner disappears,
+You will be redirected back to the home page where you will see a spinner in the center of the screen; the 
+spinner will continue to spin until the generation process has completed. Once the spinner disappears,
 you can click on the *Encounter ID* dropdown menu to confirm the generation process worked correctly. If you see 
-that the number of encounters avaliable in the dropdown menu equals the number of encounters you hoped to
-generate, then the process was successful. 
+a Nominal Encounter and the correct number of encounters avaliable in the dropdown menu, then the process was successful. 
 
 Visualize your newly generated data using the same technique described in the Visualization section above. 
 
 Statistics
 -------------------------------------
 
-Refer to the statistics tab for information on your newly generated encounter set.
-As of right now, Contrail displays 
-Additionally, after generating a new encounter set, click on the "Statistics" tab. This will display the 2d-histograms
-with xEast vs yNorth for the generated data. 
+Click over to the statistics tab for information on your newly generated encounter set.
 
-EXPLAIN THE HISTOGRAMS
+As of version 0.0.0, the statistics tab only displays 2d-histograms for xEast vs yNorth and Time vs zUp 
+for both AC IDs in the generated data. 
 
 
 .. _tutorial_saving:
@@ -172,8 +173,11 @@ EXPLAIN THE HISTOGRAMS
 Saving
 ======================
 
-Contrail allows users to save both generated data sets (.dat) and previously used generation models (.json).
-You can refer to THIS DOC for what a generation model is and how it is structured. 
+Contrail allows users to save both generated data sets (generated_waypoints.dat) and previously used 
+generation models (generated_model.json).
+
+Refer to :ref:`_waypoint-overview` for the structure of a waypoint file. 
+Refer to :ref:` _model-overviewfor` for the structure of a generation model file.
 
 Steps to Save Waypoints and Models:
 -------------------------------------
