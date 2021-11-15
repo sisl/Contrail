@@ -6,7 +6,7 @@ Interface for modeling, generating, visualizing and saving aircraft encounter da
 
 .. _contrail-overview:
 
-1 Overview
+Overview
 ===============
 
 Aircraft encounter modeling allows users to represent aircraft behavior using statistical models. 
@@ -17,24 +17,20 @@ For a more detailed explanation on the usage of this product, please refer to US
 
 .. _contrail-intallation:
 
-2 Installation
+Installation
 ===============
-Please follow the instructions outlined below for installing the Contrail tool:
 
-#. step
-#. step
-#. step
+``pip install git+https://github.com/sisl/Contrail``
 
 .. _contrail-dependencies:
 
-3 Dependencies
+Dependencies
 ===============
 Install requirements with pip
 
-``
-pip install -r requirements.txt
-pip install -e .
-``
+``pip install -r requirements.txt``
+``pip install -e .``
+
 
 ..
     //A major 
