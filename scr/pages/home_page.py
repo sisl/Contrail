@@ -2072,7 +2072,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
 
             generated_data_filename = 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
-            print('finished streaming generated data in', (time.time()-start)/60,' mins\n')
+            print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
 
             return {'filename':generated_data_filename,
                     'encounter_indices':enc_data_indices,
