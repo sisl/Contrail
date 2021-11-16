@@ -6,7 +6,7 @@ MB = 1000000
 
 COLOR_LIST = ['blue', 'orange', 'green', 'red', 'black', 'purple']
 
-DEFAULT_DATA_FILE_PATH = './data/'
+DEFAULT_DATA_FILE_PATH = '../data/'
 
 INITIAL_DIM = 3
 UPDATE_DIM = 4
@@ -15,3 +15,5 @@ INFO_BYTE_SIZE = 4
 WAYPOINT_BYTE_SIZE = 8
 
 STANDARD_NUM_PARTITIONS = 3
+
+NUM_BINS_HISTOGRAM = 100

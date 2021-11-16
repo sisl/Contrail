@@ -32,6 +32,7 @@ import dash_leaflet as dl
 import collections
 
 import plotly.express as px
+import plotly.graph_objs as go
 
 import multiprocessing as mp
 from itertools import repeat
@@ -339,7 +340,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         dbc.Row([
                             dbc.Col(
                                 dcc.Loading(parent_className='loading-hist-ac-1-xy', 
-                                children=[dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())],
+                                children=[dcc.Graph(id='log-histogram-ac-1-xy', figure=go.Figure())],
                                 type='circle',
                                 color='white'
                                 ) 
@@ -362,7 +363,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         dbc.Row([
                             dbc.Col(
                                 dcc.Loading(parent_className='loading-hist-ac-1-tz', 
-                                children=[dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap())],
+                                children=[dcc.Graph(id='log-histogram-ac-1-tz', figure=go.Figure())],
                                 type='circle',
                                 color='white'
                                 ) 
@@ -391,7 +392,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         dbc.Row([
                             dbc.Col(
                                 dcc.Loading(parent_className='loading-hist-ac-2-xy', 
-                                children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())],
+                                children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=go.Figure())],
                                 type='circle',
                                 color='white'
                                 ) 
@@ -414,7 +415,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         dbc.Row([
                             dbc.Col(
                                 dcc.Loading(parent_className='loading-hist-ac-2-tz', 
-                                children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap())],
+                                children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=go.Figure())],
                                 type='circle',
                                 color='white'
                                 )    
@@ -2018,6 +2019,9 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
 def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
                         exp_kernel_c, num_encounters, ref_data, memory_data): #, file_path):
     
+    print('\n--GENERATING ENCOUNTERS--\n')
+    start = time.time()
+
     file_path = DEFAULT_DATA_FILE_PATH
     
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
@@ -2062,18 +2066,23 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     
                     # include nominal encounter
                     generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
-
+            print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
+            
+            start = time.time()
 
             generated_data_filename = 'generated_data.dat'
-            enc_data_indices = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
+            enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
+            print('finished streaming generated data in', (time.time()-start)/60,' mins\n')
 
             return {'filename':generated_data_filename,
                     'encounter_indices':enc_data_indices,
+                    'minmax_hist':minmax_hist,
                     'ac_ids':nom_ac_ids,
                     'num_encounters': num_encounters+1, #include nominal path
                     'type':'generated'}
 
     return dash.no_update
+
 
 ###########################################################################################
 # HISTOGRAM CALLBACKS #
@@ -2082,25 +2091,53 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               Output('log-histogram-ac-1-tz', 'figure'),
               Output('log-histogram-ac-2-xy', 'figure'),
               Output('log-histogram-ac-2-tz', 'figure')],
-              Input('generated-data', 'data'),
-              State('ref-data', 'data'))
+              Input('generated-data', 'data'))
               #State('file-path-input', 'value'))
-def on_generation_update_log_histograms(generated_data, ref_data): #, file_path):
-    #if generated_data == {}:
+def on_generation_update_log_histograms(generated_data): #, file_path):
+   
+    print('\n--CREATING HISTOGRAMS--\n')
+    start = time.time()
+
+    generated_data_filename = generated_data['filename']  #'generated_data.dat'
+    enc_indices = generated_data['encounter_indices']
+    minmax_hist = generated_data['minmax_hist']
+    ac_ids = generated_data['ac_ids']
+    num_encounters = generated_data['num_encounters']
+
+    ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
+        t_edges, x_edges, y_edges, z_edges = stream_count_histograms(generated_data_filename, \
+        enc_indices, minmax_hist, num_encounters, ac_ids)
     
-    return px.density_heatmap(), px.density_heatmap(), px.density_heatmap(), px.density_heatmap()
+    bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
+    x_labels = ['xEast', 'time','xEast', 'time']
+    y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
+    x_axes = [x_edges, t_edges, x_edges, t_edges]
+    y_axes = [y_edges, z_edges, y_edges, z_edges]
+
+    num_processes = mp.cpu_count()
+    pool = mp.Pool(num_processes)
+
+    histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
+    print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
+
+    pool.close()
+    pool.join()
+
+    return histograms
 
 
-def create_histogram(df_data, x, y):
-    colors = px.colors.sequential.gray #Blues
+def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
 
-    if x == 'xEast' and y == 'yNorth':
-        return px.density_heatmap(df_data, x=x, y=y, nbinsx=100, nbinsy=100, 
-                            labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
-
-    if x == 'time' and y == 'zUp':
-        return px.density_heatmap(df_data, x=x, y=y, nbinsx=100, nbinsy=100, 
-                            labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
+    if x_label == 'xEast' and y_label == 'yNorth':
+        return {
+            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, colorscale='Viridis')], 
+            'layout': go.Layout(xaxis_title="xEast (NM)", yaxis_title="yNorth (NM)")
+        }
+    if x_label == 'time' and y_label == 'zUp':
+        return {
+            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, colorscale='Viridis')], 
+            'layout': go.Layout(xaxis_title="Time (s)", yaxis_title="zUp (ft)")
+        }
 
 
 ###########################################################################################
