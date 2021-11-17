@@ -73,15 +73,16 @@ and time_m, xEast_m, yNorth_m, and zUp_m refer to the mth (final) waypoint value
 Covariance Options
 ==================
 
-::
+The two types of covariance matrices are defined below::
+
     "covariance" : {
         "type" : "diagonal",
         "sigma_hor": 0.05,
         "sigma_ver": 10
     }
 
-OR
-::
+    OR
+
     "covariance": {
         "type": "exponential kernel",
         "a": 15,
