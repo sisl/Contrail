@@ -146,9 +146,10 @@ How to Create a New Generation Model:
    
    * If you only select one AC ID, then the generated data will not be of encounters but rather single aircraft trajectories. 
 
-#. Select which generation protocol you would like to use. 
+#. Select which statistical model you would like to use. 
    
-   * Currently, the tool defines diagonal covariance and exponential kernal covariance models. The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for these multivariate probability distributions during generation.
+   * Currently, the tool defines a multivariate Gaussian distribution with either a diagonal covariance or exponential kernal covariance matrix. 
+     The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for the multivariate probability distribution during generation.
 
 #. Indicate how many encounters you would like to generate using the model you just defined.
 #. Click *Generate*. 

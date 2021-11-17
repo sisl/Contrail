@@ -3,7 +3,7 @@ from dash import html
 
 from app import app
 
-DASHBOARD_LOGO = app.get_asset_url('dashboard_logo.png')
+DASHBOARD_LOGO = app.get_asset_url('dashboard_logo_3.png')
 
 def Navbar():
     navbar = dbc.Navbar([
@@ -11,7 +11,7 @@ def Navbar():
             dbc.Row(
                 [
                     dbc.Col(html.Img(src=DASHBOARD_LOGO, height="30px")),
-                    dbc.Col(dbc.NavbarBrand("Encounter GUI", className="ml-2")),
+                    dbc.Col(dbc.NavbarBrand("CONTRAIL", className="ml-2")),
                 ],
                 align="center",
                 no_gutters=True,

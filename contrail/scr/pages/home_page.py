@@ -2045,7 +2045,6 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     # include nominal encounter
                     generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
 
-
             generated_data_filename = 'generated_data.dat'
             enc_data_indices = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
 
