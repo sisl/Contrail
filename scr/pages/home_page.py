@@ -2019,16 +2019,16 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
 def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
                         exp_kernel_c, num_encounters, ref_data, memory_data): #, file_path):
     
-    print('\n--GENERATING ENCOUNTERS--\n')
-    start = time.time()
-
-    file_path = DEFAULT_DATA_FILE_PATH
     
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
 
+            print('\n--GENERATING ENCOUNTERS--\n')
+            start = time.time()
+            file_path = DEFAULT_DATA_FILE_PATH
+            
             # error checking
             if generation_error_found(memory_data['type'], nom_ac_ids, num_encounters, cov_radio_value, 
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
@@ -2069,7 +2069,6 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
             
             start = time.time()
-
             generated_data_filename = 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
             print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
