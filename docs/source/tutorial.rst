@@ -13,7 +13,7 @@ Introduction
 This tutorial is intended for readers to learn how to use the Contrail tool on their own device. 
 Familiarity with the underlying aircraft encounter modeling theory is recommended, 
 but is not strictly necessary for use. Please install the repository before proceeding. 
-For help with installation, please refer to the `README <https://github.com/sisl/Contrail/blob/migration_to_contrail/README.rst>`.
+For help with installation, please refer to the `README <https://github.com/sisl/Contrail/blob/migration_to_contrail/README.rst>`_.
 
 .. _tutorial-visualization:
 
@@ -183,9 +183,9 @@ Saving
 Contrail allows users to save both generated data sets (generated_waypoints.dat) and previously used 
 generation models (generated_model.json).
 
-Refer to :doc:`waypoints_overview` for the structure of a waypoint file. 
+Refer to `waypoints_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/waypoints_overview.rst>`_ for the structure of a waypoint file. 
 
-Refer to :doc:`generation_model_overview` for the structure of a generation model file.
+Refer to `generation_model_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/generation_model_overview.rst>`_ for the structure of a generation model file.
 
 Steps to Save Waypoints and Models:
 -------------------------------------
