@@ -30,7 +30,7 @@ import dash_bootstrap_components as dbc
 
 from app import app
 from headers import navbar
-from pages import home_page, settings_page
+from pages import home_page, settings_page, about_page
 
 ### Page container ###
 page_container = html.Div(children=[
@@ -48,7 +48,6 @@ page_container = html.Div(children=[
 
     navbar.Navbar(),
     html.Br(),
-    # content will be rendered in this element
     html.Div(id='page-content')
     ]
 )
@@ -61,7 +60,8 @@ app.validation_layout = html.Div(
     children = [
         page_container,
         home_page.layout,
-        settings_page.layout,
+        #settings_page.layout,
+        about_page.layout
     ]
 )
 
@@ -72,7 +72,9 @@ def display_page(pathname):
         return home_page.layout
     elif pathname == '/home':
         return home_page.layout
-    elif pathname == '/settings':
-        return settings_page.layout
+    # elif pathname == '/settings':
+    #     return settings_page.layout
+    elif pathname == '/about':
+        return about_page.layout
     else:
         return '404'

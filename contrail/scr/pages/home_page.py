@@ -1,19 +1,8 @@
 '''Defines the layout for the home page of the application.
 
-Embeds the constant page components (navbar, UPDATE ACCORDINGLY) into every page
-for the app. 
+Embeds the constant page components (e.g. navbar) into every page of the app. 
 
 See module app.py for app specific server and rendering.
-
-
-Callbacks:
-
-    render_content(tabs.active_tab)
-
-Functions:
-
-Misc Variables:
-
 '''
 
 import dash
@@ -68,7 +57,7 @@ load_generate_save_buttons = dbc.Container(
                 html.Label([
                         
                         dcc.Upload(id='load-waypoints', children = 
-                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-2"))#, style={'margin-left':'10px'}))
+                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-1"))#, style={'margin-left':'10px'}))
                     ])],
                 width={"size": 'auto', "order": 1}),
 
@@ -86,39 +75,15 @@ load_generate_save_buttons = dbc.Container(
     fluid=True
     )
 
-encounter_ac_dropdowns_and_ref_point = dbc.Container(
+encounter_ac_dropdowns = dbc.Container(
         dbc.Row([
-            dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select an encounter ID",  className='m--15', multi=False), 
-                    width={"size": 2, "order": 1}),
+            dbc.Col(dcc.Dropdown(id='encounter-ids', placeholder="Select ENC ID",  className='ml-1', multi=False), 
+                    width={"size": 2}),
 
             dbc.Col(dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True,  className='ml-2'),
-                    width={"size": 2, "order": 2}),
-
-        
-            dbc.Col([
-                html.Div(id='ref-card-div', children=[
-                    dbc.Card(className='ml-6', children=[
-                        dbc.CardBody(className='card-body-m-0', children=[
-                            dbc.Row(className='', children=[
-                                dbc.Col(html.Div(id='ref-point-output', className='ml-1', children=['Reference Point: ']), width='auto'),
-                                dbc.Col(dbc.Button('Set Reference Point', id='set-ref-point', className='ml-7', n_clicks=0, outline=False, color='primary'), width='auto')
-                            ], 
-                            justify='between',
-                            align='center')
-                        ],
-                        style={'padding':'.3rem'})
-                    ],
-                    color='light',
-                    style={'width':'40.3rem', 'height':'3rem'})
-                ],
-                style={'visibility':'visible'}),
-                html.Div(id='something', children='')
-            ],
-            width={"size": 'auto', "order": 4, 'offset':2},
-            align='right')  
+                    width={"size": 2}),
         ],
-        align='left',
-        justify='center',
+        justify='left',
         no_gutters=True),
     fluid=True
     )
@@ -130,7 +95,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                         dbc.Card(className='card-small-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
-                                    dbc.Col(html.H5("xEast vs yNorth", className="card-title-1"))
+                                    dbc.Col(html.H5("xEast vs. yNorth", className="card-title-1"))
                                 ],justify='center'),
 
                                 dbc.Row([
@@ -152,7 +117,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                         dbc.Card([
                             dbc.CardBody([
                                 dbc.Row([
-                                    dbc.Col(html.H5("Time vs zUp", className="card-title-1"))
+                                    dbc.Col(html.H5("Time vs. zUp", className="card-title-1"))
                                 ],justify='center'),
 
                                 dbc.Row([
@@ -182,7 +147,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                         dbc.Card([
                             dbc.CardBody([
                                 dbc.Row([
-                                    dbc.Col(html.H5("Time vs Horizontal Distance", className="card-title-1"))
+                                    dbc.Col(html.H5("Time vs. Horizontal Distance", className="card-title-1"))
                                 ],
                                 justify='center'),
 
@@ -207,7 +172,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                         dbc.Card([
                             dbc.CardBody([
                                 dbc.Row([
-                                    dbc.Col(html.H5("Time vs Vertical Distance", className="card-title-1"))
+                                    dbc.Col(html.H5("Time vs. Vertical Distance", className="card-title-1"))
                                 ],justify='center'),
 
                                 dbc.Row([
@@ -234,7 +199,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                         dbc.Card([
                             dbc.CardBody([
                                 dbc.Row([
-                                    dbc.Col(html.H5("Time vs Horizontal Speed", className="card-title-1"))
+                                    dbc.Col(html.H5("Time vs. Horizontal Speed", className="card-title-1"))
                                 ],justify='center'),
 
                                 dbc.Row([
@@ -255,7 +220,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                         dbc.Card([
                             dbc.CardBody([
                                 dbc.Row([
-                                    dbc.Col(html.H5("Time vs Vertical Speed", className="card-title-1"))
+                                    dbc.Col(html.H5("Time vs. Vertical Speed", className="card-title-1"))
                                 ],justify='center'),
 
                                 dbc.Row([
@@ -284,7 +249,7 @@ tab_2_graphs = html.Div(id='tab-2-graphs', children=[
                 dbc.Card([
                         dbc.CardBody([
                             dbc.Row([
-                                dbc.Col(html.H5("xEast vs yNorth vs zUp", className="card-title-1"))
+                                dbc.Col(html.H5("xEast vs. yNorth vs. zUp", className="card-title-1"))
                             ],justify='center'),
 
                             dbc.Row([
@@ -315,7 +280,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                 dbc.Card([
                     dbc.CardBody([
                         dbc.Row([
-                            dbc.Col(html.H5("AC 1: xEast vs yNorth", className="card-title-1"))
+                            dbc.Col(html.H5("AC 1: xEast vs. yNorth", className="card-title-1"))
                         ],justify='center'),
 
                         dbc.Row([
@@ -338,7 +303,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                 dbc.Card([
                     dbc.CardBody([
                         dbc.Row([
-                            dbc.Col(html.H5("AC 1: Time vs zUp", className="card-title-1"))
+                            dbc.Col(html.H5("AC 1: Time vs. zUp", className="card-title-1"))
                         ],justify='center'),
 
                         dbc.Row([
@@ -367,7 +332,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                 dbc.Card([
                     dbc.CardBody([
                         dbc.Row([
-                            dbc.Col(html.H5("AC 2: xEast vs yNorth", className="card-title-1"))
+                            dbc.Col(html.H5("AC 2: xEast vs. yNorth", className="card-title-1"))
                         ],justify='center'),
 
                         dbc.Row([
@@ -390,7 +355,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                 dbc.Card([
                     dbc.CardBody([
                         dbc.Row([
-                            dbc.Col(html.H5("AC 2: Time vs zUp", className="card-title-1"))
+                            dbc.Col(html.H5("AC 2: Time vs. zUp", className="card-title-1"))
                         ],justify='center'),
 
                         dbc.Row([
@@ -431,7 +396,27 @@ slider_bar = html.Div(id='slider-bar-div', children=[
         fluid=True)
     ])
 
-map_and_create_mode = html.Div(id='map-create-mode-div', children=[
+map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
+        dbc.Row([
+            html.Div(id='ref-card-div', children=[
+                    dbc.Card(className='', children=[
+                        dbc.CardBody(className='card-body-m-0', children=[
+                            dbc.Row(className='', children=[
+                                dbc.Col(html.Div(id='ref-point-output', className='ml-1', children=['Reference Point: ']), width='auto'),
+                                dbc.Col(dbc.Button('Set Reference Point', id='set-ref-point', className='ml-7', n_clicks=0, outline=False, color='primary'), width='auto')
+                            ], 
+                            justify='between',
+                            align='center')
+                        ],
+                        style={'padding':'.3rem'})
+                    ],
+                    color='light',
+                    style={'width':'40.3rem', 'height':'3rem'})
+                ],
+                style={'visibility':'visible'}),
+                html.Div(id='something', children='')
+        ]),
+        html.Br(),
         dbc.Row([
                 dbc.Card(id='map-create-card', children=[
                     dbc.CardBody([
@@ -780,12 +765,12 @@ layout = html.Div([
     dcc.Loading(parent_className='loading_wrapper', 
         children=[dcc.Store(id='generated-data', data={})],
         type='circle',
-        style={'margin-top':'250px'}),   
+        style={'margin-top':'200px'}),   
 
     load_generate_save_buttons,
     html.Br(),
 
-    encounter_ac_dropdowns_and_ref_point,
+    encounter_ac_dropdowns,
     html.Br(),
 
     dbc.Container([
@@ -820,7 +805,7 @@ layout = html.Div([
             width='auto'),
             
             dbc.Col(className='pl-3', children=[
-                map_and_create_mode,
+                map_ref_point_and_create_mode,
 
                 html.Br(),
 
@@ -1104,16 +1089,15 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
         return [], columns
         
     elif ctx == 'encounter-ids' or ctx == 'ac-ids':
-        if encounter_id_selected is None or encounter_id_selected == []:
+        if encounter_id_selected is None or encounter_id_selected == [] or ac_ids_selected == []:
             return [], columns
         else:
             # encounter IDs or ac IDs have been updated or loaded in
+            ac_ids_to_grab = ac_ids_selected
             if ctx == 'encounter-ids':
-                enc_data = parse_enc_data(memory_data, [encounter_id_selected], memory_data['ac_ids'], ref_data, file_path)
-            else:
-                # ac selected changed
-                enc_data = parse_enc_data(memory_data, [encounter_id_selected], ac_ids_selected, ref_data, file_path)
-            
+                ac_ids_to_grab = memory_data['ac_ids']
+
+            enc_data = parse_enc_data(memory_data, [encounter_id_selected], ac_ids_to_grab, ref_data, file_path)
             enc_data_df = pd.DataFrame(enc_data)
             enc_data_df_sorted = enc_data_df.sort_values(by=['ac_id', 'time'])
             enc_data_df = calculate_horizontal_vertical_speeds_df(enc_data_df_sorted)
@@ -1325,7 +1309,6 @@ def update_encounter_dropdown(memory_data, options): #end_new_n_clicks,
     
     return dash.no_update
 
-
 @app.callback(Output('ac-ids', 'options'),
               [Input('load-waypoints-button', 'n_clicks'),
                Input('create-mode', 'n_clicks'),
@@ -1345,7 +1328,7 @@ def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, 
             return []  
 
     elif ctx == 'encounter-ids':
-        if encounter_id_selected == []:
+        if encounter_id_selected == None:
             return []
         else:
             if memory_data != {}:
@@ -1389,9 +1372,7 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
                             memory_data):
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     
-    #print('update_dropdowns_value: ', ctx)
-    
-    clear_enc_val, clear_ac_val = [], []
+    clear_enc_val, clear_ac_val = None, []
     
     if ctx == 'load-waypoints-button':
         if upload_n_clicks > 0:
@@ -1490,7 +1471,6 @@ def toggle_create_mode(upload_n_clicks, create_n_clicks, exit_create_n_clicks, s
             create_card_style['display'] = 'none'
             map_create_style['height']  = '33rem'
             create_style['display'] = 'block'
-            
             
         if ctx == 'load-waypoints-button' and upload_n_clicks > 0:
             reset_create_clicks, reset_exit_create_clicks = 0, 0
@@ -2067,8 +2047,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               State('ref-data', 'data'))
               #State('file-path-input', 'value'))
 def on_generation_update_log_histograms(generated_data, ref_data): #, file_path):
-    #if generated_data == {}:
-    
+
     return px.density_heatmap(), px.density_heatmap(), px.density_heatmap(), px.density_heatmap()
 
 
@@ -2122,16 +2101,11 @@ def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_sav
 
             with open(file_path + file_name, 'wb') as file_to_save, open(file_path + generated_data_filename, 'rb') as gen_file:
                 encounters_data = gen_file.read()
-                #encs_data_bytes = base64.b64decode(encounters_data)
                 data_to_save = bytearray()
                 data_to_save.extend(struct.pack('<II', num_enc-1, len(nom_ac_ids))) # remove nominal encounter
                 data_to_save.extend(encounters_data[enc_indices[1]:])
                 file_to_save.write(data_to_save)
 
-
-            # FIXME: the dcc.download restricts the size of our data
-            # maybe instead of the user getting it as a download, the user should specify a 
-            # file path so we can just write to that destination on the user's computer...
             return dcc.send_file(file_path + file_name)
         else:
             print('Must generate an encounter set')
