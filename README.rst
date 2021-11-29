@@ -13,7 +13,8 @@ Aircraft encounter modeling allows users to represent aircraft behavior using st
 
 Contrail's intended purpose is for users to model, generate, visualize and save large 
 encounter data sets in order to develop and verify aircraft collision avoidance software. 
-For a more detailed explanation on the usage of this product, please refer to `usage.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/usage.rst>`_. 
+For a more detailed explanation on the usage of this product, please refer to
+ `usage.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/usage.rst>`_. 
 
 .. _contrail-intallation:
 
