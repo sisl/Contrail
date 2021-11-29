@@ -3,7 +3,7 @@ from dash import html
 
 from app import app
 
-DASHBOARD_LOGO = app.get_asset_url('dashboard_logo_3.png')
+DASHBOARD_LOGO = app.get_asset_url('dashboard_logo.png')
 
 def Navbar():
     navbar = dbc.Navbar([
@@ -18,14 +18,12 @@ def Navbar():
             ),
             href="/",
         ),
-        # dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
         dbc.Collapse(id="navbar-collapse", children=[
             dbc.Row([
                 dbc.Nav([
                     dbc.Col(dbc.NavItem(dbc.NavLink("Home", href="/home"))),
-                    # dbc.Col(dbc.NavItem(dbc.NavLink("Features", href="#"))),
-                    # dbc.Col(dbc.NavItem(dbc.NavLink("About", href="#")))
-                    dbc.Col(dbc.NavItem(dbc.NavLink("Settings", href="/settings")))
+                    #dbc.Col(dbc.NavItem(dbc.NavLink("Settings", href="/settings"))),
+                    dbc.Col(dbc.NavItem(dbc.NavLink("About", href="/about")))
                     ], className='navbar-nav')
                 ],
                 align='center',
