@@ -22,6 +22,8 @@ Installation
 
 ``pip install git+https://github.com/sisl/Contrail``
 
+or install by cloning the repository and opening it in an IDE.
+
 .. _contrail-dependencies:
 
 Dependencies
@@ -30,4 +32,3 @@ Install requirements with pip
 
 ``pip install -r requirements.txt``
 
-or install by cloning the repository and opening it in an IDE.
