@@ -13,7 +13,7 @@ Introduction
 This tutorial is intended for readers to learn how to use the Contrail tool on their own device. 
 Familiarity with the underlying aircraft encounter modeling theory is recommended, 
 but is not strictly necessary for use. Please install the repository before proceeding. 
-For help with installation, please refer to the :ref:`README <readme-contrail>`.
+For help with installation, please refer to the :ref:`readme-contrail`.
 
 .. _tutorial-visualization:
 
