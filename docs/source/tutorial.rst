@@ -13,7 +13,7 @@ Introduction
 This tutorial is intended for readers to learn how to use the Contrail tool on their own device. 
 Familiarity with the underlying aircraft encounter modeling theory is recommended, 
 but is not strictly necessary for use. Please install the repository before proceeding. 
-For help with installation, please refer to the `Generation Model Overview`_ and `Usage`_ and  `Preliminary Steps`_ :doc:`README <../../README>`.
+For help with installation, please refer to the `README <https://github.com/sisl/Contrail/blob/migration_to_contrail/README.rst>`.
 
 .. _tutorial-visualization:
 
@@ -121,7 +121,7 @@ Steps for Nominal Path Creation:
 #. Repeat this process until you have created two nominal paths inside of one nominal encounter.
     
 Click *Exit Create Mode* to leave create mode. You can visualize your nominal encounter in the same way 
-described in the Visualization section above. 
+described in the `Visualization`_ section above. 
 
 You CANNOT edit the data table directly when in create mode, but can please do so
 after exiting create mode. 
@@ -164,7 +164,7 @@ spinner will continue to spin until the generation process has completed. Once t
 you can click on the *Encounter ID* dropdown menu to confirm the generation process worked correctly. If you see 
 a Nominal Encounter and the correct number of encounters available in the dropdown menu, then the process was successful. 
 
-Visualize your newly generated data using the same technique described in the Visualization section above. 
+Visualize your newly generated data using the same technique described in the `Visualization`_ section above. 
 
 Statistics
 -------------------------------------
