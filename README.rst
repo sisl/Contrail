@@ -30,9 +30,4 @@ Install requirements with pip
 
 ``pip install -r requirements.txt``
 
-
-..
-    //A major 
-    use case is leveraging models for how aircraft behave during close encounters to create a
-    realistic set of flight dynamics where an aircraft collision avoidance system 
-    would likely alert. These data sets can then be used to verify some collision avoidance software.
+or install by cloning the repository and opening it in an IDE.
