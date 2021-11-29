@@ -7,7 +7,7 @@ Terminology
 * **Encounter**: when the trajectories of two or more aircrafts get close together
 * **Trajectory**: the path followed by a flying aircraft
 * **Nominal Trajectory/Path**: represents the mean waypoint values from which to generate other trajectories 
-* **Nominal Encounter**: an encounter representing the mean values from which to generate other encounters
+* **Nominal Encounter**: an encounter made up of two Nominal Paths
 * **Popup Window**:  a small window that suddenly appears in the foreground of the visual interface
 * **Reference Point**: a user specified point (lat/long/alt) used to relatively visualize trajectories on a map
 * **Time Interval**: the amount of time between two waypoints
