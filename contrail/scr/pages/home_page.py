@@ -100,11 +100,12 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
 
                                 dbc.Row([
                                     dbc.Col(
-                                        dcc.Loading(parent_className='loading-graph-xy', 
-                                        children=[dcc.Graph(id='editable-graph-xy-slider', figure=px.line())],
-                                        type='circle',
-                                        color='white'
-                                        )  
+                                        # dcc.Loading(parent_className='loading-graph-xy', 
+                                        # children=[dcc.Graph(id='editable-graph-xy-slider', figure=px.line())],
+                                        # type='circle',
+                                        # color='white'
+                                        # )
+                                        dcc.Graph(id='editable-graph-xy-slider', figure=px.line())
                                     )
                                 ],justify='center')
                             ])
@@ -535,7 +536,7 @@ ref_point_modal = html.Div(id='ref-modal-div', children=[
                     dbc.Col([
                         dbc.Row([
                             dbc.Input(id='ref-point-input', type='text', 
-                            placeholder=f'latitude / longitutde / altitude: 0.0{chr(176)}/0.0{chr(176)}/0.0ft',
+                            placeholder=f'latitude / longitutde / altitude: 0.0{chr(176)}N / 0.0{chr(176)}E / 0.0 ft',
                             debounce=True,
                             pattern=u"^(\-?\d+\.\d+?)\/(\-?\d+\.\d+?)\/(\d+\.\d+?)$",
                             style={"margin-left": "15px"}),
@@ -672,8 +673,8 @@ generation_modal = html.Div(id='gen-modal-div', children=[
             # number of encounter sets to generate
             html.Br(),
             dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
-            dbc.Input(id='num-encounters-input', type='number', placeholder='',
-                debounce=True,# value=100,
+            dbc.Input(id='num-encounters-input', type='number', placeholder='', min=0, 
+                debounce=True,
                 pattern=u"^(\d+)$",
                 style={'margin-left':'20px', "width": "40%"}),
             
@@ -765,6 +766,7 @@ layout = html.Div([
     dcc.Loading(parent_className='loading_wrapper', 
         children=[dcc.Store(id='generated-data', data={})],
         type='circle',
+        color='#f39c12',
         style={'margin-top':'200px'}),   
 
     load_generate_save_buttons,
@@ -1041,11 +1043,11 @@ def update_graphs_with_sliders(t_value, data, encounter_id_selected, ac_ids_sele
         fig_tdistxy.update_layout(
             xaxis_title = 'Time (s)', 
             yaxis_title = 'Distance (NM)',
-            margin=margin),
+            margin=margin)
         fig_tdistz.update_layout(
             xaxis_title = 'Time (s)', 
             yaxis_title = 'Distance (ft)',
-            margin=margin),
+            margin=margin)
 
         return 'Time: {} (s)'.format(t_value), t_value, fig_xy, fig_tz, fig_tspeedxy, fig_tspeedz, fig_xyz, fig_tdistxy, fig_tdistz, min_values[0], max_values[0]
 
@@ -1705,12 +1707,20 @@ def update_marker(new_positions, current_marker_tools, ref_data):
                 State('ref-point-input', 'pattern'),
                 State('ref-data', 'data')])
 def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, ref_data):
-    patt = re.compile(pattern)
     
-
+    
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    if ctx == 'set-ref-button':
+
+    if ctx == 'clear-ref-button' or ref_point_value == '':
+        if clear_n_clicks > 0:
+            ref_data['ref_lat'] = None
+            ref_data['ref_long'] = None
+            ref_data['ref_alt'] = None
+            return 'Reference Point: ', ref_data
+
+    elif ctx == 'set-ref-button':
         if set_n_clicks > 0 and ref_point_value:
+            patt = re.compile(pattern)
             p = patt.match(ref_point_value)
             if p:
                 vals = p.groups()
@@ -1719,16 +1729,10 @@ def set_ref_point_data(set_n_clicks, clear_n_clicks, ref_point_value, pattern, r
                 ref_data['ref_alt'] = float(vals[2])
             else:
                 return 'MUST BE IN 0.0/0.0/0.0 FORMAT', ref_data
-
-    elif ctx == 'clear-ref-button':
-        if clear_n_clicks > 0:
-            ref_data['ref_lat'] = None
-            ref_data['ref_long'] = None
-            ref_data['ref_alt'] = None
-            return 'Reference Point: ', ref_data
+        
 
     lat, lng, alt = ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']
-    ref = f'Reference Point: {lat:.2f}{chr(176)}/{lng:.2f}{chr(176)}/{alt:.2f}ft'
+    ref = f'Reference Point:   {lat:.2f}{chr(176)}N / {lng:.2f}{chr(176)}E / {alt:.2f} ft'
 
     return ref, ref_data
 
