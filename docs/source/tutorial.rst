@@ -183,17 +183,20 @@ Saving
 Contrail allows users to save both generated data sets (generated_waypoints.dat) and previously used 
 generation models (generated_model.json).
 
-Refer to `waypoints_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/waypoints_overview.rst>`_ for the structure of a waypoint file. 
+Refer to `waypoints_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/waypoints_overview.rst>`_ for the 
+structure of a waypoint file. 
 
-Refer to `generation_model_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/generation_model_overview.rst>`_ for the structure of a generation model file.
+Refer to `generation_model_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/generation_model_overview.rst>`_ 
+for the structure of a generation model file.
 
 Steps to Save Waypoints and Models:
 -------------------------------------
 
 #. Click *Save Waypoints (.dat) or Model (.json)*
    * This will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
-#. Fill in the names for the desired files and then click *Save.* 
+#. Fill in the names for the desired files.
+#. Click *Save*.
    * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
-   *  If the files are not too large, the browser will also present the files as a download. 
+   * If the files are not too large, the browser will also present the files as a download. 
 
 You can only save after generating a data set, not after uploading a waypoints file or creating a nominal encounter.
