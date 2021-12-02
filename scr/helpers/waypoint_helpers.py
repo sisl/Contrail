@@ -46,19 +46,50 @@ def interpolate_df_time(df, ac_ids_selected):
     return df_interp, min_values_list, max_values_list
 
 
-def calculate_horizontal_vertical_speeds_df(df):
+# def calculate_horizontal_vertical_speeds_df(df): 
+#     dataf = df.copy()
+#     hor_speeds = []
+#     ver_speeds = []
+#     for ac_id in set(df['ac_id']):
+#         ac_id_data = df.loc[df['ac_id'] == ac_id]
+#         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
+#         hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time'] * 3600
+#         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
+#         ver_speed = move_over_time.zUp / move_over_time['time'] * 60
+#         ver_speeds += (np.append(0.0, round(ver_speed, 4))).tolist()
+#     dataf.loc[:, 'horizontal_speed'] = hor_speeds
+#     dataf.loc[:, 'vertical_speed'] = ver_speeds
+#     return dataf
+
+def calculate_turnrate_hor_ver_speeds_df(df):
     dataf = df.copy()
     hor_speeds = []
     ver_speeds = []
+    headings = []
+    turn_rates = []
+
     for ac_id in set(df['ac_id']):
         ac_id_data = df.loc[df['ac_id'] == ac_id]
         move_over_time = (np.roll(ac_id_data, -1, axis=0) - ac_id_data)[:-1]
+
         hor_speed = np.sqrt(move_over_time.xEast ** 2 + move_over_time.yNorth ** 2) / move_over_time['time'] * 3600
         hor_speeds += (np.append(0.0, round(hor_speed, 4))).tolist()
         ver_speed = move_over_time.zUp / move_over_time['time'] * 60
         ver_speeds += (np.append(0.0, round(ver_speed, 4))).tolist()
+
+        angle = np.arctan2(move_over_time.lat, move_over_time.long) * 180 / np.pi 
+        heading = (90 - angle + 360) % 360
+        headings += (np.append(0.0, round(heading, 4))).tolist()
+
+        heading = (np.append([heading.iloc[0]], heading)).tolist()
+        turn_rate = (np.roll(heading, -1, axis=0) - heading)[:-1]
+        turn_rate = (turn_rate + 180) % 360 - 180
+        turn_rates += (np.append(0.0, np.around(turn_rate, 4))).tolist()
+        
     dataf.loc[:, 'horizontal_speed'] = hor_speeds
     dataf.loc[:, 'vertical_speed'] = ver_speeds
+    dataf.loc[:, 'heading'] = headings
+    dataf.loc[:, 'turn_rate'] = turn_rates
     return dataf
 
 

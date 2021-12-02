@@ -149,6 +149,7 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
         for ac in ac_ids:
             [x,y,z] = struct.unpack('ddd', enc_data[cursor:cursor+(WAYPOINT_BYTE_SIZE*INITIAL_DIM)])
             x, y = x*FT_TO_NM, y*FT_TO_NM
+            # print('ac', ac, 'x,y,z', x,y,z)
         
             x_ind = (x - x_minmax[0]) // x_bin_width
             y_ind = (y - y_minmax[0]) // y_bin_width
@@ -156,22 +157,29 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
             t_ind = (0 - t_minmax[0]) // t_bin_width
 
             if ac == 1:
-                ac_1_xy_bin_counts[int(x_ind), int(y_ind)] += 1
-                ac_1_tz_bin_counts[0, int(z_ind)] += 1
+                # ac_1_xy_bin_counts[int(x_ind), int(y_ind)] += 1
+                # ac_1_tz_bin_counts[0, int(z_ind)] += 1
+                ac_1_xy_bin_counts[int(y_ind), int(x_ind)] += 1
+                ac_1_tz_bin_counts[int(z_ind), 0] += 1
             elif ac == 2:
-                ac_2_xy_bin_counts[int(x_ind), int(y_ind)] += 1
-                ac_2_tz_bin_counts[0, int(z_ind)] += 1
+                # ac_2_xy_bin_counts[int(x_ind), int(y_ind)] += 1
+                # ac_2_tz_bin_counts[0, int(z_ind)] += 1
+                ac_2_xy_bin_counts[int(y_ind), int(x_ind)] += 1
+                ac_2_tz_bin_counts[int(z_ind), 0] += 1
 
             cursor += INITIAL_DIM * WAYPOINT_BYTE_SIZE
-
+        # print('\nac_ids', ac_ids)
+        
         # count update waypoints
         for ac in ac_ids:
+            
             num_updates = int.from_bytes(enc_data[cursor:cursor+NUM_UPDATE_BYTE_SIZE], byteorder='little')
             cursor += NUM_UPDATE_BYTE_SIZE
 
             for i in range(num_updates): 
                 [time,x,y,z] = struct.unpack('dddd', enc_data[cursor:cursor+(WAYPOINT_BYTE_SIZE*UPDATE_DIM)])
                 x, y = x*FT_TO_NM, y*FT_TO_NM
+                # print('ac', ac, 't,x,y,z', time,x,y,z)
                     
                 x_ind = (x - x_minmax[0]) // x_bin_width    
                 y_ind = (y - y_minmax[0]) // y_bin_width
@@ -179,11 +187,15 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
                 t_ind = (time - t_minmax[0]) // t_bin_width
 
                 if ac == 1:
-                    ac_1_xy_bin_counts[int(x_ind), int(y_ind)] += 1
-                    ac_1_tz_bin_counts[int(t_ind), int(z_ind)] += 1
+                    # ac_1_xy_bin_counts[int(x_ind), int(y_ind)] += 1
+                    # ac_1_tz_bin_counts[int(t_ind), int(z_ind)] += 1
+                    ac_1_xy_bin_counts[int(y_ind), int(x_ind)] += 1
+                    ac_1_tz_bin_counts[int(z_ind), int(t_ind)] += 1
                 elif ac == 2:
-                    ac_2_xy_bin_counts[int(x_ind), int(y_ind)] += 1
-                    ac_2_tz_bin_counts[int(t_ind), int(z_ind)] += 1
+                    # ac_2_xy_bin_counts[int(x_ind), int(y_ind)] += 1
+                    # ac_2_tz_bin_counts[int(t_ind), int(z_ind)] += 1
+                    ac_2_xy_bin_counts[int(y_ind), int(x_ind)] += 1
+                    ac_2_tz_bin_counts[int(z_ind), int(t_ind)] += 1
 
                 cursor += UPDATE_DIM * WAYPOINT_BYTE_SIZE
 
@@ -191,68 +203,68 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
         t_edges, x_edges, y_edges, z_edges
         
     
-'''
-    Used when building the histograms. Steps through the encounters_data and 
-    parses each enc into it's dictionary form. Then returns a list of dictionaries of
-    individual waypoints.
+# '''
+#     Used when building the histograms. Steps through the encounters_data and 
+#     parses each enc into it's dictionary form. Then returns a list of dictionaries of
+#     individual waypoints.
 
-    FIXME: I implemented multiprocessing, but it doesn't help enough. As soon as the
-    encounter set gets larger than a few thousand encounters, this function takes many minutes to 
-    run. Not sure how we could speed this up more...
-'''
-def convert_and_combine_data(data, ref_data) -> list:
-    num_encs = data['num_encounters']
-    num_processes = mp.cpu_count()
+#     FIXME: I implemented multiprocessing, but it doesn't help enough. As soon as the
+#     encounter set gets larger than a few thousand encounters, this function takes many minutes to 
+#     run. Not sure how we could speed this up more...
+# '''
+# def convert_and_combine_data(data, ref_data) -> list:
+#     num_encs = data['num_encounters']
+#     num_processes = mp.cpu_count()
 
-    # the most efficient way to divide the encounters up for multiprocessing
-    # It distributes them over num_processes evenly, which increases the
-    # speed of the multiprocessing 
-    if num_encs > num_processes:
-        num_enc_per_cpu = num_encs // num_processes
-        if num_enc_per_cpu > STANDARD_NUM_PARTITIONS:
-            num_enc_per_partition = num_enc_per_cpu // STANDARD_NUM_PARTITIONS
-        else:
-            num_enc_per_partition = STANDARD_NUM_PARTITIONS
-    else:
-        num_enc_per_partition = num_encs
+#     # the most efficient way to divide the encounters up for multiprocessing
+#     # It distributes them over num_processes evenly, which increases the
+#     # speed of the multiprocessing 
+#     if num_encs > num_processes:
+#         num_enc_per_cpu = num_encs // num_processes
+#         if num_enc_per_cpu > STANDARD_NUM_PARTITIONS:
+#             num_enc_per_partition = num_enc_per_cpu // STANDARD_NUM_PARTITIONS
+#         else:
+#             num_enc_per_partition = STANDARD_NUM_PARTITIONS
+#     else:
+#         num_enc_per_partition = num_encs
     
-    start, size, end = 0, num_enc_per_partition, num_enc_per_partition
-    enc_ids = []
+#     start, size, end = 0, num_enc_per_partition, num_enc_per_partition
+#     enc_ids = []
     
-    # if it wants to create too many partitions, reduce the total number of partitions
-    # to the standard number (3 per process)
-    total_partitions = num_encs // num_enc_per_partition
-    if total_partitions > (STANDARD_NUM_PARTITIONS * num_processes): 
-        total_partitions = STANDARD_NUM_PARTITIONS * num_processes
+#     # if it wants to create too many partitions, reduce the total number of partitions
+#     # to the standard number (3 per process)
+#     total_partitions = num_encs // num_enc_per_partition
+#     if total_partitions > (STANDARD_NUM_PARTITIONS * num_processes): 
+#         total_partitions = STANDARD_NUM_PARTITIONS * num_processes
     
-    for i in range(total_partitions):
-        if i == total_partitions - 1:
-            end = num_encs
-        encs = [enc for enc in range(start, end)]
-        start = end
-        end += size
-        enc_ids.append(encs)
+#     for i in range(total_partitions):
+#         if i == total_partitions - 1:
+#             end = num_encs
+#         encs = [enc for enc in range(start, end)]
+#         start = end
+#         end += size
+#         enc_ids.append(encs)
 
-    mem_data = repeat(data, total_partitions)
-    ac_ids_selected = repeat(data['ac_ids'], total_partitions)
-    ref_data_repeats = repeat(ref_data, total_partitions)
+#     mem_data = repeat(data, total_partitions)
+#     ac_ids_selected = repeat(data['ac_ids'], total_partitions)
+#     ref_data_repeats = repeat(ref_data, total_partitions)
 
-    pool = mp.Pool(num_processes)
+#     pool = mp.Pool(num_processes)
 
-    start = time.time()
-    print('\tbefore converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
-    results = pool.starmap(parse_enc_data, zip(mem_data, enc_ids, ac_ids_selected, ref_data_repeats))
-    print('\tfinished converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
+#     start = time.time()
+#     print('\tbefore converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
+#     results = pool.starmap(parse_enc_data, zip(mem_data, enc_ids, ac_ids_selected, ref_data_repeats))
+#     print('\tfinished converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
 
-    pool.close()
-    pool.join()
+#     pool.close()
+#     pool.join()
 
-    print('\tbefore combining @ ', (time.time() - start)/60, ' mins')
-    combined_data = []
-    for i, result in enumerate(results):
-        combined_data += result
+#     print('\tbefore combining @ ', (time.time() - start)/60, ' mins')
+#     combined_data = []
+#     for i, result in enumerate(results):
+#         combined_data += result
 
-    print('\tfinished combining @ ', (time.time() - start)/60, ' mins')
+#     print('\tfinished combining @ ', (time.time() - start)/60, ' mins')
 
-    return combined_data
+#     return combined_data
 
