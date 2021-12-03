@@ -43,10 +43,9 @@ map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color=
 tabs = html.Div(id='tab-div', children=[
         dbc.Tabs(id="tabs",
                 children=[
-                    dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs'), # label_style={'color':'#2c3e50'}), #, style={'height':'1rem', 'line-height':'.5rem'}),
-                    dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph'),#  tab_style={'background':'#2c3e50'}), #, style={'height':'1rem', 'line-height':'.5rem'}),
-                    #dcc.Tab(id='tab3', label='Map', value='tab-3'),
-                    dbc.Tab(id='tab-4', tab_id='tab-4',label='Statistics') #, style={'height':'1rem', 'line-height':'.5rem', 'width':'10rem'}),
+                    dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs')
+                    dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph'),
+                    dbc.Tab(id='tab-4', tab_id='tab-4',label='Statistics') 
                 ],
                 active_tab='tab-1'),
     ])
@@ -55,7 +54,6 @@ load_generate_save_buttons = dbc.Container(
         dbc.Row([
             dbc.Col([
                 html.Label([
-                        
                         dcc.Upload(id='load-waypoints', children = 
                         dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-1"))
                     ])],
@@ -797,8 +795,7 @@ layout = html.Div([
                State('editable-table', 'data'),
                State('load-waypoints-button', 'n_clicks'),
                State('load-waypoints', 'contents'))
-               #State('file-path-input', 'value'))
-def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, table_data, upload_n_clicks, waypoints_contents): # file_path):
+def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, generated_data, ref_data, model_contents, table_data, upload_n_clicks, waypoints_contents): 
     '''
     Updates memory-data.data to store data of interest. Triggered either by uploading a waypoints.dat file,
     entering create mode, creating a nominal path in create mode, changing the reference point,
@@ -1023,10 +1020,9 @@ def update_graphs_with_sliders(t_value, data, encounter_id_selected, ac_ids_sele
                State('create-mode-zUp-input', 'value'),
                State('ref-data', 'data'),
                State('memory-data', 'data')])
-               #State('file-path-input', 'value')])
 def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, update_speeds_n_clicks, add_rows_n_clicks, done_add_rows_n_clicks,\
                       create_n_clicks, start_new_n_clicks, end_new_n_clicks, current_markers, table_data, columns, ac_value, interval, zUp_input, ref_data,\
-                      memory_data): #, file_path):
+                      memory_data):
     '''
     Updates data table to display waypoints for the selected encounter and aircraft ids.
     '''
@@ -1059,7 +1055,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
         return [], columns
 
     elif ctx == 'update-speeds-button' and update_speeds_n_clicks > 0:
-        df = pd.DataFrame(table_data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
+        df = pd.DataFrame(table_data) 
         df = calculate_horizontal_vertical_speeds_df(df)
         return df.to_dict('records'), columns
 
@@ -1087,8 +1083,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
         df = pd.DataFrame(table_data)
         if 'ac_id' not in df.keys() or (len(df.loc[df['ac_id'] == ac_value]) != len(current_markers)):
             timestep = 0
-            # if len(data) > 0:
-            #     df = pd.DataFrame(data)
+
             if 'ac_id' in df.keys():
                 if ac_value in df['ac_id'].tolist():
                     df_ac = df.loc[df['ac_id'] == ac_value]
@@ -1230,8 +1225,6 @@ def toggle_data_table_speeds_button(data):
                State('encounter-ids', 'options'))
 def update_encounter_dropdown(memory_data, options): #end_new_n_clicks, 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-    #print('update_encounter_dropdown ctx: ', ctx)
     
     if ctx == 'memory-data':
         if memory_data == {}:
@@ -1248,15 +1241,6 @@ def update_encounter_dropdown(memory_data, options): #end_new_n_clicks,
             
         options = [{'value': encounter_id, 'label': 'Encounter '+ str(int(encounter_id)) if encounter_id != 0 else 'Nominal Encounter'} for encounter_id in enc_range]
         return options
-
-    # elif ctx == 'end-new-button' and end_new_n_clicks > 0:
-    #     encounter_value = 0
-    #     new_option = {'value': encounter_value, 'label': 'Encounter '+ str(encounter_value) if encounter_value != 0 else 'Nominal Encounter'}
-    #     if options is None or options == []:
-    #         options = [new_option]
-    #     elif new_option not in options:
-    #         options.append(new_option)
-    #     return options
     
     return dash.no_update
 
@@ -1270,9 +1254,8 @@ def update_encounter_dropdown(memory_data, options): #end_new_n_clicks,
                State('create-new-button', 'n_clicks'),
                State('memory-data', 'data')])
 def update_ac_dropdown(upload_n_clicks, create_n_clicks, encounter_id_selected, end_new_n_clicks, ac_value, options, start_new_n_clicks, memory_data):
-    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     
-    # print('update_ac_dropdown: ', ctx)
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'load-waypoints-button':
         if upload_n_clicks > 0:
@@ -1345,7 +1328,7 @@ def update_dropdowns_value(encounter_id_selected, upload_n_clicks, create_n_clic
             print("Enter an AC ID to create new nominal path")
         else:
             ac_selected.append(ac_value)
-            return 0, ac_selected #[encounter_value], 
+            return 0, ac_selected 
 
     elif ctx == 'generate-button':
         # entered generation mode - clear dropdown values
@@ -1487,7 +1470,7 @@ def update_map(data, ref_data, current_polylines):
 
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    if ctx == 'editable-table': # or ctx == 'ref-data':
+    if ctx == 'editable-table':
         # data has changed - must update map polylines
         new_polylines = []
         
@@ -1574,8 +1557,6 @@ def create_markers(dbl_click_lat_lng, start_new_n_clicks, encounter_options, ac_
         return dash.no_update
     ctx = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    # print('create_markers: ', ctx)
-
     if ctx == 'map':
         if create_n_clicks > 0 and start_new_n_clicks > 0:
             if ac_value is not None and zUp_val is not None:
@@ -1637,10 +1618,6 @@ def update_marker(new_positions, current_marker_tools, ref_data):
 
         index = json.loads(ctx)['index']
         lat, lng = new_positions[index]
-        # xEast, yNorth, zUp = pm.geodetic2enu(pos[0], pos[1], ref_data['ref_alt']*FT_TO_M, 
-        #                                     ref_data['ref_lat'], ref_data['ref_long'], ref_data['ref_alt']*FT_TO_M,
-        #                                     ell=pm.Ellipsoid('wgs84'), deg=True)
-        # current_marker_tools[index] = dl.Tooltip("({:.3f}, {:.3f})".format(*[xEast, yNorth]))
         current_marker_tools[index] = dl.Tooltip(f"({lat:.3f}{chr(176)}, {lng:.3f}{chr(176)})")
     return current_marker_tools
 
@@ -1929,9 +1906,8 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
                State('num-encounters-input', 'value'),
                State('ref-data', 'data'),
                State('memory-data', 'data')])
-               #State('file-path-input', 'value')])
 def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
-                        exp_kernel_c, num_encounters, ref_data, memory_data): #, file_path):
+                        exp_kernel_c, num_encounters, ref_data, memory_data): 
     
     file_path = DEFAULT_DATA_FILE_PATH
     
@@ -1998,8 +1974,7 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               Output('log-histogram-ac-2-tz', 'figure')],
               Input('generated-data', 'data'),
               State('ref-data', 'data'))
-              #State('file-path-input', 'value'))
-def on_generation_update_log_histograms(generated_data, ref_data): #, file_path):
+def on_generation_update_log_histograms(generated_data, ref_data): 
 
     return px.density_heatmap(), px.density_heatmap(), px.density_heatmap(), px.density_heatmap()
 
@@ -2032,12 +2007,9 @@ def create_histogram(df_data, x, y):
                State('ref-data', 'data'),
                State('editable-table', 'data'),
                State('load-model', 'contents')],
-               #State('file-path-input', 'value')],
                 prevent_initial_call=True)
 def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_save, dat_file_units, memory_data,\
-                            waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents): #, file_path):
-    
-    # FIXME: I need to incorporate this into the settings page!
+                            waypoints_contents, loaded_filename, generated_data, ref_data, table_data, model_contents): 
     
     file_path = DEFAULT_DATA_FILE_PATH
 
@@ -2078,9 +2050,8 @@ def on_click_save_dat_file(save_n_clicks, nom_ac_ids, dat_filename, files_to_sav
                 State('save-json-filename', 'value'),
                 State('file-checklist', 'value'),
                 State('ref-data', 'data')],
-                #State('file-path-input', 'value')],
                 prevent_initial_call=True)
-def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save, ref_data): #, file_path):
+def on_click_save_json_file(save_n_clicks, generated_data, cov_radio_val, sigma_hor, sigma_ver, a, b, c, json_filename, files_to_save, ref_data): 
 
     # SAME ISSUE HERE AS ABOVE
     file_path = DEFAULT_DATA_FILE_PATH
@@ -2191,13 +2162,13 @@ def render_content(active_tab):
     off = {'display': 'none'}
 
     if active_tab == 'tab-1':
-        return on, off, off #, off
+        return on, off, off 
     elif active_tab == 'tab-2':
-        return off, on, off #, off
+        return off, on, off 
     elif active_tab == 'tab-3':
-        return off, off, off # on, off
+        return off, off, off 
     elif active_tab == 'tab-4':
-        return off, off, on #, on
+        return off, off, on
     
     if not active_tab:
         print("No tab actively selected")
