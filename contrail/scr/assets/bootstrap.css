@@ -662,10 +662,8 @@ br {
   flex-basis: 0;
   flex-grow: 1;
   max-width: 100%;
-  /* width: 80rem; */
   height: 39rem;
   margin-left: 0;
-  /* background-color: #35353642; */
 }
 
 .row-cols-1 > * {
@@ -7721,6 +7719,11 @@ button.bg-dark:focus {
 .mt-4,
 .my-4 {
   margin-top: 1.5rem !important;
+}
+
+.mt-4-5,
+.my-4-5 {
+  margin-top: 2rem !important;
 }
 
 .mr-4,

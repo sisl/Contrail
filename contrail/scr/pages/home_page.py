@@ -57,15 +57,15 @@ load_generate_save_buttons = dbc.Container(
                 html.Label([
                         
                         dcc.Upload(id='load-waypoints', children = 
-                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-1"))#, style={'margin-left':'10px'}))
+                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-1"))
                     ])],
                 width={"size": 'auto', "order": 1}),
 
-            dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning", className="ml-2"), #, style={'margin-left':'15px'}), 
+            dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning", className="ml-2"), 
                 width={'size':'auto', 'order':2}),
 
             dbc.Col([
-                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="success", className="ml-2"), #, style={'margin-left':'130px'}),
+                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="success", className="ml-2"),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')],
                     width={"size": 'auto', "order": 3}),
@@ -100,11 +100,6 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
 
                                 dbc.Row([
                                     dbc.Col(
-                                        # dcc.Loading(parent_className='loading-graph-xy', 
-                                        # children=[dcc.Graph(id='editable-graph-xy-slider', figure=px.line())],
-                                        # type='circle',
-                                        # color='white'
-                                        # )
                                         dcc.Graph(id='editable-graph-xy-slider', figure=px.line())
                                     )
                                 ],justify='center')
@@ -123,11 +118,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
 
                                 dbc.Row([
                                     dbc.Col(
-                                        dcc.Loading(parent_className='loading-graph-tz', 
-                                        children=[dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')],
-                                        type='circle',
-                                        color='white'
-                                        )  
+                                        dcc.Graph(id='editable-graph-tz-slider', figure=px.line(), className='six columns')
                                     )
                                 ],justify='center')
                             ])
@@ -154,11 +145,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
 
                                 dbc.Row([
                                     dbc.Col(
-                                        dcc.Loading(parent_className='loading-graph-tdistxy', 
-                                        children=[dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())],
-                                        type='circle',
-                                        color='white'
-                                        ) 
+                                        dcc.Graph(id='editable-graph-tdistxy-slider', figure=px.line())
                                     )
                                 ],
                                 justify='center')
@@ -178,11 +165,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
 
                                 dbc.Row([
                                     dbc.Col(
-                                        dcc.Loading(parent_className='loading-graph-tdistz', 
-                                        children=[dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')],
-                                        type='circle',
-                                        color='white'
-                                        ) 
+                                        dcc.Graph(id='editable-graph-tdistz-slider', figure=px.line(), className='two columns')
                                     )
                                 ],justify='center')
                             ])
@@ -205,11 +188,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
 
                                 dbc.Row([
                                     dbc.Col(
-                                        dcc.Loading(parent_className='loading-graph-tspeedxy', 
-                                        children=[dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line())],
-                                        type='circle',
-                                        color='white'
-                                        ) 
+                                        dcc.Graph(id='editable-graph-tspeedxy-slider', figure=px.line())
                                     )
                                 ],justify='center')
                             ])
@@ -226,11 +205,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
 
                                 dbc.Row([
                                     dbc.Col(
-                                        dcc.Loading(parent_className='loading-graph-tspeedz', 
-                                        children=[dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line())],
-                                        type='circle',
-                                        color='white'
-                                        ) 
+                                        dcc.Graph(id='editable-graph-tspeedz-slider', figure=px.line())
                                     )
                                 ],justify='center')
                             ])
@@ -254,12 +229,8 @@ tab_2_graphs = html.Div(id='tab-2-graphs', children=[
                             ],justify='center'),
 
                             dbc.Row([
-                                dbc.Col(
-                                    dcc.Loading(parent_className='loading-graph-xyz', 
-                                    children=[dcc.Graph(id='editable-graph-xyz-slider', figure=px.line_3d())],
-                                    type='circle',
-                                    color='white'
-                                    )    
+                                dbc.Col( 
+                                    dcc.Graph(id='editable-graph-xyz-slider', figure=px.line_3d()) 
                                 )
                             ],justify='center')
                         ])
@@ -286,11 +257,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
                         dbc.Row([
                             dbc.Col(
-                                dcc.Loading(parent_className='loading-hist-ac-1-xy', 
-                                children=[dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())],
-                                type='circle',
-                                color='white'
-                                ) 
+                                dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())
                             )
                         ],justify='center')
                     ])
@@ -309,11 +276,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
                         dbc.Row([
                             dbc.Col(
-                                dcc.Loading(parent_className='loading-hist-ac-1-tz', 
-                                children=[dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap())],
-                                type='circle',
-                                color='white'
-                                ) 
+                                dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap())
                             )
                         ],justify='center')
                     ])
@@ -338,11 +301,7 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
                         dbc.Row([
                             dbc.Col(
-                                dcc.Loading(parent_className='loading-hist-ac-2-xy', 
-                                children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())],
-                                type='circle',
-                                color='white'
-                                ) 
+                                dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())
                             )
                         ],justify='center')
                     ])
@@ -360,12 +319,8 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         ],justify='center'),
 
                         dbc.Row([
-                            dbc.Col(
-                                dcc.Loading(parent_className='loading-hist-ac-2-tz', 
-                                children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap())],
-                                type='circle',
-                                color='white'
-                                )    
+                            dbc.Col( 
+                                dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap())
                             )
                         ],justify='center')
                     ])
@@ -762,12 +717,6 @@ save_modal = html.Div(id='save-modal-div', children=[
     ])
 
 layout = html.Div([
-
-    dcc.Loading(parent_className='loading_wrapper', 
-        children=[dcc.Store(id='generated-data', data={})],
-        type='circle',
-        color='#f39c12',
-        style={'margin-top':'200px'}),   
 
     load_generate_save_buttons,
     html.Br(),
