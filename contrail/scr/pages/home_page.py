@@ -14,6 +14,12 @@ from dash.dependencies import Input, Output, State, ALL
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
 
+import plotly.express as px
+import plotly.graph_objs as go
+
+import multiprocessing as mp
+from itertools import repeat
+
 import numpy as np
 import pandas as pd
 import pymap3d as pm
@@ -43,7 +49,7 @@ map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color=
 tabs = html.Div(id='tab-div', children=[
         dbc.Tabs(id="tabs",
                 children=[
-                    dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs')
+                    dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs'),
                     dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph'),
                     dbc.Tab(id='tab-4', tab_id='tab-4',label='Statistics') 
                 ],
@@ -255,7 +261,11 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
                         dbc.Row([
                             dbc.Col(
-                                dcc.Graph(id='log-histogram-ac-1-xy', figure=px.density_heatmap())
+                                dcc.Loading(parent_className='loading-hist-ac-1-xy', 
+                                children=[dcc.Graph(id='log-histogram-ac-1-xy', figure=go.Figure())],
+                                type='circle',
+                                color='white'
+                                ) 
                             )
                         ],justify='center')
                     ])
@@ -274,7 +284,11 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
                         dbc.Row([
                             dbc.Col(
-                                dcc.Graph(id='log-histogram-ac-1-tz', figure=px.density_heatmap())
+                                dcc.Loading(parent_className='loading-hist-ac-1-tz', 
+                                children=[dcc.Graph(id='log-histogram-ac-1-tz', figure=go.Figure())],
+                                type='circle',
+                                color='white'
+                                ) 
                             )
                         ],justify='center')
                     ])
@@ -299,7 +313,11 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
                         dbc.Row([
                             dbc.Col(
-                                dcc.Graph(id='log-histogram-ac-2-xy', figure=px.density_heatmap())
+                                dcc.Loading(parent_className='loading-hist-ac-2-xy', 
+                                children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=go.Figure())],
+                                type='circle',
+                                color='white'
+                                ) 
                             )
                         ],justify='center')
                     ])
@@ -317,8 +335,12 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         ],justify='center'),
 
                         dbc.Row([
-                            dbc.Col( 
-                                dcc.Graph(id='log-histogram-ac-2-tz', figure=px.density_heatmap())
+                            dbc.Col(
+                                dcc.Loading(parent_className='loading-hist-ac-2-tz', 
+                                children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=go.Figure())],
+                                type='circle',
+                                color='white'
+                                )    
                             )
                         ],justify='center')
                     ])
@@ -454,7 +476,9 @@ data_table = html.Div(id='data-table-div', children =[
                                 {"name": 'yNorth (NM)', "id": 'yNorth', 'editable': True, 'type':'numeric', 'format': {'specifier': '.2~f'}},
                                 {"name": f'latitude ({chr(176)})', "id": 'lat', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
                                 {"name": f'longitude ({chr(176)})', "id": 'long', 'editable': True, 'type':'numeric', 'format': {'specifier': '.3~f'}},
-                                {"name": 'zUp/altitude   (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                {"name": 'zUp/ altitude (ft)', "id": 'zUp', 'editable': True,'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                {"name": f'Heading ({chr(176)})', "id": 'heading', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
+                                {"name": f'Turn rate ({chr(176)}/s)', "id": 'turn_rate', 'editable': False, 'type':'numeric', 'format': {'specifier': '.3~f'}},
                                 {"name": 'Horizontal Speed  (kt)', "id": 'horizontal_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}},
                                 {"name": 'Vertical Speed (ft/min)', "id": 'vertical_speed', 'editable': False, 'type':'numeric', 'format': {'specifier': '.2~f'}}],
                             editable = True,
@@ -468,7 +492,7 @@ data_table = html.Div(id='data-table-div', children =[
                 dbc.CardFooter([
                     dbc.Button('Add Row', id='add-rows-button', className='ml-0', n_clicks=0, color='light'),
                     dbc.Button('DONE', id='done-add-rows-button', className='ml-1', n_clicks=0, color='light', style={'display':'none'}),
-                    dbc.Button('Update Speeds', id='update-speeds-button', className='ml-4', n_clicks=0, color='light')
+                    dbc.Button('Update Turnrate/Speeds', id='update-speeds-button', className='ml-4', n_clicks=0, color='light')
                 ]),
             ], 
             color='primary',
@@ -526,11 +550,23 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                 html.Label([
                     dcc.Upload(id='load-model', children = 
                             dbc.Button('Load Model (.json)', id='load-model-button', n_clicks=0))
-                ])
+                ]),
             ], style={"margin-left": "20px", 'display':'inline-block', 'margin-top':'15px'}),
             dcc.Markdown(("---")),
-            html.Br(),
+            # html.Br(),
             
+            dcc.Markdown(("""Coordinates:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
+            html.Div([
+                dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
+                dcc.RadioItems(id='coord-radio', 
+                    options=[{'label': '3D Position', 'value': 'coord-radio-pos'},
+                            {'label': 'Turn rate & Speeds', 'value': 'coord-radio-turn'}],
+                    inputStyle={"margin-right": "5px"},
+                    labelStyle={'display': 'inline-block', "margin-right": "10px"},
+                    style={"margin-left": "15px"}),
+            ], style={"margin-left": "20px"}, className  = 'row'),
+            html.Br(),
+
             # mean (nominal paths)
             dcc.Markdown(("""Mean:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
@@ -547,17 +583,16 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                         style={"margin-left": "12px", "width": "100%"}),
                 ], style={"margin-left": "30px"})
             ], className  = 'row'),
-            
-
-            # covariance
             html.Br(),
+            
+            # covariance
             dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
                 dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
                 dcc.RadioItems(id='cov-radio', 
                     options=[{'label': 'Diagonal', 'value': 'cov-radio-diag'},
-                            {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
-                    # value='cov-radio-exp',
+                            {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'},
+                            {'label': 'Truncated', 'value': 'cov-radio-trunc'}],
                     inputStyle={"margin-right": "5px"},
                     labelStyle={'display': 'inline-block', "margin-right": "10px"},
                     style={"margin-left": "15px"}),
@@ -585,11 +620,11 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                     #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
                     dbc.Row(className='', children=[
                         dbc.Col(className='', children=[
-                            html.H5('$\sigma_h$', style={"color": "#3273F6"}),
+                            html.H5('\( \sigma_h \)', style={"color": "#3273F6", "margin-left": "5px"}),
                             dbc.Input(id='diag-sigma-input-hor', type='number', placeholder='default sigma_hor = 0.05', debounce=True, pattern=u"^(0?\.?\d+)$", value=0.05),
                         ], width=2),
                         dbc.Col(className='', children=[
-                            html.H5('$\sigma_v$', style={"color": "#3273F6"}),
+                            html.H5('\( \sigma_v \)', style={"color": "#3273F6", "margin-left": "5px"}),
                             dbc.Input(id='diag-sigma-input-ver', type='number', placeholder='default sigma_ver = 10.0', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
                         ], width=2)
                     ], 
@@ -604,15 +639,15 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                     #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
                     dbc.Row(className='', children=[
                         dbc.Col(className='', children=[
-                            html.H5('$l$', style={"color": "#3273F6"}),
+                            html.H5('\( l \)', style={"color": "#3273F6", "margin-left": "5px"}),
                             dbc.Input(id='exp-kernel-input-a', type='number', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
                         ], width=2),
                         dbc.Col(className='', children=[
-                            html.H5('$w_h$', style={"color": "#3273F6"}),
+                            html.H5('\( w_h \)', style={"color": "#3273F6", "margin-left": "5px"}),
                             dbc.Input(id='exp-kernel-input-b', type='number', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
                         ], width=2),
                         dbc.Col(className='', children=[
-                            html.H5('$w_v$', style={"color": "#3273F6"}),
+                            html.H5('\( w_v \)', style={"color": "#3273F6", "margin-left": "5px"}),
                             dbc.Input(id='exp-kernel-input-c', type='number', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
                         ], width=2)
                     ], 
@@ -621,10 +656,10 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                 style={"margin-left": "35px"})
             ],
             style={"display":"none"}, className  = 'row'), #, "margin-bottom":"10px"}
+            dcc.Markdown(("---")),
+            # html.Br(),
 
-            
             # number of encounter sets to generate
-            html.Br(),
             dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
             dbc.Input(id='num-encounters-input', type='number', placeholder='', min=0, 
                 debounce=True,
@@ -633,7 +668,6 @@ generation_modal = html.Div(id='gen-modal-div', children=[
             
             # generation progress bar
             html.Br(),
-
             html.Br(),
 
             dbc.ModalFooter(children=[
@@ -819,7 +853,6 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
                 'type':'created'}
     
     elif ctx == 'load-waypoints' and upload_n_clicks > 0:
-
         if not loaded_filename:
             return {}
 
@@ -1047,7 +1080,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
             enc_data = parse_enc_data(memory_data, [encounter_id_selected], ac_ids_to_grab, ref_data, file_path)
             enc_data_df = pd.DataFrame(enc_data)
             enc_data_df_sorted = enc_data_df.sort_values(by=['ac_id', 'time'])
-            enc_data_df = calculate_horizontal_vertical_speeds_df(enc_data_df_sorted)
+            enc_data_df = calculate_turnrate_hor_ver_speeds_df(enc_data_df_sorted)
             return enc_data_df.to_dict('records'), columns
 
     elif ctx == 'create-mode' and create_n_clicks > 0 and end_new_n_clicks == 0:
@@ -1055,8 +1088,8 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
         return [], columns
 
     elif ctx == 'update-speeds-button' and update_speeds_n_clicks > 0:
-        df = pd.DataFrame(table_data) 
-        df = calculate_horizontal_vertical_speeds_df(df)
+        df = pd.DataFrame(table_data) #.apply(pd.to_numeric, errors='coerce').fillna(0)
+        df = calculate_turnrate_hor_ver_speeds_df(df)
         return df.to_dict('records'), columns
 
     elif ctx == 'add-rows-button' and create_n_clicks == 0:
@@ -1070,7 +1103,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
         data = populate_lat_lng_xEast_yNorth(table_data, ref_data)
         df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
         df = df.sort_values(by=['ac_id', 'time'])
-        df = calculate_horizontal_vertical_speeds_df(df)
+        df = calculate_turnrate_hor_ver_speeds_df(df)
         return df.to_dict('records'), columns
 
     elif ctx == 'marker-layer' and create_n_clicks > 0 and start_new_n_clicks > 0:
@@ -1078,7 +1111,6 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
             or not ref_data['ref_lat'] or not ref_data['ref_long']\
             or not ref_data['ref_alt'] or not interval or not zUp_input:
                 return dash.no_update, dash.no_update
-        
         
         df = pd.DataFrame(table_data)
         if 'ac_id' not in df.keys() or (len(df.loc[df['ac_id'] == ac_value]) != len(current_markers)):
@@ -1100,7 +1132,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
             marker_dict = {'encounter_id': 0, 'ac_id': ac_value, 'time': timestep, 
                             'xEast': xEast*M_TO_NM, 'yNorth': yNorth*M_TO_NM,
                             'lat':pos[0], 'long':pos[1], 'zUp': zUp_input,
-                            'horizontal_speed': 0, 'vertical_speed': 0}
+                            'heading': 0, 'turn_rate': 0, 'horizontal_speed': 0, 'vertical_speed': 0}
             table_data.append(marker_dict)
         else:
             # an already existing marker was dragged
@@ -1131,7 +1163,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
         if end_new_n_clicks > 0: 
             if table_data != []:
                 df = pd.DataFrame(table_data) 
-                df = calculate_horizontal_vertical_speeds_df(df)
+                df = calculate_turnrate_hor_ver_speeds_df(df)
                 return df.to_dict('records'), columns
         
     return dash.no_update, dash.no_update
@@ -1779,6 +1811,8 @@ def reset_gen_modal_nominal_dropdown_values(gen_n_clicks, contents, ac_options):
                 Output('num-encounters-input', 'value')],
                 Input('load-model', 'contents'))
 def gen_modal_load_in_model(contents):
+    ## TODO: Add 'coord-radio' to the output.
+
     if contents is not None:
         content_type, content_string = contents.split(',')
         
@@ -1808,7 +1842,7 @@ def render_gen_modal_covarience_popover_content(cov_radio_value):
 
     if cov_radio_value == 'cov-radio-diag':
 
-        content = '$\\begin{equation*} \
+        content = '\\begin{equation*} \
                     \Sigma = \\begin{bmatrix} \
                         k(x_1, x\'_1) & k(x_1, y\'_1) & \\cdots  & k(x_1, z\'_n) \\\\ \
                         k(y_1, x\'_1) & k(y_1, y\'_1) &          & \\vdots       \\\\ \
@@ -1823,7 +1857,7 @@ def render_gen_modal_covarience_popover_content(cov_radio_value):
                         k(z_i, z\'_j) = \sigma_v \\\\ \
                         \\text{0 otherwise.} \
                     \\end{cases} \
-            \\end{equation*}$'
+            \\end{equation*}'
 
         popover_content = [
             dbc.PopoverHeader("Diagonal Covariance", style={"text-align":"center"}),
@@ -1833,7 +1867,7 @@ def render_gen_modal_covarience_popover_content(cov_radio_value):
 
     elif cov_radio_value == 'cov-radio-exp':
 
-        content = '$\\begin{equation*} \
+        content = '\\begin{equation*} \
                     K = \\begin{bmatrix} \
                         k(x_1, x\'_1) & k(x_1, y\'_1) & \\cdots  & k(x_1, z\'_n) \\\\ \
                         k(y_1, x\'_1) & k(y_1, y\'_1) &          & \\vdots       \\\\ \
@@ -1848,7 +1882,7 @@ def render_gen_modal_covarience_popover_content(cov_radio_value):
                         \\text{Other elements:      } k(x_i, z\'_j) = 0 \\\\ \
                         x \\text{\'s and } y \\text{\'s are interchangable.}& \
                     \\end{cases} \
-            \\end{equation*}$'
+            \\end{equation*}'
 
         popover_content = [
             dbc.PopoverHeader("Exponenetial Kernel Covariance", style={"text-align":"center"}),
@@ -1862,6 +1896,9 @@ def render_gen_modal_covarience_popover_content(cov_radio_value):
               Output('cov-exp-kernel-input-container', 'style'),
               Input('cov-radio', 'value'))
 def toggle_covariance_type(cov_radio_value):
+    # TODO: Add Truncated Gaussian type. Add coord-radio as input.
+    # TODO: If coord-radio-pos: {diag, exp}. If coord-radio-turn: {exp, trunc}.
+
     on = {'display': 'block'}
     off = {'display': 'none'}
     
@@ -1895,7 +1932,8 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
 
 @app.callback(Output('generated-data', 'data'),
               Input('generate-button', 'n_clicks'),
-              [State('nominal-path-enc-ids', 'value'),
+              [State('coord-radio', 'value'),  ## Added
+               State('nominal-path-enc-ids', 'value'),
                State('nominal-path-ac-ids', 'value'),
                State('cov-radio', 'value'),
                State('diag-sigma-input-hor', 'value'),
@@ -1906,16 +1944,18 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
                State('num-encounters-input', 'value'),
                State('ref-data', 'data'),
                State('memory-data', 'data')])
-def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
+def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
                         exp_kernel_c, num_encounters, ref_data, memory_data): 
-    
-    file_path = DEFAULT_DATA_FILE_PATH
     
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
         if gen_n_clicks > 0:
 
+            print('\n--GENERATING ENCOUNTERS--\n')
+            start = time.time()
+            file_path = DEFAULT_DATA_FILE_PATH
+            
             # error checking
             if generation_error_found(memory_data['type'], nom_ac_ids, num_encounters, cov_radio_value, 
                                         sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b, exp_kernel_c):
@@ -1924,14 +1964,23 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
             nom_enc_data = parse_enc_data(memory_data, [nom_enc_id], nom_ac_ids, ref_data, file_path)
             df = pd.DataFrame(nom_enc_data)
 
-            kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
+            data = populate_lat_lng_xEast_yNorth(df.to_dict('records'), ref_data)
+            df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
+            df_sorted = df.sort_values(by=['ac_id', 'time'])
+            df = calculate_turnrate_hor_ver_speeds_df(df_sorted)
+
+            if coord_radio_value == 'coord-radio-pos':
+                kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
+            elif coord_radio_value == 'coord-radio-turn':
+                kernel_inputs = [ [ [waypoint['turn_rate'], waypoint['horizontal_speed'], waypoint['vertical_speed']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
+
             ac_times = [ [waypoint['time'] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
 
             if cov_radio_value == 'cov-radio-diag':
                 cov = [ [sigma_hor, 0, 0], 
                         [0, sigma_hor, 0], 
                         [0, 0, sigma_ver] ]
-
+ 
                 # generate waypoints
                 generated_waypoints = np.array([ [np.random.multivariate_normal(mean,cov,num_encounters) for mean in ac] for ac in kernel_inputs])
 
@@ -1953,17 +2002,22 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
                     
                     # include nominal encounter
                     generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
-
+            print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
+            
+            start = time.time()
             generated_data_filename = 'generated_data.dat'
-            enc_data_indices = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
+            enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
+            print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
 
             return {'filename':generated_data_filename,
                     'encounter_indices':enc_data_indices,
+                    'minmax_hist':minmax_hist,
                     'ac_ids':nom_ac_ids,
                     'num_encounters': num_encounters+1, #include nominal path
                     'type':'generated'}
 
     return dash.no_update
+
 
 ###########################################################################################
 # HISTOGRAM CALLBACKS #
@@ -1972,23 +2026,53 @@ def generate_encounters(gen_n_clicks, nom_enc_id, nom_ac_ids, cov_radio_value, s
               Output('log-histogram-ac-1-tz', 'figure'),
               Output('log-histogram-ac-2-xy', 'figure'),
               Output('log-histogram-ac-2-tz', 'figure')],
-              Input('generated-data', 'data'),
-              State('ref-data', 'data'))
-def on_generation_update_log_histograms(generated_data, ref_data): 
+              Input('generated-data', 'data'))
+              #State('file-path-input', 'value'))
+def on_generation_update_log_histograms(generated_data): #, file_path):
+   
+    print('\n--CREATING HISTOGRAMS--\n')
+    start = time.time()
 
-    return px.density_heatmap(), px.density_heatmap(), px.density_heatmap(), px.density_heatmap()
+    generated_data_filename = generated_data['filename']  #'generated_data.dat'
+    enc_indices = generated_data['encounter_indices']
+    minmax_hist = generated_data['minmax_hist']
+    ac_ids = generated_data['ac_ids']
+    num_encounters = generated_data['num_encounters']
+
+    ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
+        t_edges, x_edges, y_edges, z_edges = stream_count_histograms(generated_data_filename, \
+        enc_indices, minmax_hist, num_encounters, ac_ids)
+    
+    bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
+    x_labels = ['xEast', 'time','xEast', 'time']
+    y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
+    x_axes = [x_edges, t_edges, x_edges, t_edges]
+    y_axes = [y_edges, z_edges, y_edges, z_edges]
+
+    num_processes = mp.cpu_count()
+    pool = mp.Pool(num_processes)
+
+    histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
+    print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
+
+    pool.close()
+    pool.join()
+
+    return histograms
 
 
-def create_histogram(df_data, x, y):
-    colors = px.colors.sequential.gray #Blues
+def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
 
-    if x == 'xEast' and y == 'yNorth':
-        return px.density_heatmap(df_data, x=x, y=y, nbinsx=100, nbinsy=100, 
-                            labels={'xEast':'xEast (NM)', 'yNorth':'yNorth (NM)'}, color_continuous_scale=colors)
-
-    if x == 'time' and y == 'zUp':
-        return px.density_heatmap(df_data, x=x, y=y, nbinsx=100, nbinsy=100, 
-                            labels={'time':'Time (s)', 'zUp':'zUp (ft)'}, color_continuous_scale=colors)
+    if x_label == 'xEast' and y_label == 'yNorth':
+        return {
+            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, colorscale='Viridis')], 
+            'layout': go.Layout(xaxis_title="xEast (NM)", yaxis_title="yNorth (NM)")
+        }
+    if x_label == 'time' and y_label == 'zUp':
+        return {
+            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, colorscale='Viridis')], 
+            'layout': go.Layout(xaxis_title="Time (s)", yaxis_title="zUp (ft)")
+        }
 
 
 ###########################################################################################
