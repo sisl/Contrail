@@ -2153,12 +2153,16 @@ def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
 
     if x_label == 'xEast' and y_label == 'yNorth':
         return {
-            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, colorscale='Viridis')], 
+            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, 
+                                colorscale=[[0, '#2c3e50'], 
+                                            [1, '#ffffff']])],
             'layout': go.Layout(xaxis_title="xEast (NM)", yaxis_title="yNorth (NM)")
         }
     if x_label == 'time' and y_label == 'zUp':
         return {
-            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, colorscale='Viridis')], 
+            'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes,
+                                colorscale=[[0, '#2c3e50'], 
+                                            [1, '#ffffff']])],
             'layout': go.Layout(xaxis_title="Time (s)", yaxis_title="zUp (ft)")
         }
 
