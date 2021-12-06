@@ -87,6 +87,7 @@ encounter_ac_dropdowns = dbc.Container(
             dbc.Col(dcc.Dropdown(id='ac-ids', placeholder="Select AC ID(s)", multi=True,  className='ml-2'),
                     width={"size": 2}),
         ],
+        style={'width':'122rem'},
         justify='left',
         no_gutters=True),
     fluid=True
@@ -402,6 +403,7 @@ map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
                                         dl.LayerGroup(id='polyline-layer', children=[]),
                                         dl.LayerGroup(id='marker-layer', children=[], attribution='off')], 
                                         doubleClickZoom=False,
+                                        zoomControl=False,
                                         style={'width':'37.7rem', 'height':'28rem'}))
                         ],justify='center'),
 
@@ -559,8 +561,9 @@ generation_modal = html.Div(id='gen-modal-div', children=[
             html.Div([
                 dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
                 dcc.RadioItems(id='coord-radio', 
-                    options=[{'label': '3D Position', 'value': 'coord-radio-pos'},
-                            {'label': 'Turn rate & Speeds', 'value': 'coord-radio-turn'}],
+                    options=[{'label': '3D Position', 'value': 'coord-radio-pos'}],
+                            #{'label': 'Turn rate & Speeds', 'value': 'coord-radio-turn'}],
+                    value='coord-radio-pos',
                     inputStyle={"margin-right": "5px"},
                     labelStyle={'display': 'inline-block', "margin-right": "10px"},
                     style={"margin-left": "15px"}),
@@ -591,8 +594,9 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                 dcc.Markdown(("""Select one type:"""), style={"margin-left": "5px"}),
                 dcc.RadioItems(id='cov-radio', 
                     options=[{'label': 'Diagonal', 'value': 'cov-radio-diag'},
-                            {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'},
-                            {'label': 'Truncated', 'value': 'cov-radio-trunc'}],
+                            {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
+                            #{'label': 'Truncated', 'value': 'cov-radio-trunc'}],
+                    #value='cov-radio-exp',
                     inputStyle={"margin-right": "5px"},
                     labelStyle={'display': 'inline-block', "margin-right": "10px"},
                     style={"margin-left": "15px"}),
@@ -757,49 +761,42 @@ layout = html.Div([
     html.Br(),
 
     dbc.Container([
-        dbc.Row([
-            dbc.Col(className='', children=[  
-                
-                dbc.Container([
-                    dbc.Row([tabs],
-                    no_gutters=True),
-                
-                    dbc.Row([
-                        dbc.Col(className='col-scrollable', children=[
-                            tab_1_graphs,
-
-                            tab_2_graphs,
-
-                            tab_4_graphs
-                        ])
-                    ],
-                    style={'margin-left':'-2rem'}),
-
-                    html.Br(),
-                    html.Br(),
-                    dbc.Row([
-                        dbc.Col([
-                            slider_bar
-                        ])
-                    ])
-                ], 
-                fluid=True),
-            ], 
-            width='auto'),
-            
-            dbc.Col(className='pl-3', children=[
+        dbc.Row(className='m-0 p-0', children=[
+            dbc.Col(className='ml-3 mr-0 p-1', children=[
                 map_ref_point_and_create_mode,
 
                 html.Br(),
 
                 data_table
 
+            ]), 
+            
+            dbc.Col(className='ml-1', children=[  
+                
+                dbc.Container([
+                    dbc.Row(className = 'ml-1 p-0', children=[tabs], no_gutters=True),
+                
+                    dbc.Row([
+                        dbc.Col(className='col-scrollable ml-1 p-0', children=[
+                            tab_1_graphs,
+
+                            tab_2_graphs,
+
+                            tab_4_graphs
+                        ])
+                    ]),
+
+                    html.Br(),
+                    html.Br(),
+                    dbc.Row([
+                        dbc.Col([slider_bar])
+                    ])
+                ], 
+                fluid=True),
             ], 
-            width='auto',
-            style={'margin-left':'0px'})
+            width='auto')
         ], 
-        no_gutters=True,
-        style={'margin-left':'-10px'})
+        no_gutters=True)
     ], 
     fluid=True),
 
@@ -2027,8 +2024,7 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
               Output('log-histogram-ac-2-xy', 'figure'),
               Output('log-histogram-ac-2-tz', 'figure')],
               Input('generated-data', 'data'))
-              #State('file-path-input', 'value'))
-def on_generation_update_log_histograms(generated_data): #, file_path):
+def on_generation_update_log_histograms(generated_data):
    
     print('\n--CREATING HISTOGRAMS--\n')
     start = time.time()
