@@ -110,18 +110,13 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
 
     minmax_hist = np.array(minmax_hist)
     t_minmax, x_minmax, y_minmax, z_minmax = minmax_hist.T[0], minmax_hist.T[1], minmax_hist.T[2], minmax_hist.T[3]
-    # print('t', t_minmax)
-    # print('x', x_minmax)
-    # print('y', y_minmax)
-    # print('z', z_minmax)
-
-    z_minmax = [1400, 1900]
+    z_1_minmax = [1400, 1900]
 
     t_bin_width = (t_minmax[1]-t_minmax[0]) / NUM_BINS_HISTOGRAM
     x_bin_width = (x_minmax[1]-x_minmax[0]) / NUM_BINS_HISTOGRAM
     y_bin_width = (y_minmax[1]-y_minmax[0]) / NUM_BINS_HISTOGRAM
     z_bin_width = (z_minmax[1]-z_minmax[0]) / NUM_BINS_HISTOGRAM
-    print('z_bin_width', z_bin_width)
+    z_1_bin_width = (z_1_minmax[1]-z_1_minmax[0]) / NUM_BINS_HISTOGRAM
     
     ac_1_xy_bin_counts = np.empty((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
     ac_1_tz_bin_counts = np.empty((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
@@ -132,6 +127,7 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
     x_edges = np.linspace(x_minmax[0], x_minmax[1], num=NUM_BINS_HISTOGRAM+1, endpoint=True)
     y_edges = np.linspace(y_minmax[0], y_minmax[1], num=NUM_BINS_HISTOGRAM+1, endpoint=True)
     z_edges = np.linspace(z_minmax[0], z_minmax[1], num=NUM_BINS_HISTOGRAM+1, endpoint=True)
+    z_1_edges = np.linspace(z_1_minmax[0], z_1_minmax[1], num=NUM_BINS_HISTOGRAM+1, endpoint=True)
         
     with open(filename, 'rb') as file:
         enc_data = file.read(2*INFO_BYTE_SIZE)
@@ -161,12 +157,14 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
             t_ind = (0 - t_minmax[0]) // t_bin_width
             # z_ind = (z_minmax[1] - z) // z_bin_width 
             z_ind = (z - z_minmax[0]) // z_bin_width
-            
+
             if ac == 1:
                 # ac_1_xy_bin_counts[int(x_ind), int(y_ind)] += 1
                 # ac_1_tz_bin_counts[0, int(z_ind)] += 1
                 ac_1_xy_bin_counts[int(y_ind), int(x_ind)] += 1
+                z_ind = (z - z_1_minmax[0]) // z_1_bin_width
                 ac_1_tz_bin_counts[int(z_ind), 0] += 1
+
             elif ac == 2:
                 # ac_2_xy_bin_counts[int(x_ind), int(y_ind)] += 1
                 # ac_2_tz_bin_counts[0, int(z_ind)] += 1
@@ -185,19 +183,20 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
             for i in range(num_updates): 
                 [time,x,y,z] = struct.unpack('dddd', enc_data[cursor:cursor+(WAYPOINT_BYTE_SIZE*UPDATE_DIM)])
                 x, y = x*FT_TO_NM, y*FT_TO_NM
-                # print('ac', ac, 't,x,y,z', time,x,y,z)
                     
                 x_ind = (x - x_minmax[0]) // x_bin_width    
                 y_ind = (y_minmax[1] - y) // y_bin_width 
                 t_ind = (time - t_minmax[0]) // t_bin_width
-                z_ind = (z - z_minmax[0]) // z_bin_width
                 # z_ind = (z_minmax[1] - z) // z_bin_width
+                z_ind = (z - z_minmax[0]) // z_bin_width
 
                 if ac == 1:
                     # ac_1_xy_bin_counts[int(x_ind), int(y_ind)] += 1
                     # ac_1_tz_bin_counts[int(t_ind), int(z_ind)] += 1
                     ac_1_xy_bin_counts[int(y_ind), int(x_ind)] += 1
+                    z_ind = (z - z_1_minmax[0]) // z_1_bin_width
                     ac_1_tz_bin_counts[int(z_ind), int(t_ind)] += 1
+
                 elif ac == 2:
                     # ac_2_xy_bin_counts[int(x_ind), int(y_ind)] += 1
                     # ac_2_tz_bin_counts[int(t_ind), int(z_ind)] += 1
@@ -207,7 +206,7 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
                 cursor += UPDATE_DIM * WAYPOINT_BYTE_SIZE
 
     return ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
-        t_edges, x_edges, y_edges, z_edges
+        t_edges, x_edges, y_edges, z_1_edges, z_edges
         
     
 # '''

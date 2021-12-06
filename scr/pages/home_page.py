@@ -2128,14 +2128,14 @@ def on_generation_update_log_histograms(generated_data): #, file_path):
     num_encounters = generated_data['num_encounters']
 
     ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
-        t_edges, x_edges, y_edges, z_edges = stream_count_histograms(generated_data_filename, \
+        t_edges, x_edges, y_edges, z_1_edges, z_edges = stream_count_histograms(generated_data_filename, \
         enc_indices, minmax_hist, num_encounters, ac_ids)
     
     bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
     x_labels = ['xEast', 'time','xEast', 'time']
     y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
     x_axes = [x_edges, t_edges, x_edges, t_edges]
-    y_axes = [y_edges, z_edges, y_edges, z_edges]
+    y_axes = [y_edges, z_1_edges, y_edges, z_edges]
 
     num_processes = mp.cpu_count()
     pool = mp.Pool(num_processes)
@@ -2154,15 +2154,15 @@ def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
     if x_label == 'xEast' and y_label == 'yNorth':
         return {
             'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, 
-                                colorscale=[[0, '#2c3e50'], 
-                                            [1, '#ffffff']])],
+                                colorscale=[[0,'#2c3e50'], 
+                                            [1,'#ffffff']])],
             'layout': go.Layout(xaxis_title="xEast (NM)", yaxis_title="yNorth (NM)")
         }
     if x_label == 'time' and y_label == 'zUp':
         return {
             'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes,
-                                colorscale=[[0, '#2c3e50'], 
-                                            [1, '#ffffff']])],
+                                colorscale=[[0,'#2c3e50'], 
+                                            [1,'#ffffff']])],
             'layout': go.Layout(xaxis_title="Time (s)", yaxis_title="zUp (ft)")
         }
 
