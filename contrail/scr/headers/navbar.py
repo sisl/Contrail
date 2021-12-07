@@ -23,6 +23,7 @@ def Navbar():
             dbc.Row([
                 dbc.Nav([
                     dbc.Row([
+                        
                         dbc.Col(dbc.NavItem(dbc.NavLink("Home", href="/home"))),
 
                         # NOTE: the settings page is a work in progress, will allow users
@@ -37,6 +38,7 @@ def Navbar():
                                 color='#fff',
                                 className="col-auto offset-4 mt-4-5")
                             ])
+                        
                         ])
                     ], 
                     className='navbar-nav')
