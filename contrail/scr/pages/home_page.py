@@ -51,7 +51,7 @@ tabs = html.Div(id='tab-div', children=[
                 children=[
                     dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs'),
                     dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph'),
-                    dbc.Tab(id='tab-4', tab_id='tab-4',label='Statistics') 
+                    dbc.Tab(id='tab-4', tab_id='tab-4',label='Statistics', disabled=True) 
                 ],
                 active_tab='tab-1'),
     ])
@@ -61,7 +61,7 @@ load_generate_save_buttons = dbc.Container(
             dbc.Col([
                 html.Label([
                         dcc.Upload(id='load-waypoints', children = 
-                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="primary", className="ml-1"))
+                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="success", className="ml-1"))
                     ])],
                 width={"size": 'auto', "order": 1}),
 
@@ -69,7 +69,7 @@ load_generate_save_buttons = dbc.Container(
                 width={'size':'auto', 'order':2}),
 
             dbc.Col([
-                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="success", className="ml-2"),
+                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary", className="ml-2"),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')],
                     width={"size": 'auto', "order": 3}),
@@ -409,7 +409,7 @@ map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
 
                         dbc.Row([
                             dbc.Col([
-                                dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='warning', style={'margin-top':'10px'}),
+                                dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='success', style={'margin-top':'10px'}),
                                 dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none', 'margin-top':'10px'})
                             ],
                             width={'size':'auto'}),
@@ -587,7 +587,8 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                 ], style={"margin-left": "30px"})
             ], className  = 'row'),
             html.Br(),
-            
+            html.Br(),
+            html.Br(),
             # covariance
             dcc.Markdown(("""Covariance:"""), style={'font-weight': 'bold', "margin-left": "20px"}),
             html.Div([
@@ -677,7 +678,7 @@ generation_modal = html.Div(id='gen-modal-div', children=[
             dbc.ModalFooter(children=[
                 dbc.Button("CLOSE", id="close-button"),
                 #dbc.Spinner(size='md', spinnerClassName='ml-auto', children=[html.Div(id='gen-spinner-output', children='nothin')]), #html.Div(id='gen-spinner-output')),
-                dbc.Button("GENERATE", id="generate-button", color='success', className="ml-auto", n_clicks=0)
+                dbc.Button("GENERATE", id="generate-button", color='warning', className="ml-auto", n_clicks=0)
                 ]
             ),
         ],
@@ -774,7 +775,7 @@ layout = html.Div([
             dbc.Col(className='ml-1', children=[  
                 
                 dbc.Container([
-                    dbc.Row(className = 'ml-1 p-0', children=[tabs], no_gutters=True),
+                    dbc.Row(className = 'ml-1 p-0 mt-1', children=[tabs], no_gutters=True),
                 
                     dbc.Row([
                         dbc.Col(className='col-scrollable ml-1 p-0', children=[
@@ -2025,7 +2026,6 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
               Output('log-histogram-ac-2-tz', 'figure')],
               Input('generated-data', 'data'))
 def on_generation_update_log_histograms(generated_data):
-   
     print('\n--CREATING HISTOGRAMS--\n')
     start = time.time()
 
@@ -2058,6 +2058,7 @@ def on_generation_update_log_histograms(generated_data):
 
 
 def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
+    
 
     if x_label == 'xEast' and y_label == 'yNorth':
         return {
@@ -2073,6 +2074,14 @@ def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
                                             [1,'#ffffff']])],
             'layout': go.Layout(xaxis_title="Time (s)", yaxis_title="zUp (ft)")
         }
+
+
+@app.callback(Output('tab-4','disabled'),
+                Input('generated-data', 'data'))
+def toggle_statistics_tab_disabled(gen_data):
+    if gen_data != []:
+        return False
+    return True
 
 
 ###########################################################################################
