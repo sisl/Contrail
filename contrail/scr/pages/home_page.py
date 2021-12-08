@@ -10,6 +10,7 @@ from dash import dash_table
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State, ALL
+import dash_daq as daq
 
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
@@ -31,7 +32,6 @@ import struct
 import base64
 import re
 
-from read_file import *
 from helpers.generate_helpers import *
 from helpers.parse_encounter_helpers import *
 from helpers.memory_data_helpers import *
@@ -50,29 +50,36 @@ tabs = html.Div(id='tab-div', children=[
         dbc.Tabs(id="tabs",
                 children=[
                     dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs'),
-                    dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph'),
-                    dbc.Tab(id='tab-4', tab_id='tab-4',label='Statistics', disabled=True) 
+                    dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph')
                 ],
                 active_tab='tab-1'),
     ])
 
-load_generate_save_buttons = dbc.Container(
+load_generate_save_buttons_and_toggle = dbc.Container(
         dbc.Row([
-            dbc.Col([
+            dbc.Col(className='ml-1', children=[
                 html.Label([
                         dcc.Upload(id='load-waypoints', children = 
-                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="success", className="ml-1"))
+                        dbc.Button('Load Waypoints (.dat)', id='load-waypoints-button', n_clicks=0, outline=False, color="light-blue"))
                     ])],
-                width={"size": 'auto', "order": 1}),
+                    width={"size": 'auto', "order": 1}),
 
-            dbc.Col(dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning", className="ml-2"), 
-                width={'size':'auto', 'order':2}),
+            dbc.Col(className='ml-2', children=[
+                dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning")
+            ],
+            width={'size':'auto', 'order':2}),              
 
-            dbc.Col([
-                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary", className="ml-2"),
+            dbc.Col(className="ml-2", children=[
+                    dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary"),
                     dcc.Download(id='download-waypoints'),
-                    dcc.Download(id='download-model')],
-                    width={"size": 'auto', "order": 3}),
+                    dcc.Download(id='download-model')
+            ],
+            width={'size':'auto', 'order':3}),
+
+            dbc.Col(className='ml-auto', children=[
+                daq.ToggleSwitch(id='vis-or-stats-switch', value=True, disabled=True, label=['Visualization', 'Generation Statistics'])
+            ], width={'size':'auto', 'order':4})
+            
         ],
         align='start',
         no_gutters=True),
@@ -97,7 +104,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
             dbc.Container([    
                 dbc.Row([ 
                     dbc.Col(className='pr-2', children=[
-                        dbc.Card(className='card-small-graphs', children=[
+                        dbc.Card(className='card-2d-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
                                     dbc.Col(html.H5("xEast vs. yNorth", className="card-title-1"))
@@ -109,13 +116,13 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                     )
                                 ],justify='center')
                             ])
-                        ], 
-                        color='primary',
-                        style={'width':'30rem', 'height':'32rem'}),
+                        ]), 
+                        # color='primary',
+                        # style={'width':'30rem', 'height':'32rem'}),
                     ], 
                     width='auto'),
-                    dbc.Col([
-                        dbc.Card([
+                    dbc.Col(children=[
+                        dbc.Card(className='card-2d-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
                                     dbc.Col(html.H5("Time vs. zUp", className="card-title-1"))
@@ -127,8 +134,9 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                     )
                                 ],justify='center')
                             ])
-                        ], color='primary',
-                        style={'width':'30rem', 'height':'32rem'}),
+                        ]),
+                        #  color='primary',
+                        # style={'width':'30rem', 'height':'32rem'}),
                     ], width='auto'),
 
                 ], 
@@ -141,7 +149,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
             dbc.Container([
                 dbc.Row([
                     dbc.Col(className='pr-2', children=[
-                        dbc.Card([
+                        dbc.Card(className='card-2d-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
                                     dbc.Col(html.H5("Time vs. Horizontal Distance", className="card-title-1"))
@@ -155,14 +163,14 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                 ],
                                 justify='center')
                             ])
-                        ],
-                        color='primary',
-                        style={'width':'30rem', 'height':'32rem'}
-                    )],
+                        ]),
+                        # color='primary',
+                        # style={'width':'30rem', 'height':'32rem'}
+                    ],
                     width='auto'),
                     
                     dbc.Col(children=[
-                        dbc.Card([
+                        dbc.Card(className='card-2d-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
                                     dbc.Col(html.H5("Time vs. Vertical Distance", className="card-title-1"))
@@ -174,8 +182,9 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                     )
                                 ],justify='center')
                             ])
-                        ], color='primary',
-                        style={'width':'30rem', 'height':'32rem'}),
+                        ]), 
+                        # color='primary',
+                        # style={'width':'30rem', 'height':'32rem'}),
                     ], width='auto')
                 ], no_gutters=True)
             ], fluid=True),
@@ -185,7 +194,7 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
             dbc.Container([
                 dbc.Row([
                     dbc.Col(className='pr-2', children=[
-                        dbc.Card([
+                        dbc.Card(className='card-2d-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
                                     dbc.Col(html.H5("Time vs. Horizontal Speed", className="card-title-1"))
@@ -197,12 +206,13 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                     )
                                 ],justify='center')
                             ])
-                        ], color='primary',
-                        style={'width':'30rem', 'height':'32rem'}),
+                        ]), 
+                        # color='primary',
+                        # style={'width':'30rem', 'height':'32rem'}),
                     ], width='auto'),
 
                     dbc.Col(children=[
-                        dbc.Card([
+                        dbc.Card(className='card-2d-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
                                     dbc.Col(html.H5("Time vs. Vertical Speed", className="card-title-1"))
@@ -214,8 +224,9 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                     )
                                 ],justify='center')
                             ])
-                        ], color='primary',
-                        style={'width':'30rem', 'height':'32rem'}),
+                        ]), 
+                        # olor='primary',
+                        # style={'width':'30rem', 'height':'32rem'}),
                     ], width='auto')
 
                 ], no_gutters=True)
@@ -252,9 +263,9 @@ tab_2_graphs = html.Div(id='tab-2-graphs', children=[
     )
 
 tab_4_graphs = html.Div(id='tab-4-graphs', children=[
-        dbc.Row([
+        dbc.Row(className='mt-4', children=[
             dbc.Col(className='pr-2', children=[
-                dbc.Card([
+                dbc.Card(className='card-histograms', children=[
                     dbc.CardBody([
                         dbc.Row([
                             dbc.Col(html.H5("AC 1: xEast vs. yNorth", className="card-title-1"))
@@ -270,14 +281,14 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                             )
                         ],justify='center')
                     ])
-                ],
-                color='primary',
-                style={'width':'30rem', 'height':'33rem'}),
+                ]),
+                # color='primary',
+                # style={'width':'30rem', 'height':'33rem'}),
             ],
             width='auto'),
 
             dbc.Col(className='pr-2', children=[
-                dbc.Card([
+                dbc.Card(className='card-histograms', children=[
                     dbc.CardBody([
                         dbc.Row([
                             dbc.Col(html.H5("AC 1: Time vs. zUp", className="card-title-1"))
@@ -293,20 +304,13 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                             )
                         ],justify='center')
                     ])
-                ],
-                color='primary',
-                style={'width':'30rem', 'height':'33rem'}),
+                ]),
+                # color='primary',
+                # style={'width':'30rem', 'height':'33rem'}),
             ], 
-            width='auto')
-        ],
-        no_gutters=True,
-        style={'margin-left':'15px'}),
-
-        html.Br(),
-
-        dbc.Row([
+            width='auto'),
             dbc.Col(className='pr-2', children=[
-                dbc.Card([
+                dbc.Card(className='card-histograms', children=[
                     dbc.CardBody([
                         dbc.Row([
                             dbc.Col(html.H5("AC 2: xEast vs. yNorth", className="card-title-1"))
@@ -322,14 +326,14 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                             )
                         ],justify='center')
                     ])
-                ],
-                color='primary',
-                style={'width':'30rem', 'height':'33rem'}),
+                ]),
+                # color='primary',
+                # style={'width':'30rem', 'height':'33rem'}),
             ],
             width='auto'),
 
             dbc.Col(className='pr-2', children=[
-                dbc.Card([
+                dbc.Card(className='card-histograms', children=[
                     dbc.CardBody([
                         dbc.Row([
                             dbc.Col(html.H5("AC 2: Time vs. zUp", className="card-title-1"))
@@ -345,14 +349,66 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                             )
                         ],justify='center')
                     ])
-                ],
-                color='primary',
-                style={'width':'30rem', 'height':'33rem'}),
+                ]),
+                # color='primary',
+                # style={'width':'30rem', 'height':'33rem'}),
             ],
             width='auto')
         ],
         no_gutters=True,
-        style={'margin-left':'15px'})
+        style={'margin-left':'15px'}),
+
+        html.Br(),
+
+        # dbc.Row([
+        #     dbc.Col(className='pr-2', children=[
+        #         dbc.Card([
+        #             dbc.CardBody([
+        #                 dbc.Row([
+        #                     dbc.Col(html.H5("AC 2: xEast vs. yNorth", className="card-title-1"))
+        #                 ],justify='center'),
+
+        #                 dbc.Row([
+        #                     dbc.Col(
+        #                         dcc.Loading(parent_className='loading-hist-ac-2-xy', 
+        #                         children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=go.Figure())],
+        #                         type='circle',
+        #                         color='white'
+        #                         ) 
+        #                     )
+        #                 ],justify='center')
+        #             ])
+        #         ],
+        #         color='primary',
+        #         style={'width':'30rem', 'height':'33rem'}),
+        #     ],
+        #     width='auto'),
+
+        #     dbc.Col(className='pr-2', children=[
+        #         dbc.Card([
+        #             dbc.CardBody([
+        #                 dbc.Row([
+        #                     dbc.Col(html.H5("AC 2: Time vs. zUp", className="card-title-1"))
+        #                 ],justify='center'),
+
+        #                 dbc.Row([
+        #                     dbc.Col(
+        #                         dcc.Loading(parent_className='loading-hist-ac-2-tz', 
+        #                         children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=go.Figure())],
+        #                         type='circle',
+        #                         color='white'
+        #                         )    
+        #                     )
+        #                 ],justify='center')
+        #             ])
+        #         ],
+        #         color='primary',
+        #         style={'width':'30rem', 'height':'33rem'}),
+        #     ],
+        #     width='auto')
+        # ],
+        # no_gutters=True,
+        # style={'margin-left':'15px'})
     ], 
     style={'display':'none'}
     )
@@ -409,7 +465,7 @@ map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
 
                         dbc.Row([
                             dbc.Col([
-                                dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='success', style={'margin-top':'10px'}),
+                                dbc.Button('Enter Create Mode', id='create-mode', n_clicks=0, color='light-blue', style={'margin-top':'10px'}),
                                 dbc.Button('Exit Create Mode', id='exit-create-mode', n_clicks=0, style={'display':'none', 'margin-top':'10px'})
                             ],
                             width={'size':'auto'}),
@@ -755,51 +811,61 @@ save_modal = html.Div(id='save-modal-div', children=[
 
 layout = html.Div([
 
-    load_generate_save_buttons,
+    load_generate_save_buttons_and_toggle,
     html.Br(),
 
-    encounter_ac_dropdowns,
-    html.Br(),
+    html.Div(id='home-div', 
+        children=[
+            encounter_ac_dropdowns,
+            html.Br(),
+            dbc.Container([
+                dbc.Row(className='m-0 p-0', children=[
+                    dbc.Col(className='ml-3 mr-0 p-1', children=[
+                        map_ref_point_and_create_mode,
 
-    dbc.Container([
-        dbc.Row(className='m-0 p-0', children=[
-            dbc.Col(className='ml-3 mr-0 p-1', children=[
-                map_ref_point_and_create_mode,
+                        html.Br(),
 
-                html.Br(),
+                        data_table
 
-                data_table
+                    ],
+                    width='atuo'), 
+                    
+                    dbc.Col(className='ml-3', children=[  
+                        
+                        dbc.Container([
+                            dbc.Row(className = 'mt-1', children=[
+                                dbc.Col([tabs]),
+                                dbc.Col([slider_bar])
+                            ], no_gutters=True), #ml-1 p-0 
+                        
+                            dbc.Row(className = 'mt-0', children=[
+                                dbc.Col(className='ml-05 mt-2 p-0 col-scrollable', children=[ # ml-1 mt-2 p-0
+                                    tab_1_graphs,
 
-            ]), 
-            
-            dbc.Col(className='ml-1', children=[  
-                
-                dbc.Container([
-                    dbc.Row(className = 'ml-1 p-0 mt-1', children=[tabs], no_gutters=True),
-                
-                    dbc.Row([
-                        dbc.Col(className='col-scrollable ml-1 p-0', children=[
-                            tab_1_graphs,
-
-                            tab_2_graphs,
-
-                            tab_4_graphs
-                        ])
-                    ]),
-
-                    html.Br(),
-                    html.Br(),
-                    dbc.Row([
-                        dbc.Col([slider_bar])
-                    ])
+                                    tab_2_graphs
+                                ],
+                                width=True)
+                            ]),
+                            # dbc.Row(className='m-0 p-0', children=[
+                            #     dbc.Col([slider_bar])
+                            # ],
+                            # no_gutters=True)
+                            
+                        ], 
+                        fluid=True),
+                        
+                    ], 
+                    width=True)
                 ], 
-                fluid=True),
+                # align='left',
+                # justify='left',
+                no_gutters=True)
             ], 
-            width='auto')
-        ], 
-        no_gutters=True)
-    ], 
-    fluid=True),
+            fluid=True)
+        ]
+    ),
+
+    tab_4_graphs,
 
     # pop up window for setting reference point
     ref_point_modal, 
@@ -2003,7 +2069,7 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
             print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
             
             start = time.time()
-            generated_data_filename = 'generated_data.dat'
+            generated_data_filename = file_path + 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
             print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
 
@@ -2076,12 +2142,68 @@ def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
         }
 
 
-@app.callback(Output('tab-4','disabled'),
+# @app.callback(Output('tab-4','disabled'),
+#                 Input('generated-data', 'data'))
+# def toggle_statistics_tab_disabled(gen_data):
+#     if gen_data != []:
+#         return False
+#     return True
+
+# @app.callback(Output('gen-stats-button','style'),
+#                 Output('visualization-button', 'style'),
+#                 Input('generated-data', 'data'),
+#                 Input('visualization-button', 'n_clicks'),
+#                 Input('gen-stats-button','n_clicks'))
+# def toggle_statistics_tab_disabled(gen_data, vis_n_clicks, gen_n_clicks):
+#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+#     on = {'display':'inline-block'}
+#     off = {'display':'none'}
+
+#     if ctx == 'generated-data':
+#         if gen_data != []:
+#             return on, off
+    
+#     elif ctx == 'visualization-button':
+#         if vis_n_clicks > 0:
+#             return on, off
+
+#     elif ctx == 'gen-stats-button':
+#         if gen_n_clicks > 0:
+#             return off, on
+
+#     return off, off
+
+
+@app.callback(Output('tab-4-graphs','style'),
+                Output('home-div','style'),
+                Input('vis-or-stats-switch', 'value'),
+                State('generated-data', 'data'))
+def toggle_histograms(switch_val, gen_data):
+    ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    on = {'display':'inline-block'}
+    off = {'display':'none'}
+
+    if switch_val:
+        return on, off
+    
+    if ctx == 'vis-or-stats-switch':
+        if switch_val and gen_data != []:
+            return on, off
+    
+    return off, on
+
+@app.callback(Output('vis-or-stats-switch','disabled'),
                 Input('generated-data', 'data'))
-def toggle_statistics_tab_disabled(gen_data):
+def disable_switch(gen_data):
+    print(gen_data)
     if gen_data != []:
         return False
+    
     return True
+
+
 
 
 ###########################################################################################
@@ -2242,8 +2364,8 @@ def toggle_save_modal(save_n_clicks, close_n_clicks, save_file_n_clicks):
 # RENDER CONTENT CALLBACKS #
 ###########################################################################################
 @app.callback([Output('tab-1-graphs', 'style'), 
-              Output('tab-2-graphs', 'style'), 
-              Output('tab-4-graphs','style')],            
+              Output('tab-2-graphs', 'style')], 
+              #Output('tab-4-graphs','style')],            
               Input('tabs', 'active_tab'))
 def render_content(active_tab):
     '''
@@ -2255,20 +2377,20 @@ def render_content(active_tab):
     off = {'display': 'none'}
 
     if active_tab == 'tab-1':
-        return on, off, off 
+        return on, off#, off 
     elif active_tab == 'tab-2':
-        return off, on, off 
+        return off, on#, off 
     elif active_tab == 'tab-3':
-        return off, off, off 
+        return off, off#, off 
     elif active_tab == 'tab-4':
-        return off, off, on
+        return off, off#, on
     
     if not active_tab:
         print("No tab actively selected")
     else:
         print("Invalid tab")
 
-    return dash.no_update
+    return dash.no_update,dash.no_update
 
 @app.callback([Output('slider-drag-output', 'hidden'),
               Output('slider-container', 'hidden')],

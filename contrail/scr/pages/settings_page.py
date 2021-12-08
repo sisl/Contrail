@@ -29,7 +29,6 @@ import base64
 import pymap3d as pm
 import re
 
-from read_file import *
 from helpers.generate_helpers import *
 from helpers.parse_encounter_helpers import *
 from helpers.memory_data_helpers import *
