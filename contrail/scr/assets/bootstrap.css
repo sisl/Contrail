@@ -290,10 +290,18 @@ button::-moz-focus-inner,
 }
 
 input[type="radio"],
-input[type="checkbox"] {
+input[type="checkbox"]{
   box-sizing: border-box;
   padding: 0;
 }
+
+
+input[type='file'] {
+  box-sizing: border-box;
+  padding: 3px;
+}
+
+
 
 textarea {
   overflow: auto;
@@ -654,10 +662,8 @@ br {
   flex-basis: 0;
   flex-grow: 1;
   max-width: 100%;
-  /* width: 80rem; */
   height: 39rem;
   margin-left: 0;
-  /* background-color: #35353642; */
 }
 
 .row-cols-1 > * {
@@ -6329,8 +6335,8 @@ a.close.disabled {
 
 .spinner-grow {
   display: inline-block;
-  width: 2rem;
-  height: 2rem;
+  width: 1rem;
+  height: 1rem;
   vertical-align: text-bottom;
   background-color: currentColor;
   border-radius: 50%;
@@ -7606,28 +7612,32 @@ button.bg-dark:focus {
   height: 100vh !important;
 }
 
+.m--15 {
+  margin-left: -1rem !important;
+}
+
 .m-0 {
-  margin: 0 !important;
+  margin: 0rem !important;
 }
 
 .mt-0,
 .my-0 {
-  margin-top: 0 !important;
+  margin-top: 0rem !important;
 }
 
 .mr-0,
 .mx-0 {
-  margin-right: 0 !important;
+  margin-right: 0rem !important;
 }
 
 .mb-0,
 .my-0 {
-  margin-bottom: 0 !important;
+  margin-bottom: 0rem !important;
 }
 
 .ml-0,
 .mx-0 {
-  margin-left: 0 !important;
+  margin-left: 0rem !important;
 }
 
 .m-1 {
@@ -7709,6 +7719,11 @@ button.bg-dark:focus {
 .mt-4,
 .my-4 {
   margin-top: 1.5rem !important;
+}
+
+.mt-4-5,
+.my-4-5 {
+  margin-top: 2rem !important;
 }
 
 .mr-4,

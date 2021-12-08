@@ -1,116 +1,129 @@
-.. _tutorial-tutorial:
+.. _tutorial:
 
 Tutorial
-******************
+************
+
 .. _tutorial-introduction:
 
-*This tutorial is up-to-date for version `0`*
+*This tutorial is up-to-date for version `0.0.0`*
 
 Introduction
-===============
+======================
 
-This tutorial is intended for readers to learn how to use this package on their own device. 
+This tutorial is intended for readers to learn how to use the Contrail tool on their own device. 
 Familiarity with the underlying aircraft encounter modeling theory is recommended, 
-but is not strictly necessary for use. Please download/install the package before proceeding. 
-For help with installation, please refer to the README:ref:'readme-aem'.
+but is not strictly necessary for use. Please install the repository before proceeding. 
+For help with installation, please refer to the `README <https://github.com/sisl/Contrail/blob/migration_to_contrail/README.rst>`_.
 
 .. _tutorial-visualization:
 
 Preliminary Steps
-===============
+======================
 
 If you are having issues running the package locally, follow these steps to troubleshoot:
 
-#. Confirm you have a local version downloaded
-   * If you do not, refer to README LINK for installation instructions.
-#. Using any Terminal instance, step into the scr/ folder within the directory that houses your local EGGUI
-#. Enter 'python scr/run.py' into the command line
-#. Command click on the http address displayed to open the interface in your preferred browser
+#. Confirm you have downloaded the latest version of the Contrail repository to your local computer.
+#. Using any Terminal instance, step into the /scr folder within the directory of your local repository.
+#. Enter 'python run.py' into the command line.
+#. Command click on the http address displayed to open the interface in your preferred browser.
 
-After following these steps, you should have the EGGUI open in the browser of your choosing. As long
+After following these steps, you should have Contrail open in the browser of your choice. As long
 as the terminal instance in which you performed step 3 stays active, you will be able to use the tool. To
-restart the tool, ctrl-c in the running terminal instance and rerun step 3.
+restart the tool, hit ctrl-c in the running terminal instance and rerun step 3 or refresh the browser.
+
+Style Guide
+======================
+* The names of clickable items (e.g. buttons and dropdown menus) will be *italicized* for readability
 
 Visualization
 ======================
 
 Now, let's discuss how to visualize already generated data sets using the interface. 
 
-To begin, click the "Load Waypoints" button in the upper left-hand corner; this will prompt
-you to upload a waypoint file. Reference THIS DOC to understand exactly what
-a waypoint file is and the required structure for this file type (.dat). We have provided a
-test waypoint file titled 'FILENAME' that you can find in the data directory.
+Steps to Set Up Visualization:
+-------------------------------
 
-After uploading any waypoint file, the Encounter (ENC) ID dropdown menu options will update accordingly. 
-The ENC ID dropdown menu can be found directly below the "Load Waypoints" button. 
-You can use the ENC ID dropdown menu to select an encounter to visualize, which
-will populate the 2d-graphs, 3d-graph, map and data table. 
+#. Click *Load Waypoints*, which will prompt you to upload a waypoint file.
+#. Upload the provided test_waypoint.dat file or any generated (.dat) file located in the scr/data folder of your repository.
+#. Click the *Encounter ID* menu to select an encounter to visualize. This will populate the 2d-graphs, 3-graph, map and data table.
+#. Use the *Aircraft ID* menu to select the AC IDs you would like to visualize. The default setting is to visualize both 
+   aircrafts in the selected encounter.
+#. Explore the components of the home page!
 
-After selecting an encounter to visualize, you can use the Aircraft (AC) ID dropdown menu to 
-select which AC IDs you would like to visualize. The AC IDs dropdown menu can be found directly
-to the right of the ENC ID dropwdown menu. Default setting is to visualize both aircrafts
-in the selected encounter. AC IDs begin at 1 and increment sequentially. 
+Understanding the Components of the Home Page:
+--------------------------------------------------------------
 
-There are six 2d-graphs: xEast vs yNorth, Time vs zUp, Time vs Horizontal Distance, Time vs
-Vertical Distance, Time vs Horizontal Speed, and Time vs Vertical Speed. Use the scroll 
-funcitonality to the right of the graphs to adjust which of the 2d-graphs you can see. 
-There is one 3d-graph: xEast vs yNorth vs zUp. Use the tabs to switch back and forth 
-between visualizing the 2d and 3d graphs. Lastly, there is a slider bar beneath these plots 
-that enables users to step through the waypoints in the visualized trajectories. Drag the 
-slider to see the waypoints for a specific time step in the encounter. 
+* **2D-GRAPHS**: xEast vs. yNorth, Time vs. zUp, Time vs. Horizontal Distance, Time vs. Vertical Distance, Time vs. Horizontal Speed, and 
+  Time vs. Vertical Speed. 
 
-Take a look at the map on the right
-to see the trajectories with respect to a set reference point. The value for the current reference 
-point is displayed in the grey section above the map. The reference point is represented by 
-latitude (°) / longitute (°) / altitude (ft) coordinates. To change the
-reference point, click the "Set Reference Point" button. This will generate a popup window that
-gives you the ability to clear and set a new reference point. If cleared and never reset,
-the reference point will be invalid and you won't be able to visualize any encounters. 
-You must type in a valid reference point value in the form x.x/x.x/x.x and click the "Save" button 
-in order to begin visualizing again. You should see the updated reference point value in the grey section
-above the map. Lastly, hovering the mouse over the map enables you to click-and-drag the mouse to adjust 
-the center of the map and scroll to zoom in and zoom out. 
+  * Use the scroll bar to the right of the graphs to adjust which of the 2d-graphs you can see. 
+  * Drag the slider bar beneath these plots to step through the waypoints in the visualized trajectories. 
 
-You can refer to the data table displayed below the map to see every waypoint for the visualized
-aircraft trajetories. This data table is editable; if you would like to change the 
-altitude for the waypoint at time 0, click the altitude box in that row and begin typing your
-desired value and hit enter to confirm your update. After changing any value in the data table, you
-must click "Update Data Table" below the table to see your changes propogated correctly. You can
-also add a waypoint to any existing AC trajectory. Click the "Add Row" button below the table to create
-an empty row. Input the AC ID for the trajectory you would like to add to and fill in the
-rest of the columns with your desired values. You must click "Update Speeds" after adding any new
-waypoints to see your changes propogated correctly.
+* **3D-GRAPH**: xEast vs. yNorth vs. zUp. 
+  
+  * Use the tabs to switch back and forth between visualizing the 2d- and 3d-graphs. 
+  
+* **MAP**: displays the selected trajectories with respect to a set reference point.
+
+  * Hovering the mouse over the map enables the click-and-drag functionality to adjust the center of the map and scroll to zoom 
+    in and zoom out. 
+  
+* **REFERENCE POINT**: represented by latitude (°) / longitude (°) / altitude (ft) coordinates.
+   
+  * To change it, click *Set Reference Point*. This will generate a popup window that gives you the ability to clear and set 
+    a new reference point. If cleared and never reset, the reference point will be invalid and you won't be able to visualize 
+    any encounters.
+  * You must type in a valid reference point value in the form x.x/x.x/x.x and click *Save* in order to begin visualizing again.
+  * View the current reference point value in the grey section above the map.
+
+* **DATA TABLE**: displays every waypoint for the visualized aircraft trajectories.
+
+  * This data table is editable.
+  
+    * To change the altitude for the waypoint at time 0, click the altitude box in that row, begin typing your desired value, and hit enter 
+      to confirm your update.
+
+      * Click *Update Data Table* to see your changes propagated correctly.
+  
+    * To add a waypoint to any existng AC trajectory, click *Add Row* to create an empty row in which you can input the AC ID 
+      and fill in the rest of the columns with your desired values.
+
+      * Click *Update Speeds* after adding any new waypoints to see your changes propagated correctly.
 
 .. _tutorial_create_mode:
 
 Create Mode
 ======================
 
-EGGUI provides users with create mode functionality that allows them to forgo uploading a waypoint 
-file and instead directly create a nominal encounter. 
+Contrail provides users with a Create Mode that allows them to forgo uploading a waypoint 
+file and directly create a nominal encounter instead. 
 
-To enter create mode, click the "Enter Create Mode" button below the map on the right side. 
+To enter Create Mode, click *Enter Create Mode* below the map. 
 
 Steps for Nominal Path Creation:
+-------------------------------------
 
-- Click "Start New Nominal Path." First, indicate the 
-  AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other
-  AC IDs in your nominal encounter, and all AC IDs must be in sequential, increasing order starting at 1. Next, 
-  indicate the desired time interval between waypoints (this can either be constant for your entire trajectory 
-  or you can change it from waypoint to waypoint). Lastly, input the zUp value for your first waypoint.
+#. Click *Start New Nominal Path*.
 
-- After setting those three values, you can begin creating a trajectory for your nominal encounter. Use your mouse
-  to double click on the map; this will create a blue tool tip representing the location of your waypoint. You can 
-  click-and-drag the tool tip to adjust its exact location. Refer to the data table below to confirm that your new
-  waypoint is in the correct position. Repeat this process until you have created all of the waypoints that you
-  want for the current trajectory. Click "Save Nominal Path" when you are satisfied with the nominal path created.
+   #. Input the AC ID for which you are creating a trajectory. This AC ID must be unique with respect to the other AC IDs in your nominal 
+      encounter, and all AC IDs must be in sequential, increasing order starting at 1.
+   #. Input the desired time interval between waypoints (this can either be constant for your entire trajectory or you can change it from 
+      waypoint to waypoint).
+   #. Input the zUp value for your first waypoint.
+  
+#. After setting those three values, you can begin creating a trajectory for your nominal encounter:
 
-- Repeat this process until you have created two nominal paths.
+   #. Double click on the map; this will create a blue tool tip representing the location of your new waypoint. You can click-and-drag 
+      the tool tip to adjust its exact location. Refer to the data table below to confirm that your new waypoint is in the correct position. 
+   #. Repeat this process until you have created all of the waypoints that you want for the current trajectory. 
+   #. Click *Save Nominal Path* when you are satisfied with the nominal path created.
+  
+#. Repeat this process until you have created two nominal paths inside of one nominal encounter.
     
-Click the "Exit Create Mode" button to leave create mode. You can visualize your nominal encounter in the same way 
-described in the Visualization section of this doc. 
+Click *Exit Create Mode* to leave create mode. You can visualize your nominal encounter in the same way 
+described in the `Visualization`_ section above. 
 
-You CANNOT edit the data table directly when in create mode - please do so
+You CANNOT edit the data table directly when in create mode, but can please do so
 after exiting create mode. 
 
 .. _tutorial_generation:
@@ -118,34 +131,48 @@ after exiting create mode.
 Generation
 ======================
 
-In order to generate new encounters, you must have either uploaded a waypoint file or used create mode
+In order to generate new encounters, you must have either uploaded a waypoint file or used Create Mode
 to create a nominal encounter with at least two aircrafts. 
 
-To generate an encounter set, click the "Generate Encounter Set" button located in the top-left corner.
-This will trigger a popup window. You will get the option to either load in a predefined model or 
-input the necessary values for a new generation model. You must have previously created and saved a
-generation model in order to load in a predefined model, so let's discuss how to create and save
-a new generation model first.
+Steps to Generate an Encounter Set:
+-------------------------------------
 
-To create a new generation model, you must first select a nominal encounter.  Next, select
-which AC IDs you would like to generate from (if you only select one AC ID, then the generated data
-will not be of encounters but rather single aircraft trajectories). 
+#. Click the *Generate Encounter Set*. This will trigger a popup window. 
+#. Either load in a predefined model or input the necessary values for a new generation model. 
 
-Next, you will select which generation protocol you would like to use. Currently, the tool defines 
-diagonal covariance and exponential kernal covariance models. The waypoints of the
-trajectories in this selected nominal encounter will serve as the mean values for these
-multivariate probability distributions during generation.
 
-Lastly, indicate how many encounters you would like to generate using the model you just defined, and
-click "Generate." You will be redirected back to the home page where you will see a spinner; the 
-spinner will continue to spin until the generation process has been completed. Once the spinner disappears,
-you can click on the ENC ID dropdown menu to confirm the generation process worked correctly. If you see 
-that the number of encounters avaliable in the dropdown menu equals the number of encounters you hoped to
-generate, then the process was successful. 
+How to Create a New Generation Model:
+-------------------------------------
 
-Visualize your newly generated data using the same technique described in the above section. Additionally,
-after generating a new encounter set, click on the "Statistics" tab. This will display the 2d-histograms
-with xEast vs yNorth for the generated data. 
+#. Select a nominal encounter.
+#. Select the AC IDs you would like to generate from.
+   
+   * If you only select one AC ID, then the generated data will not include encounters but rather single aircraft trajectories. 
+
+#. Select which statistical model you would like to use. 
+   
+   * Currently, the tool defines a multivariate Gaussian distribution with either a diagonal covariance or exponential kernel covariance matrix. 
+     Enter the parameters for whichever model you choose. 
+     The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for the multivariate probability 
+     distribution during generation.
+
+#. Indicate how many encounters you would like to generate using the model you just defined.
+#. Click *Generate*. 
+
+You will be redirected back to the home page where you will see a spinner in the center of the screen; the 
+spinner will continue to spin until the generation process has completed. Once the spinner disappears,
+you can click on the *Encounter ID* dropdown menu to confirm the generation process worked correctly. If you see 
+a Nominal Encounter and the correct number of encounters available in the dropdown menu, then the process was successful. 
+
+Visualize your newly generated data using the same technique described in the `Visualization`_ section above. 
+
+Statistics
+-------------------------------------
+
+Click over to the statistics tab for information on your newly generated encounter set.
+
+As of version 0.0.0, the statistics tab only displays 2d-histograms for xEast vs yNorth and Time vs zUp 
+for both AC IDs in the generated data. 
 
 
 .. _tutorial_saving:
@@ -153,17 +180,23 @@ with xEast vs yNorth for the generated data.
 Saving
 ======================
 
-The EGGUI allows users to save both generated data sets (.dat) and previously used generation models (.json).
-You can refer to THIS DOC for what a generation model is and how it is structured. 
+Contrail allows users to save both generated data sets (generated_waypoints.dat) and previously used 
+generation models (generated_model.json).
 
-To save, click the "Save Waypoints (.dat) or Model (.json)" button in the top-left corner. This will trigger
-a popup window where you can select whether you'd like to save the generated waypoints, the generation model,
-or both. Fill in the names for the desired files and then click "Save." This will automatically save the waypoint files 
-to the scr/data folder and the generation models to the scr/models folder within the local repository. If the
-files are not too large, the browser will also present the files as a download. 
+Refer to `waypoints_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/waypoints_overview.rst>`_ for the 
+structure of a waypoint file. 
+
+Refer to `generation_model_overview.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/generation_model_overview.rst>`_ 
+for the structure of a generation model file.
+
+Steps to Save Waypoints and Models:
+-------------------------------------
+
+#. Click *Save Waypoints (.dat) or Model (.json)*
+   * This will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
+#. Fill in the names for the desired files.
+#. Click *Save*.
+   * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
+   * If the files are not too large, the browser will also present the files as a download. 
 
 You can only save after generating a data set, not after uploading a waypoints file or creating a nominal encounter.
-
-LEAD USERS TO THE PAGE DESCRIBING HOW THE SETTINGS PAGE WORKS. 
-
-
