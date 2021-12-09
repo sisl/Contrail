@@ -18,7 +18,7 @@ For help with installation, please refer to the `README <https://github.com/sisl
 
 There are 7 parts to this tutorial. Familiarize yourself with all portions before using the tool:
 
-#. `Preliminary Steps<Preliminary Steps>`_
+#. :ref:`Preliminary Steps<tutorial-preliminary-steps>`
 #. :ref:`Style Guide<tutorial-style-guide>`
 #. :ref:`Visualization<tutorial-visualization>`
 #. :ref:`Create Mode<tutorial_create_mode>`
@@ -211,9 +211,12 @@ Steps to Save Waypoints and Models:
 -------------------------------------
 
 #. Click *Save Waypoints (.dat) or Model (.json)*
+   
    * This will trigger a popup window where you can select whether you'd like to save the generated waypoints, the generation model, or both. 
+
 #. Fill in the names for the desired files.
 #. Click *Save*.
+   
    * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
    * If the files are not too large, the browser will also present the files as a download. 
 
