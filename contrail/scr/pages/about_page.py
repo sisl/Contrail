@@ -15,19 +15,19 @@ import dash_leaflet as dl
 from app import app
 
 layout = html.Div([
-    dbc.Container([
+        dbc.Card(className='card-about-page ml-2', children=[
+            dbc.CardBody([
+                dbc.Row([
+                    html.H5(id='mit-license', children=["For detailed documentation on this tool, please visit our github repository:\n"], className="card-title-1"),
+                ],
+                justify='center',
+                no_gutters=True),
 
-        dbc.Row([
-            html.Div(id='mit-license', children=["INCLUDE IMPORTANT LICENSING INFO ABOUT THE PRODUCT HERE\n"]),
-        ],
-        align='left',
-        justify='center',
-        no_gutters=True),
-        dbc.Row([
-            html.Div(id='description', children=["any copyright stuff here\n"]),
-        ],
-        align='left',
-        justify='center',
-        no_gutters=True)
-    ])
+                dbc.Row(className='mt-2', children=[
+                    dcc.Link("https://github.com/sisl/Contrail", href='https://github.com/sisl/Contrail', target='_blank', className="github-link"),
+                ],
+                justify='center',
+                no_gutters=True)
+            ])
+        ])
 ])
