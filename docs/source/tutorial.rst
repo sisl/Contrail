@@ -15,7 +15,18 @@ Familiarity with the underlying aircraft encounter modeling theory is recommende
 but is not strictly necessary for use. Please install the repository before proceeding. 
 For help with installation, please refer to the `README <https://github.com/sisl/Contrail/blob/migration_to_contrail/README.rst>`_.
 
-.. _tutorial-visualization:
+
+There are 7 parts to this tutorial. Familiarize yourself with all portions before using the tool:
+
+#. :ref:`Preliminary Steps<tutorial-preliminary-steps>`
+#. :ref:`Style Guide<tutorial-style-guide>`
+#. :ref:`Visualization<tutorial-visualization>`
+#. :ref:`Create Mode<tutorial_create_mode>`
+#. :ref:`Generation<tutorial_generation>`
+#. :ref:`Saving<tutorial_saving>`
+
+
+.. _tutorial-preliminary-steps:
 
 Preliminary Steps
 ======================
@@ -25,16 +36,20 @@ If you are having issues running the package locally, follow these steps to trou
 #. Confirm you have downloaded the latest version of the Contrail repository to your local computer.
 #. Using any Terminal instance, step into the /scr folder within the directory of your local repository.
 #. Enter 'python -Wignore run.py' into the command line.
-   * Running Contrail with the -Wignore flag will block any warnings related to deprecated dash component versions
+    * Running Contrail with the -Wignore flag will block any warnings related to deprecated dash component versions
 #. Command click on the http address displayed to open the interface in your preferred browser.
 
 After following these steps, you should have Contrail open in the browser of your choice. As long
 as the terminal instance in which you performed step 3 stays active, you will be able to use the tool. To
 restart the tool, hit ctrl-c in the running terminal instance and rerun step 3 or just refresh the browser.
 
+.. _tutorial-style-guide:
+
 Style Guide
 ======================
 * The names of clickable items (e.g. buttons and dropdown menus) will be *italicized* for readability
+
+.. _tutorial-visualization:
 
 Visualization
 ======================
