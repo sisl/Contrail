@@ -1,7 +1,7 @@
 .. _readme-contrail:
 
-.. image:: docs/images/contrail_logo_w_background.png
-   :width: 300
+.. image:: docs/images/contrail_logo_background.png
+   :width: 250
 ******************
 
 Interface for modeling, generating, visualizing and saving aircraft encounter data sets.

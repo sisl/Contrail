@@ -28,7 +28,7 @@ def Navbar():
                 dbc.Nav(className='navbar-nav ml-4', children=[
                     dbc.NavItem(dbc.NavLink("Home", href="/home")),
                     dbc.NavItem(dbc.NavLink("About", href="/about")),
-                    dbc.NavItem(className='ml-5 mt-3', children=[
+                    dbc.NavItem(className='ml-5 mt-3-5', children=[
                         dcc.Loading(parent_className='loading_wrapper', 
                                 children=[dcc.Store(id='generated-data', data={})],
                                 type='circle',
