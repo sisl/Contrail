@@ -18,7 +18,7 @@ encounter data sets in order to develop and verify aircraft collision avoidance 
 For a more detailed explanation on the usage of this product, please refer to
 `usage.rst <https://github.com/sisl/Contrail/blob/main/docs/source/usage.rst>`_. 
 
-After installation, refer to `tutorial.rst<https://github.com/sisl/Contrail/blob/main/docs/source/tutorial.rst>`_ for an
+After installation, refer to `tutorial.rst <https://github.com/sisl/Contrail/blob/main/docs/source/tutorial.rst>`_ for an
 detailed explanation on how to run and use the tool.
 
 .. _contrail-intallation:
