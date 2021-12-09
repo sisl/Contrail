@@ -16,7 +16,7 @@ but is not strictly necessary for use. Please install the repository before proc
 For help with installation, please refer to the `README <https://github.com/sisl/Contrail/blob/main/README.rst>`_.
 
 
-There are 7 parts to this tutorial. Familiarize yourself with all portions before using the tool:
+There are 6 parts to this tutorial. Familiarize yourself with all portions before using the tool:
 
 #. `Preliminary Steps`_
 #. `Style Guide`_
@@ -63,7 +63,7 @@ Steps to Set Up Visualization:
 
 #. Click *Load Waypoints*, which will prompt you to upload a waypoint file.
 #. Upload the provided test_waypoint.dat file or any generated (.dat) file located in the scr/data folder of your repository.
-#. Click the *Encounter ID* menu to select an encounter to visualize. This will populate the 2d-graphs, 3-graph, map and data table.
+#. Click the *Encounter ID* menu to select an encounter to visualize. This will populate the 2d-graphs, 3d-graph, map and data table.
 #. Use the *Aircraft ID* menu to select the AC IDs you would like to visualize. The default setting is to visualize both 
    aircrafts in the selected encounter.
 #. Explore the components of the home page!
@@ -75,7 +75,7 @@ Understanding the Components of the Home Page:
   Time vs. Vertical Speed. 
 
   * Use the scroll bar to the right of the graphs to adjust which of the 2d-graphs you can see. 
-  * Drag the slider bar beneath these plots to step through the waypoints in the visualized trajectories. 
+  * Drag the slider bar above these plots to step through the waypoints in the visualized trajectories. 
 
 * **3D-GRAPH**: xEast vs. yNorth vs. zUp. 
   
@@ -86,7 +86,7 @@ Understanding the Components of the Home Page:
   * Hovering the mouse over the map enables the click-and-drag functionality to adjust the center of the map and scroll to zoom 
     in and zoom out. 
   
-* **REFERENCE POINT**: represented by latitude (°) / longitude (°) / altitude (ft) coordinates.
+* **REFERENCE POINT**: represented by latitude (°N) / longitude (°E) / altitude (ft) coordinates.
    
   * To change it, click *Set Reference Point*. This will generate a popup window that gives you the ability to clear and set 
     a new reference point. If cleared and never reset, the reference point will be invalid and you won't be able to visualize 
@@ -141,7 +141,7 @@ Steps for Nominal Path Creation:
 Click *Exit Create Mode* to leave create mode. You can visualize your nominal encounter in the same way 
 described in the `Visualization`_ section above. 
 
-You CANNOT edit the data table directly when in create mode, but can please do so
+You CANNOT edit the data table directly when in create mode, but can do so
 after exiting create mode. 
 
 .. _tutorial_generation:
@@ -174,10 +174,10 @@ How to Create a New Generation Model:
      The waypoints of the trajectories in this selected nominal encounter will serve as the mean values for the multivariate probability 
      distribution during generation.
 
-#. Indicate how many encounters you would like to generate using the model you just defined.
+#. Indicate how many encounters you would like to generate using the model you just defined. Recommend generating at least 1000 encounters.
 #. Click *Generate*. 
 
-You will be redirected back to the home page where you will see a spinner in the center of the screen; the 
+You will be redirected back to the home page where you will see a spinner in the navbar; the 
 spinner will continue to spin until the generation process has completed. Once the spinner disappears,
 you can click on the *Encounter ID* dropdown menu to confirm the generation process worked correctly. If you see 
 a Nominal Encounter and the correct number of encounters available in the dropdown menu, then the process was successful. 
@@ -187,9 +187,9 @@ Visualize your newly generated data using the same technique described in the `V
 Statistics
 -------------------------------------
 
-Click over to the statistics tab for information on your newly generated encounter set.
+Click over to the statistics tab using the toggle on the top right corner of the app for information on your newly generated encounter set.
 
-As of version 0.0.0, the statistics tab only displays 2d-histograms for xEast vs yNorth and Time vs zUp 
+As of version 0.0.0, the statistics tab only displays 2d-histograms for xEast vs. yNorth and Time vs. zUp 
 for both AC IDs in the generated data. 
 
 
@@ -217,7 +217,7 @@ Steps to Save Waypoints and Models:
 #. Fill in the names for the desired files.
 #. Click *Save*.
    
-   * This will automatically save the waypoint files to the scr/data folder and the generation models to the scr/models folder within the local repository. 
+   * This will automatically save the waypoint files to the contrail/scr/data folder and the generation models to the contrail/scr/models folder within the local repository. 
    * If the files are not too large, the browser will also present the files as a download. 
 
 You can only save after generating a data set, not after uploading a waypoints file or creating a nominal encounter.
