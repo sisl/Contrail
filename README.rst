@@ -4,7 +4,7 @@ CONTRAIL
 ******************
 
 .. image:: /docs/images/contrail_logo.png
-   :width: 600
+   :width: 300
 
 Interface for modeling, generating, visualizing and saving aircraft encounter data sets.
 
