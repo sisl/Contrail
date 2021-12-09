@@ -4,7 +4,7 @@
    :width: 300
 ******************
 
-Contrail: Interface for modeling, generating, visualizing and saving aircraft encounter data sets.
+Interface for modeling, generating, visualizing and saving aircraft encounter data sets.
 
 .. _contrail-overview:
 
@@ -25,13 +25,15 @@ Installation
 
 ``pip install git+https://github.com/sisl/Contrail``
 
-or install by cloning the repository and opening it in an IDE.
+to install Contrail as a package.
+
+Otherwise, clone the Contrail repository to your local computer and open it in an IDE.
 
 .. _contrail-dependencies:
 
 Dependencies
 ===============
-After cloning the repository, install the environment requirements with pip
+If you clone the repository (do not install it as a package), install the environment requirements with pip
 
 ``pip install -r requirements.txt``
 
