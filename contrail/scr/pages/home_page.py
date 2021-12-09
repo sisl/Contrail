@@ -2086,39 +2086,6 @@ def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
         }
 
 
-# @app.callback(Output('tab-4','disabled'),
-#                 Input('generated-data', 'data'))
-# def toggle_statistics_tab_disabled(gen_data):
-#     if gen_data != []:
-#         return False
-#     return True
-
-# @app.callback(Output('gen-stats-button','style'),
-#                 Output('visualization-button', 'style'),
-#                 Input('generated-data', 'data'),
-#                 Input('visualization-button', 'n_clicks'),
-#                 Input('gen-stats-button','n_clicks'))
-# def toggle_statistics_tab_disabled(gen_data, vis_n_clicks, gen_n_clicks):
-#     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-
-#     on = {'display':'inline-block'}
-#     off = {'display':'none'}
-
-#     if ctx == 'generated-data':
-#         if gen_data != []:
-#             return on, off
-    
-#     elif ctx == 'visualization-button':
-#         if vis_n_clicks > 0:
-#             return on, off
-
-#     elif ctx == 'gen-stats-button':
-#         if gen_n_clicks > 0:
-#             return off, on
-
-#     return off, off
-
-
 @app.callback(Output('tab-4-graphs','style'),
                 Output('home-div','style'),
                 Input('vis-or-stats-switch', 'value'),
