@@ -29,7 +29,9 @@ or install by cloning the repository and opening it in an IDE.
 
 Dependencies
 ===============
-Install requirements with pip
+After cloning the repository, install the environment requirements with pip
 
 ``pip install -r requirements.txt``
+
+Best practice is to install the requirements in a Python virtual environment and run Contrail in that venv to avoid any version issues.
 

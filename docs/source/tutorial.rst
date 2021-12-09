@@ -24,12 +24,13 @@ If you are having issues running the package locally, follow these steps to trou
 
 #. Confirm you have downloaded the latest version of the Contrail repository to your local computer.
 #. Using any Terminal instance, step into the /scr folder within the directory of your local repository.
-#. Enter 'python run.py' into the command line.
+#. Enter 'python -Wignore run.py' into the command line.
+   * Running Contrail with the -Wignore flag will block any warnings related to deprecated dash component versions
 #. Command click on the http address displayed to open the interface in your preferred browser.
 
 After following these steps, you should have Contrail open in the browser of your choice. As long
 as the terminal instance in which you performed step 3 stays active, you will be able to use the tool. To
-restart the tool, hit ctrl-c in the running terminal instance and rerun step 3 or refresh the browser.
+restart the tool, hit ctrl-c in the running terminal instance and rerun step 3 or just refresh the browser.
 
 Style Guide
 ======================
