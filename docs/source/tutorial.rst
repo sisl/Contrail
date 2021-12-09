@@ -18,7 +18,7 @@ For help with installation, please refer to the `README <https://github.com/sisl
 
 There are 7 parts to this tutorial. Familiarize yourself with all portions before using the tool:
 
-#. `Preliminary Steps<tutorial-preliminary-steps>`
+#. :ref:`Preliminary Steps<Preliminary Steps>`
 #. :ref:`Style Guide<tutorial-style-guide>`
 #. :ref:`Visualization<tutorial-visualization>`
 #. :ref:`Create Mode<tutorial_create_mode>`
@@ -37,7 +37,7 @@ If you are having issues running the package locally, follow these steps to trou
 #. Using any Terminal instance, step into the /scr folder within the directory of your local repository.
 #. Enter 'python -Wignore run.py' into the command line.
 
-    * Running Contrail with the -Wignore flag will block any warnings related to deprecated dash component versions
+   * Running Contrail with the -Wignore flag will block any warnings related to deprecated dash component versions
   
 #. Command click on the http address displayed to open the interface in your preferred browser.
 
