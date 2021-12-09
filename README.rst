@@ -1,7 +1,7 @@
 .. _readme-contrail:
 
 .. image:: docs/images/contrail_logo_dark.png
-   :width: 300
+   :width: 250
 
 .. image:: docs/images/contrail_logo_background.png
    :width: 300
