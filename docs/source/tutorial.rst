@@ -18,7 +18,7 @@ For help with installation, please refer to the `README <https://github.com/sisl
 
 There are 7 parts to this tutorial. Familiarize yourself with all portions before using the tool:
 
-#. :ref:`Preliminary Steps<Preliminary Steps>`
+#. `Preliminary Steps<Preliminary Steps>`_
 #. :ref:`Style Guide<tutorial-style-guide>`
 #. :ref:`Visualization<tutorial-visualization>`
 #. :ref:`Create Mode<tutorial_create_mode>`
