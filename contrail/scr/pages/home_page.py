@@ -55,7 +55,7 @@ tabs = html.Div(id='tab-div', children=[
                     dbc.Tab(id='tab-1', tab_id='tab-1', label='2d Graphs'),
                     dbc.Tab(id='tab-2',tab_id='tab-2', label='3d Graph')
                 ],
-                active_tab='tab-1'),
+                active_tab='tab-1')
     ])
 
 load_generate_save_buttons_and_toggle = dbc.Container(
@@ -255,8 +255,7 @@ tab_2_graphs = html.Div(id='tab-2-graphs', children=[
                 ])
             ])
         ], 
-        no_gutters=True),
-        #style={'margin-left':'15px'})
+        no_gutters=True)
     ], 
     style={'display':'none'}
     )
@@ -390,9 +389,7 @@ map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
                             align='center')
                         ],
                         style={'padding':'.3rem'})
-                    ]),
-                    # color='light',
-                    # style={'width':'40.3rem', 'height':'3rem'})
+                    ])
                 ],
                 style={'visibility':'visible'}),
                 html.Div(id='something', children='')
@@ -600,7 +597,10 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                 dcc.RadioItems(id='cov-radio', 
                     options=[{'label': 'Diagonal', 'value': 'cov-radio-diag'},
                             {'label': 'Exponential Kernel', 'value': 'cov-radio-exp'}],
+
+                            #NOTE: FUTURE WORK
                             #{'label': 'Truncated', 'value': 'cov-radio-trunc'}],
+
                     #value='cov-radio-exp',
                     inputStyle={"margin-right": "5px"},
                     labelStyle={'display': 'inline-block', "margin-right": "10px"},
@@ -617,7 +617,7 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                     children=[dbc.PopoverBody("")],
                     id="popover-content",
                     style={"display": "none", 'width':'25rem'},
-                    trigger="click", # is_open=False,
+                    trigger="click", 
                     target="popover-target", placement="right"),
                 
             ], 
@@ -626,7 +626,6 @@ generation_modal = html.Div(id='gen-modal-div', children=[
             
             html.Div(id='cov-diag-input-container', children=[
                 html.Div([
-                    #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
                     dbc.Row(className='', children=[
                         dbc.Col(className='', children=[
                             html.H5('\( \sigma_h \)', style={"color": "#3273F6", "margin-left": "5px"}),
@@ -645,7 +644,6 @@ generation_modal = html.Div(id='gen-modal-div', children=[
 
             html.Div(id='cov-exp-kernel-input-container', children=[
                 html.Div([
-                    #dcc.Markdown(("""Enter Parameters:"""), style={"margin-left": "20px"}),
                     dbc.Row(className='', children=[
                         dbc.Col(className='', children=[
                             html.H5('\( l \)', style={"color": "#3273F6", "margin-left": "5px"}),
@@ -664,9 +662,8 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                 ],
                 style={"margin-left": "35px"})
             ],
-            style={"display":"none"}, className  = 'row'), #, "margin-bottom":"10px"}
+            style={"display":"none"}, className  = 'row'),
             dcc.Markdown(("---")),
-            # html.Br(),
 
             # number of encounter sets to generate
             dcc.Markdown(("""Number of Encounters to Generate:"""), style={'font-weight': 'bold',"margin-left": "20px"}),
@@ -702,7 +699,6 @@ save_modal = html.Div(id='save-modal-div', children=[
                 dcc.Checklist(id='file-checklist', options=[
                     {'label': 'Generated Waypoints (.dat)', 'value': 'dat-item'},
                     {'label': 'Model (.json)', 'value': 'json-item'}],
-                    #value=['dat-item'],
                     inputStyle={"margin-right": "8px"},
                     labelStyle={'display': 'block',"margin-right": "10px", 'margin-top':'3px', 'font-size': '1em'},
                     style={"margin-left": "10px"}),
@@ -2275,7 +2271,6 @@ def toggle_save_modal(save_n_clicks, close_n_clicks, save_file_n_clicks):
 ###########################################################################################
 @app.callback([Output('tab-1-graphs', 'style'), 
               Output('tab-2-graphs', 'style')], 
-              #Output('tab-4-graphs','style')],            
               Input('tabs', 'active_tab'))
 def render_content(active_tab):
     '''
@@ -2287,13 +2282,13 @@ def render_content(active_tab):
     off = {'display': 'none'}
 
     if active_tab == 'tab-1':
-        return on, off#, off 
+        return on, off
     elif active_tab == 'tab-2':
-        return off, on#, off 
+        return off, on
     elif active_tab == 'tab-3':
-        return off, off#, off 
+        return off, off
     elif active_tab == 'tab-4':
-        return off, off#, on
+        return off, off
     
     if not active_tab:
         print("No tab actively selected")
