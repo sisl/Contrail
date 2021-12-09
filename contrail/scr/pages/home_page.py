@@ -79,10 +79,10 @@ load_generate_save_buttons_and_toggle = dbc.Container(
             ],
             width={'size':'auto', 'order':3}),
 
-            dbc.Col(className='ml-auto', children=[
+            dbc.Col(className= 'ml-8', children=[  #'ml-auto'
                 dbc.Card(className='card-toggle-switch', children=[
                     dbc.CardBody(className='card-body-m-0 p-2', children=[
-                        daq.ToggleSwitch(id='vis-or-stats-switch', value=False, disabled=True, color="#7db5d8", label=['Visualization', 'Generation Stats'])
+                        daq.ToggleSwitch(id='vis-or-stats-switch', value=False, disabled=False, color="#7db5d8", label=['Visualization', 'Generation Stats'])
                     ])
                 ])
                 
@@ -647,15 +647,15 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                     dbc.Row(className='', children=[
                         dbc.Col(className='', children=[
                             html.H5('\( l \)', style={"color": "#3273F6", "margin-left": "5px"}),
-                            dbc.Input(id='exp-kernel-input-a', type='number', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=15.0),
+                            dbc.Input(id='exp-kernel-input-a', type='number', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
                         ], width=2),
                         dbc.Col(className='', children=[
                             html.H5('\( w_h \)', style={"color": "#3273F6", "margin-left": "5px"}),
-                            dbc.Input(id='exp-kernel-input-b', type='number', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=1.0),
+                            dbc.Input(id='exp-kernel-input-b', type='number', placeholder='param_b', debounce=True, pattern=u"^(0?\.?\d+)$", value=0.1),
                         ], width=2),
                         dbc.Col(className='', children=[
                             html.H5('\( w_v \)', style={"color": "#3273F6", "margin-left": "5px"}),
-                            dbc.Input(id='exp-kernel-input-c', type='number', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
+                            dbc.Input(id='exp-kernel-input-c', type='number', placeholder='param_c', debounce=True, pattern=u"^(0?\.?\d+)$", value=1000.0),
                         ], width=2)
                     ], 
                     no_gutters=False)

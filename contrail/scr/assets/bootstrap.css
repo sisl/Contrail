@@ -7869,6 +7869,11 @@ button.bg-dark:focus {
   margin-top: 1rem !important;
 }
 
+.mt-3-5 {
+  margin-top: 1.25rem !important;
+}
+
+
 .mr-3,
 .mx-3 {
   margin-right: 1rem !important;
@@ -7945,6 +7950,11 @@ button.bg-dark:focus {
 .ml-6,
 .mx-6 {
   margin-left: 11rem !important;
+}
+
+.ml-8,
+.mx-8 {
+  margin-left: 44.5rem !important;
 }
 
 .p-0 {
