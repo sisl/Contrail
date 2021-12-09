@@ -79,8 +79,13 @@ load_generate_save_buttons_and_toggle = dbc.Container(
             width={'size':'auto', 'order':3}),
 
             dbc.Col(className='ml-auto', children=[
-                daq.ToggleSwitch(id='vis-or-stats-switch', value=False, disabled=True, color="#7db5d8", label=['Visualization', 'Generation Statistics'])
-            ], width={'size':'auto', 'order':4})
+                dbc.Card(className='card-toggle-switch', children=[
+                    dbc.CardBody(className='card-body-m-0 p-2', children=[
+                        daq.ToggleSwitch(id='vis-or-stats-switch', value=False, disabled=True, color="#7db5d8", label=['Visualization', 'Generation Stats'])
+                    ])
+                ])
+                
+            ], width={'size':2, 'order':4})
             
         ],
         align='start',
@@ -105,7 +110,7 @@ encounter_ac_dropdowns = dbc.Container(
 tab_1_graphs = html.Div(id='tab-1-graphs', children= [
             dbc.Container([    
                 dbc.Row([ 
-                    dbc.Col(className='pr-2', children=[
+                    dbc.Col(className='pr-2 ml-0', children=[
                         dbc.Card(className='card-2d-graphs', children=[
                             dbc.CardBody([
                                 dbc.Row([
@@ -119,8 +124,6 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                 ],justify='center')
                             ])
                         ]), 
-                        # color='primary',
-                        # style={'width':'30rem', 'height':'32rem'}),
                     ], 
                     width='auto'),
                     dbc.Col(children=[
@@ -137,8 +140,6 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                 ],justify='center')
                             ])
                         ]),
-                        #  color='primary',
-                        # style={'width':'30rem', 'height':'32rem'}),
                     ], width='auto'),
 
                 ], 
@@ -166,8 +167,6 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                 justify='center')
                             ])
                         ]),
-                        # color='primary',
-                        # style={'width':'30rem', 'height':'32rem'}
                     ],
                     width='auto'),
                     
@@ -185,11 +184,11 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                 ],justify='center')
                             ])
                         ]), 
-                        # color='primary',
-                        # style={'width':'30rem', 'height':'32rem'}),
                     ], width='auto')
-                ], no_gutters=True)
-            ], fluid=True),
+                ], 
+                no_gutters=True)
+            ], 
+            fluid=True),
 
             html.Br(),
 
@@ -209,8 +208,6 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                 ],justify='center')
                             ])
                         ]), 
-                        # color='primary',
-                        # style={'width':'30rem', 'height':'32rem'}),
                     ], width='auto'),
 
                     dbc.Col(children=[
@@ -227,20 +224,20 @@ tab_1_graphs = html.Div(id='tab-1-graphs', children= [
                                 ],justify='center')
                             ])
                         ]), 
-                        # olor='primary',
-                        # style={'width':'30rem', 'height':'32rem'}),
-                    ], width='auto')
+                    ], 
+                    width='auto')
 
-                ], no_gutters=True)
-            ], fluid=True)
-
-        ], style={'width':'63rem', 'height':'20rem'}
-    )
+                ], 
+                no_gutters=True
+            )], 
+            fluid=True
+        )
+    ])
 
 tab_2_graphs = html.Div(id='tab-2-graphs', children=[
         dbc.Row([
             dbc.Col(className='pr-3', children=[
-                dbc.Card([
+                dbc.Card(className='card-3d-graph ml-2', children=[
                         dbc.CardBody([
                             dbc.Row([
                                 dbc.Col(html.H5("xEast vs. yNorth vs. zUp", className="card-title-1"))
@@ -250,16 +247,15 @@ tab_2_graphs = html.Div(id='tab-2-graphs', children=[
                                 dbc.Col( 
                                     dcc.Graph(id='editable-graph-xyz-slider', figure=px.line_3d()) 
                                 )
-                            ],justify='center')
-                        ])
-                    ], 
-                    color='primary',
-                    style={'width':'60.5rem', 'height':'39rem'}
-                )
+                            ],
+                            justify='center'
+                        )
+                    ])
+                ])
             ])
         ], 
-        no_gutters=True,
-        style={'margin-left':'15px'})
+        no_gutters=True),
+        #style={'margin-left':'15px'})
     ], 
     style={'display':'none'}
     )
@@ -360,14 +356,16 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
 slider_bar = html.Div(id='slider-bar-div', children=[
         
-            dbc.Card(className='card-slider-bar ml-2', children=[
-                dbc.CardBody(className='card-body-m-0', children=[
+            dbc.Card(className='card-slider-bar ml-1', children=[
+                dbc.CardBody(className='card-body-m-0 p-2', children=[
                     dbc.Row([
                         dbc.Col(className='mt-0', children=[ #mt-05
                             html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
-                        ], width=1),
-                        dbc.Col(className='m-0 p-0', children=[ #mt-3 ml-4
-                            html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '600px'})
+                        ], width=2),
+                        dbc.Col(className='mt-2 p-0', children=[ #mt-3 ml-4
+                            html.Div([
+                                dcc.Slider(id='slider',  className='dash-bootstrap', value=0, step=1)
+                                ], id='slider-container', style={'width': '550px'})
                         ], width=6)
                     ], 
                     align='left',
@@ -381,7 +379,7 @@ slider_bar = html.Div(id='slider-bar-div', children=[
 map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
         dbc.Row([
             html.Div(id='ref-card-div', children=[
-                    dbc.Card(className='', children=[
+                    dbc.Card(className='card-ref-point', children=[
                         dbc.CardBody(className='card-body-m-0', children=[
                             dbc.Row(className='', children=[
                                 dbc.Col(html.Div(id='ref-point-output', className='ml-1', children=['Reference Point: ']), width='auto'),
@@ -391,9 +389,9 @@ map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
                             align='center')
                         ],
                         style={'padding':'.3rem'})
-                    ],
-                    color='light',
-                    style={'width':'40.3rem', 'height':'3rem'})
+                    ]),
+                    # color='light',
+                    # style={'width':'40.3rem', 'height':'3rem'})
                 ],
                 style={'visibility':'visible'}),
                 html.Div(id='something', children='')
@@ -682,8 +680,7 @@ generation_modal = html.Div(id='gen-modal-div', children=[
 
             dbc.ModalFooter(children=[
                 dbc.Button("CLOSE", id="close-button"),
-                #dbc.Spinner(size='md', spinnerClassName='ml-auto', children=[html.Div(id='gen-spinner-output', children='nothin')]), #html.Div(id='gen-spinner-output')),
-                dbc.Button("GENERATE", id="generate-button", color='warning', className="ml-auto", n_clicks=0)
+                dbc.Button("GENERATE", id="generate-button", color='light-blue', className="ml-auto", n_clicks=0)
                 ]
             ),
         ],
@@ -746,7 +743,7 @@ save_modal = html.Div(id='save-modal-div', children=[
             html.Br(),
             dbc.ModalFooter(children= [
                 dbc.Button("CLOSE", id="close-save-button"),
-                dbc.Button("SAVE", id="save-filename-button", className="ml-auto")
+                dbc.Button("SAVE", id="save-filename-button", className="ml-auto", color='light-blue')
                 ]
             ),
         ],
@@ -768,7 +765,7 @@ layout = html.Div([
             encounter_ac_dropdowns,
             html.Br(),
             dbc.Container([
-                dbc.Row(className='m-0 p-0', children=[
+                dbc.Row(className='ml-0 mt-3 p-0', children=[
                     dbc.Col(className='ml-3 mr-0 p-1', children=[
                         map_ref_point_and_create_mode,
 
@@ -787,20 +784,16 @@ layout = html.Div([
                                 width=3),
                                 dbc.Col([slider_bar],
                                 width=2)
-                            ], no_gutters=True), #ml-1 p-0 
+                            ], no_gutters=True),
                         
                             dbc.Row(className = 'mt-0', children=[
-                                dbc.Col(className='ml-05 mt-2 p-0 col-scrollable', children=[ # ml-1 mt-2 p-0
+                                dbc.Col(className='ml-05 mt-2 p-0 col-scrollable', children=[
                                     tab_1_graphs,
 
                                     tab_2_graphs
                                 ],
                                 width=True)
                             ]),
-                            # dbc.Row(className='m-0 p-0', children=[
-                            #     dbc.Col([slider_bar])
-                            # ],
-                            # no_gutters=True)
                             
                         ], 
                         fluid=True),
@@ -808,8 +801,6 @@ layout = html.Div([
                     ], 
                     width=True)
                 ], 
-                # align='left',
-                # justify='left',
                 no_gutters=True)
             ], 
             fluid=True)
@@ -933,7 +924,7 @@ def update_graphs_with_sliders(t_value, data, encounter_id_selected, ac_ids_sele
         return dash.no_update
 
     if data == [] or encounter_id_selected is None or encounter_id_selected == [] or ac_ids_selected == []:
-        return 'Time: ', 0, {}, {}, {}, {}, {}, {}, {}, 0, 100
+        return 'Time:', 0, {}, {}, {}, {}, {}, {}, {}, 0, 100
     
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     if ctx == 'editable-table' or ctx == 'slider':
@@ -1043,7 +1034,7 @@ def update_graphs_with_sliders(t_value, data, encounter_id_selected, ac_ids_sele
             yaxis_title = 'Distance (ft)',
             margin=margin)
 
-        return 'Time: {} (s)'.format(t_value), t_value, fig_xy, fig_tz, fig_tspeedxy, fig_tspeedz, fig_xyz, fig_tdistxy, fig_tdistz, min_values[0], max_values[0]
+        return 'Time: {}s'.format(t_value), t_value, fig_xy, fig_tz, fig_tspeedxy, fig_tspeedz, fig_xyz, fig_tdistxy, fig_tdistz, min_values[0], max_values[0]
 
 
 ###########################################################################################
@@ -2148,7 +2139,6 @@ def toggle_histograms(switch_val, gen_data):
 @app.callback(Output('vis-or-stats-switch','disabled'),
                 Input('generated-data', 'data'))
 def disable_switch(gen_data):
-    print(gen_data)
     if gen_data != []:
         return False
     
