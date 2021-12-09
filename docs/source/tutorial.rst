@@ -1,7 +1,7 @@
 .. _tutorial:
 
 Tutorial
-************
+**********
 
 .. _tutorial-introduction:
 
