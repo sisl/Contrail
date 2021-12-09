@@ -47,6 +47,7 @@ map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
 map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color='#000000', weight=5, opacity=0.9))), dict(offset='100%', repeat='0%', marker=map_marker)]
 
+np.random.seed(3)
 
 tabs = html.Div(id='tab-div', children=[
         dbc.Tabs(id="tabs",
@@ -2037,21 +2038,22 @@ def on_generation_update_log_histograms(generated_data):
     print('\n--CREATING HISTOGRAMS--\n')
     start = time.time()
 
-    generated_data_filename = generated_data['filename']  #'generated_data.dat'
+    generated_data_filename = generated_data['filename']
     enc_indices = generated_data['encounter_indices']
     minmax_hist = generated_data['minmax_hist']
     ac_ids = generated_data['ac_ids']
     num_encounters = generated_data['num_encounters']
 
     ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
-        t_edges, x_edges, y_edges, z_1_edges, z_edges = stream_count_histograms(generated_data_filename, \
+        ac1_t_edges, ac1_x_edges, ac1_y_edges, ac1_z_edges,\
+        ac2_t_edges, ac2_x_edges, ac2_y_edges, ac2_z_edges = stream_count_histograms(generated_data_filename, \
         enc_indices, minmax_hist, num_encounters, ac_ids)
     
     bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
     x_labels = ['xEast', 'time','xEast', 'time']
     y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
-    x_axes = [x_edges, t_edges, x_edges, t_edges]
-    y_axes = [y_edges, z_1_edges, y_edges, z_edges]
+    x_axes = [ac1_x_edges, ac1_t_edges, ac2_x_edges, ac2_t_edges]
+    y_axes = [ac1_y_edges, ac1_z_edges, ac2_y_edges, ac2_z_edges]
 
     num_processes = mp.cpu_count()
     pool = mp.Pool(num_processes)
