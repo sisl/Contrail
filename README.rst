@@ -30,7 +30,7 @@ Installation
 
 to install Contrail as a package.
 
-Otherwise, clone the Contrail repository to your local computer and open it in an IDE.
+In order to use the tool, clone the Contrail repository to your local computer and open it in an IDE.
 
 .. _contrail-dependencies:
 
