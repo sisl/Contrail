@@ -146,63 +146,6 @@ after exiting create mode.
 
 .. _tutorial_generation:
 
-<<<<<<< HEAD
-#. Generation
-======================
-
-In order to generate new encounters, the user must have either uploaded a waypoint file or used EGGUI 
-to create a nominal encounter with at least two aircrafts. 
-
-To generate an encounter set, click the "Generate Encounter Set" button located in the top-left corner.
-This will trigger a popup window. You will get the option of either loading in a predefined model or 
-inputting values for a new generation model. Let's consider the latter option first.
-
-To create a new generation model, you must first select a nominal encounter. The waypoints of the
-trajectories in this encounter will serve as the mean waypoints during generation. Next, select
-which AC IDs you would like to generate from (if you only select one AC ID, then the generated data
-will not be of encounters but rather single aircraft trajectories). 
-
-Next, you will select which generation protocol you would like to use. HERE IS A DIAGONAL COVARIENCE 
-EXPLANATION. HERE IS A KERNEL COVARIENCE EXPLANATION. 
-
-Lastly, indicate how many encounters you would like to generate using the model you just defined, and
-click "Generate." You will be redirected back to the home page where you will see a spinner - the 
-spinner will continue to spin until the generation process has been completed. Once the spinner disappears,
-you can click on the ENC ID dropdown menu to confirm the generation process worked correctly. If you see 
-that the number of encounters avaliable in the dropdown menu equals the number of encounters you hoped to
-generate, then the process was successful. 
-
-.. _tutorial_saving:
-
-#. Saving
-======================
-
-
-The EGGUI allows users to save both generated data sets (.dat) and previously used generation models (.json).
-You can refer to THIS DOC for what a generation model is and how it is structured. 
-
-You can only save after generating a data set. 
-
-To save, click the "Save Waypoints (.dat) or Model (.json)" button on the top-left corner. This will trigger
-a popup window where you can select whether you'd like to save the generated waypoints, the generation model,
-or both. Fill in the names for those files and then click "Save." This will automatically save the waypoint files 
-to the scr/data folder and the generation models to the scr/models folder within the local repository. If the
-files are not too large, the browser will also present the files as a download. 
-
-LEAD USERS TO THE PAGE DESCRIBING HOW THE SETTINGS PAGE WORKS.
-
-..
-    goal here is to embed a video for a user to generate from a loaded in waypoints file
-    and a video showing how a user could generate from a created nominal encounter
-
-  .. video:: videos/EGGUI_nominal_encounter
-     :scale: 50 %
-     :alt: Using EncounterGenerationGUI interface to upload/create encounters.
-     :align: center
-
-
-
-=======
 Generation
 ======================
 
@@ -278,4 +221,3 @@ Steps to Save Waypoints and Models:
    * If the files are not too large, the browser will also present the files as a download. 
 
 You can only save after generating a data set, not after uploading a waypoints file or creating a nominal encounter.
->>>>>>> origin/build
