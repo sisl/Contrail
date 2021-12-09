@@ -1,29 +1,37 @@
-.. _readme-aem:
+.. _readme-contrail:
 
-Aircraft Encounter Modeling
+Contrail
 ******************
+Interface for modeling, generating, visualizing and saving aircraft encounter data sets.
 
-.. _aem-overview:
+.. _contrail-overview:
 
-1 Overview
+Overview
 ===============
 
-Encounter modeling allows users to represent aircraft behavior using statistical models. These models 
-describe how aircraft behave during close encounters and are used to provide a realistic set of encounter 
-flight dynamics where an aircraft collision avoidance system would likely alert. While encounter models
-represent encounter geometries, they also describe aircraft behavior during the entire course of
-an encounter (speed, acceleration, etc.). 
+Aircraft encounter modeling allows users to represent aircraft behavior using statistical models. 
 
-Intended purpose of the EncounterGenerationGUI (EGGUI) is for users to generate, visualize and save large 
+Contrail's intended purpose is for users to model, generate, visualize and save large 
 encounter data sets in order to develop and verify aircraft collision avoidance software. 
-For a more detailed explanation on the usage of this product, please refer to USAGE LINK. 
+For a more detailed explanation on the usage of this product, please refer to
+`usage.rst <https://github.com/sisl/Contrail/blob/migration_to_contrail/docs/source/usage.rst>`_. 
 
-.. _aem-intall-protocol:
+.. _contrail-intallation:
 
-2 Install Protocol
+Installation
 ===============
-Please follow the instructions outlined below for downloading and installing the EGGUI tool.
 
-* step 1
-* step 2
-* continue
+``pip install git+https://github.com/sisl/Contrail``
+
+or install by cloning the repository and opening it in an IDE.
+
+.. _contrail-dependencies:
+
+Dependencies
+===============
+After cloning the repository, install the environment requirements with pip
+
+``pip install -r requirements.txt``
+
+Best practice is to install the requirements in a Python virtual environment and run Contrail in that venv to avoid any version issues.
+
