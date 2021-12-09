@@ -34,7 +34,7 @@ Preliminary Steps
 If you are having issues running the package locally, follow these steps to troubleshoot:
 
 #. Confirm you have downloaded the latest version of the Contrail repository to your local computer.
-#. Using any Terminal instance, step into the /scr folder within the directory of your local repository.
+#. Using any Terminal instance, step into the contrail/scr folder within the directory of your local repository.
 #. Enter 'python -Wignore run.py' into the command line.
 
    * Running Contrail with the -Wignore flag will block any warnings related to deprecated dash component versions
