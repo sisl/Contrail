@@ -2059,13 +2059,10 @@ def on_generation_update_log_histograms(generated_data):
 
     pool.close()
     pool.join()
-
     return histograms
 
 
 def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
-    
-
     if x_label == 'xEast' and y_label == 'yNorth':
         return {
             'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, 
