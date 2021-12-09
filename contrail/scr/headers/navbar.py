@@ -3,6 +3,9 @@ from dash import html
 from dash import dcc
 import dash_daq as daq
 
+import warnings
+warnings.filterwarnings("ignore")
+
 from app import app
 
 DASHBOARD_LOGO = app.get_asset_url('dashboard_logo.png')
@@ -24,7 +27,7 @@ def Navbar():
                 dbc.Nav(className='navbar-nav ml-0', children=[
                     dbc.NavItem(dbc.NavLink("Home", href="/home")),
                     dbc.NavItem(dbc.NavLink("About", href="/about")),
-                    dbc.NavItem(className='ml-5 mt-2', children=[
+                    dbc.NavItem(className='ml-5 mt-3', children=[
                         dcc.Loading(parent_className='loading_wrapper', 
                                 children=[dcc.Store(id='generated-data', data={})],
                                 type='circle',

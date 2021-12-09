@@ -17,6 +17,8 @@ Functions:
 Misc Variables:
 
 '''
+import warnings
+warnings.filterwarnings("ignore")
 
 import dash
 

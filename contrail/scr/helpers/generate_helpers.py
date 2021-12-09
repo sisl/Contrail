@@ -4,6 +4,7 @@ import numpy as np
 import multiprocessing as mp
 from itertools import repeat
 
+
 from helpers.parse_encounter_helpers import *
 from helpers.constants import *
 
@@ -107,10 +108,10 @@ def stream_generated_data(generated_data, ac_times, filename, num_encounters):
     
 
 def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, ac_ids):    
-
+    print("HERE")
     minmax_hist = np.array(minmax_hist)
     t_minmax, x_minmax, y_minmax, z_minmax = minmax_hist.T[0], minmax_hist.T[1], minmax_hist.T[2], minmax_hist.T[3]
-    z_1_minmax = [1400, 1900]
+    z_1_minmax = z_minmax #[1400, 1900]
 
     t_bin_width = (t_minmax[1]-t_minmax[0]) / NUM_BINS_HISTOGRAM
     x_bin_width = (x_minmax[1]-x_minmax[0]) / NUM_BINS_HISTOGRAM
@@ -172,7 +173,6 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
                 ac_2_tz_bin_counts[int(z_ind), 0] += 1
 
             cursor += INITIAL_DIM * WAYPOINT_BYTE_SIZE
-        # print('\nac_ids', ac_ids)
 
         # count update waypoints
         for ac in ac_ids:
@@ -205,72 +205,8 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
 
                 cursor += UPDATE_DIM * WAYPOINT_BYTE_SIZE
 
+    print("OUTTA HERE")
     return ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
         t_edges, x_edges, y_edges, z_1_edges, z_edges
         
-    
-# '''
-#     Used when building the histograms. Steps through the encounters_data and 
-#     parses each enc into it's dictionary form. Then returns a list of dictionaries of
-#     individual waypoints.
-
-#     FIXME: I implemented multiprocessing, but it doesn't help enough. As soon as the
-#     encounter set gets larger than a few thousand encounters, this function takes many minutes to 
-#     run. Not sure how we could speed this up more...
-# '''
-# def convert_and_combine_data(data, ref_data) -> list:
-#     num_encs = data['num_encounters']
-#     num_processes = mp.cpu_count()
-
-#     # the most efficient way to divide the encounters up for multiprocessing
-#     # It distributes them over num_processes evenly, which increases the
-#     # speed of the multiprocessing 
-#     if num_encs > num_processes:
-#         num_enc_per_cpu = num_encs // num_processes
-#         if num_enc_per_cpu > STANDARD_NUM_PARTITIONS:
-#             num_enc_per_partition = num_enc_per_cpu // STANDARD_NUM_PARTITIONS
-#         else:
-#             num_enc_per_partition = STANDARD_NUM_PARTITIONS
-#     else:
-#         num_enc_per_partition = num_encs
-    
-#     start, size, end = 0, num_enc_per_partition, num_enc_per_partition
-#     enc_ids = []
-    
-#     # if it wants to create too many partitions, reduce the total number of partitions
-#     # to the standard number (3 per process)
-#     total_partitions = num_encs // num_enc_per_partition
-#     if total_partitions > (STANDARD_NUM_PARTITIONS * num_processes): 
-#         total_partitions = STANDARD_NUM_PARTITIONS * num_processes
-    
-#     for i in range(total_partitions):
-#         if i == total_partitions - 1:
-#             end = num_encs
-#         encs = [enc for enc in range(start, end)]
-#         start = end
-#         end += size
-#         enc_ids.append(encs)
-
-#     mem_data = repeat(data, total_partitions)
-#     ac_ids_selected = repeat(data['ac_ids'], total_partitions)
-#     ref_data_repeats = repeat(ref_data, total_partitions)
-
-#     pool = mp.Pool(num_processes)
-
-#     start = time.time()
-#     print('\tbefore converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
-#     results = pool.starmap(parse_enc_data, zip(mem_data, enc_ids, ac_ids_selected, ref_data_repeats))
-#     print('\tfinished converting w/ multiprocessing @ ', (time.time() - start)/60, ' mins')
-
-#     pool.close()
-#     pool.join()
-
-#     print('\tbefore combining @ ', (time.time() - start)/60, ' mins')
-#     combined_data = []
-#     for i, result in enumerate(results):
-#         combined_data += result
-
-#     print('\tfinished combining @ ', (time.time() - start)/60, ' mins')
-
-#     return combined_data
 

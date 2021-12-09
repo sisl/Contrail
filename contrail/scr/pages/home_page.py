@@ -4,6 +4,8 @@ Embeds the constant page components (e.g. navbar) into every page of the app.
 
 See module app.py for app specific server and rendering.
 '''
+import warnings
+warnings.filterwarnings("ignore")
 
 import dash
 from dash import dash_table
@@ -56,7 +58,7 @@ tabs = html.Div(id='tab-div', children=[
     ])
 
 load_generate_save_buttons_and_toggle = dbc.Container(
-        dbc.Row([
+        dbc.Row(className='mt-3', children=[
             dbc.Col(className='ml-1', children=[
                 html.Label([
                         dcc.Upload(id='load-waypoints', children = 
@@ -77,7 +79,7 @@ load_generate_save_buttons_and_toggle = dbc.Container(
             width={'size':'auto', 'order':3}),
 
             dbc.Col(className='ml-auto', children=[
-                daq.ToggleSwitch(id='vis-or-stats-switch', value=True, disabled=True, label=['Visualization', 'Generation Statistics'])
+                daq.ToggleSwitch(id='vis-or-stats-switch', value=False, disabled=True, color="#7db5d8", label=['Visualization', 'Generation Statistics'])
             ], width={'size':'auto', 'order':4})
             
         ],
@@ -282,8 +284,6 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         ],justify='center')
                     ])
                 ]),
-                # color='primary',
-                # style={'width':'30rem', 'height':'33rem'}),
             ],
             width='auto'),
 
@@ -305,8 +305,6 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         ],justify='center')
                     ])
                 ]),
-                # color='primary',
-                # style={'width':'30rem', 'height':'33rem'}),
             ], 
             width='auto'),
             dbc.Col(className='pr-2', children=[
@@ -327,8 +325,6 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         ],justify='center')
                     ])
                 ]),
-                # color='primary',
-                # style={'width':'30rem', 'height':'33rem'}),
             ],
             width='auto'),
 
@@ -350,8 +346,6 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
                         ],justify='center')
                     ])
                 ]),
-                # color='primary',
-                # style={'width':'30rem', 'height':'33rem'}),
             ],
             width='auto')
         ],
@@ -360,73 +354,28 @@ tab_4_graphs = html.Div(id='tab-4-graphs', children=[
 
         html.Br(),
 
-        # dbc.Row([
-        #     dbc.Col(className='pr-2', children=[
-        #         dbc.Card([
-        #             dbc.CardBody([
-        #                 dbc.Row([
-        #                     dbc.Col(html.H5("AC 2: xEast vs. yNorth", className="card-title-1"))
-        #                 ],justify='center'),
-
-        #                 dbc.Row([
-        #                     dbc.Col(
-        #                         dcc.Loading(parent_className='loading-hist-ac-2-xy', 
-        #                         children=[dcc.Graph(id='log-histogram-ac-2-xy', figure=go.Figure())],
-        #                         type='circle',
-        #                         color='white'
-        #                         ) 
-        #                     )
-        #                 ],justify='center')
-        #             ])
-        #         ],
-        #         color='primary',
-        #         style={'width':'30rem', 'height':'33rem'}),
-        #     ],
-        #     width='auto'),
-
-        #     dbc.Col(className='pr-2', children=[
-        #         dbc.Card([
-        #             dbc.CardBody([
-        #                 dbc.Row([
-        #                     dbc.Col(html.H5("AC 2: Time vs. zUp", className="card-title-1"))
-        #                 ],justify='center'),
-
-        #                 dbc.Row([
-        #                     dbc.Col(
-        #                         dcc.Loading(parent_className='loading-hist-ac-2-tz', 
-        #                         children=[dcc.Graph(id='log-histogram-ac-2-tz', figure=go.Figure())],
-        #                         type='circle',
-        #                         color='white'
-        #                         )    
-        #                     )
-        #                 ],justify='center')
-        #             ])
-        #         ],
-        #         color='primary',
-        #         style={'width':'30rem', 'height':'33rem'}),
-        #     ],
-        #     width='auto')
-        # ],
-        # no_gutters=True,
-        # style={'margin-left':'15px'})
     ], 
     style={'display':'none'}
     )
 
 slider_bar = html.Div(id='slider-bar-div', children=[
-        dbc.Container(
-            dbc.Row([
-                dbc.Col([
-                    html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
-                ], width={'size':1, 'order':1}),
-                dbc.Col([
-                    html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '800px'})
-                ], width={'size':'auto', 'order':2})
-            ], 
-            align='start',
-            no_gutters=True
-        ), 
-        fluid=True)
+        
+            dbc.Card(className='card-slider-bar ml-2', children=[
+                dbc.CardBody(className='card-body-m-0', children=[
+                    dbc.Row([
+                        dbc.Col(className='mt-0', children=[ #mt-05
+                            html.Div(id='slider-drag-output', children='Time: ', style={'font-size': 15})
+                        ], width=1),
+                        dbc.Col(className='m-0 p-0', children=[ #mt-3 ml-4
+                            html.Div([dcc.Slider(id='slider', value=0, step=1)], id='slider-container', style={'width': '600px'})
+                        ], width=6)
+                    ], 
+                    align='left',
+                    justify='left',
+                    no_gutters=True)
+                ])
+            ])
+            
     ])
 
 map_ref_point_and_create_mode = html.Div(id='map-create-mode-div', children=[
@@ -834,8 +783,10 @@ layout = html.Div([
                         
                         dbc.Container([
                             dbc.Row(className = 'mt-1', children=[
-                                dbc.Col([tabs]),
-                                dbc.Col([slider_bar])
+                                dbc.Col(className='ml-1', children=[tabs],
+                                width=3),
+                                dbc.Col([slider_bar],
+                                width=2)
                             ], no_gutters=True), #ml-1 p-0 
                         
                             dbc.Row(className = 'mt-0', children=[
