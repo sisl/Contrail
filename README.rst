@@ -30,7 +30,9 @@ Installation
 
 to install Contrail as a package.
 
-In order to use the tool, clone the Contrail repository to your local computer and open it in an IDE.
+Additionally, you can clone the Contrail repository to your local computer and open/run it in an IDE. The
+`tutorial.rst <https://github.com/sisl/Contrail/blob/main/docs/source/tutorial.rst>`_ assumes that you have
+done this step.
 
 .. _contrail-dependencies:
 
