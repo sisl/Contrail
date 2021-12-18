@@ -67,12 +67,12 @@ load_generate_save_buttons_and_toggle = dbc.Container(
                     ])],
                     width={"size": 'auto', "order": 1}),
 
-            dbc.Col(className='ml-2', children=[
+            dbc.Col(className='ml-25', children=[
                 dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning")
             ],
             width={'size':'auto', 'order':2}),              
 
-            dbc.Col(className="ml-2", children=[
+            dbc.Col(className="ml-25", children=[
                     dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary"),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')
