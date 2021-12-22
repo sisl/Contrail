@@ -487,7 +487,7 @@ data_table = html.Div(id='data-table-div', children =[
                             editable = True,
                             row_deletable = True,
                             data=[], 
-                            style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, #'height': '35rem',
+                            style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, 
                             style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
                         )
                     ]),
@@ -869,16 +869,20 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
 
             
     elif ctx == 'generated-data':
+        print("finished generating data")
         if generated_data != {} and ref_data != {}:
+            print("not empty")
             return {'filename': generated_data['filename'],
-                    'encounter_indices':generated_data['encounter_indices'],
-                    'ac_ids':generated_data['ac_ids'],
-                    'num_encounters':generated_data['num_encounters'],
+                    'encounter_indices': generated_data['encounter_indices'],
+                    'ac_ids': generated_data['ac_ids'],
+                    'num_encounters': generated_data['num_encounters'],
                     'type':'generated'}
 
     elif ctx == 'load-model':
         if model_contents is not None:
             encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
+            print('num_ac: ', num_ac)
+            print('num_encounters: ', num_encounters)
     
             return {'encounters_data': str(encounters_data),
                     'encounter_indices': encounter_byte_indices,
@@ -1152,7 +1156,7 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
                                                             ell=pm.Ellipsoid('wgs84'), deg=True)
                     data_point['xEast'] = xEast*M_TO_NM
                     data_point['yNorth'] = yNorth*M_TO_NM
-                    data_point['zUp'] = zUp_input
+                    #data_point['zUp'] = zUp
                     data_point['lat'] = pos[0]
                     data_point['long'] = pos[1]
                     df.at[i] = data_point
@@ -1965,8 +1969,9 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 return {}
 
             nom_enc_data = parse_enc_data(memory_data, [nom_enc_id], nom_ac_ids, ref_data, file_path)
-            df = pd.DataFrame(nom_enc_data)
 
+            df = pd.DataFrame(nom_enc_data)
+            
             data = populate_lat_lng_xEast_yNorth(df.to_dict('records'), ref_data)
             df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
             df_sorted = df.sort_values(by=['ac_id', 'time'])
@@ -2005,12 +2010,16 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                     
                     # include nominal encounter
                     generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
+            
             print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
             
             start = time.time()
             generated_data_filename = file_path + 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
+            
+           
             print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
+
 
             return {'filename':generated_data_filename,
                     'encounter_indices':enc_data_indices,
@@ -2032,35 +2041,36 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
               Input('generated-data', 'data'))
 def on_generation_update_log_histograms(generated_data):
     print('\n--CREATING HISTOGRAMS--\n')
-    start = time.time()
+    # start = time.time()
 
-    generated_data_filename = generated_data['filename']
-    enc_indices = generated_data['encounter_indices']
-    minmax_hist = generated_data['minmax_hist']
-    ac_ids = generated_data['ac_ids']
-    num_encounters = generated_data['num_encounters']
+    # generated_data_filename = generated_data['filename']
+    # enc_indices = generated_data['encounter_indices']
+    # minmax_hist = generated_data['minmax_hist']
+    # ac_ids = generated_data['ac_ids']
+    # num_encounters = generated_data['num_encounters']
 
-    ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
-        ac1_t_edges, ac1_x_edges, ac1_y_edges, ac1_z_edges,\
-        ac2_t_edges, ac2_x_edges, ac2_y_edges, ac2_z_edges = stream_count_histograms(generated_data_filename, \
-        enc_indices, minmax_hist, num_encounters, ac_ids)
+    # ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
+    #     ac1_t_edges, ac1_x_edges, ac1_y_edges, ac1_z_edges,\
+    #     ac2_t_edges, ac2_x_edges, ac2_y_edges, ac2_z_edges = stream_count_histograms(generated_data_filename, \
+    #     enc_indices, minmax_hist, num_encounters, ac_ids)
     
-    bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
-    x_labels = ['xEast', 'time','xEast', 'time']
-    y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
-    x_axes = [ac1_x_edges, ac1_t_edges, ac2_x_edges, ac2_t_edges]
-    y_axes = [ac1_y_edges, ac1_z_edges, ac2_y_edges, ac2_z_edges]
+    # bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
+    # x_labels = ['xEast', 'time','xEast', 'time']
+    # y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
+    # x_axes = [ac1_x_edges, ac1_t_edges, ac2_x_edges, ac2_t_edges]
+    # y_axes = [ac1_y_edges, ac1_z_edges, ac2_y_edges, ac2_z_edges]
 
-    num_processes = mp.cpu_count()
-    pool = mp.Pool(num_processes)
+    # num_processes = mp.cpu_count()
+    # pool = mp.Pool(num_processes)
 
-    histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
-    print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
+    # histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
+    # print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
 
-    pool.close()
-    pool.join()
+    # pool.close()
+    # pool.join()
 
-    return histograms
+    #return histograms
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
