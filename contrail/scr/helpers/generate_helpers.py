@@ -61,7 +61,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
 
 def stream_generated_data(generated_data, ac_times, filename, num_encounters):
     enc_data_indices = [None] * (num_encounters+1)
-    ac_ids = len(generated_data)
+    ac_ids = len(ac_times)
 
     ac1_minmax_hist = []
     ac2_minmax_hist = []

@@ -1156,7 +1156,6 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
                                                             ell=pm.Ellipsoid('wgs84'), deg=True)
                     data_point['xEast'] = xEast*M_TO_NM
                     data_point['yNorth'] = yNorth*M_TO_NM
-                    #data_point['zUp'] = zUp
                     data_point['lat'] = pos[0]
                     data_point['long'] = pos[1]
                     df.at[i] = data_point
@@ -1977,12 +1976,14 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
             df_sorted = df.sort_values(by=['ac_id', 'time'])
             df = calculate_turnrate_hor_ver_speeds_df(df_sorted)
 
+
             if coord_radio_value == 'coord-radio-pos':
                 kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
             elif coord_radio_value == 'coord-radio-turn':
                 kernel_inputs = [ [ [waypoint['turn_rate'], waypoint['horizontal_speed'], waypoint['vertical_speed']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
 
             ac_times = [ [waypoint['time'] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
+
 
             if cov_radio_value == 'cov-radio-diag':
                 cov = [ [sigma_hor, 0, 0], 
@@ -2003,7 +2004,7 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 generated_waypoints = np.empty([2,], dtype=object)
                 for ac_id, ac_kernel_inputs in enumerate(kernel_inputs):
                     mean, cov = exp_kernel_func(ac_kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-                    
+
                     # generate waypoints
                     generated_waypoints[ac_id] = np.random.multivariate_normal(mean,cov,num_encounters)
                     generated_waypoints[ac_id] = np.reshape(generated_waypoints[ac_id], (generated_waypoints[ac_id].shape[0], -1, 3))
