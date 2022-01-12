@@ -37,16 +37,18 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
 
     K_mean = inputs.reshape((N,))
     K_cov = np.empty((N, N))  
+
+    # k(X, X’) = a * exp(-dist(X - X’)^2)
+    # dist(x,y,z,x’,y’,z’) = sqrt(b(x-x’)^2 + b(y-y’)^2 + c(z-z’)^2)
     
     for i, inputs_i in enumerate(inputs):
         for j, inputs_j in enumerate(inputs):
-            #if i == j or i < j:   
             if i <= j:        
                 [x_i,y_i,z_i] = inputs_i
                 [x_j,y_j,z_j] = inputs_j
                 
-                dist_xy = [ [(x_i-x_j)**2, (x_i-y_j)**2], 
-                            [(y_i-x_j)**2, (y_i-y_j)**2] ]
+                dist_xy = [ [(x_i-x_j), (x_i-y_j)], 
+                            [(y_i-x_j), (y_i-y_j)] ]
 
                 K_cov[3*i:3*i+2, 3*j:3*j+2] = np.exp(-(param_b * np.power(dist_xy, 2)) / (2 * param_a**2))
                 
@@ -55,6 +57,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
 
                 if i != j:
                     K_cov[3*j:3*j+3, 3*i:3*i+3] = np.transpose(K_cov[3*i:3*i+3, 3*j:3*j+3])
+
 
     return K_mean, K_cov
 
@@ -127,7 +130,7 @@ def stream_generated_data(generated_data, ac_times, filename, num_encounters):
 
         minmax_hist = [np.column_stack((txy_minmax_hist, ac1_z_minmax_hist)),
                        np.column_stack((txy_minmax_hist, ac2_z_minmax_hist))]
-
+    
     return enc_data_indices, minmax_hist
     
 

@@ -47,7 +47,7 @@ map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
 map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color='#000000', weight=5, opacity=0.9))), dict(offset='100%', repeat='0%', marker=map_marker)]
 
-np.random.seed(3)
+#np.random.seed(3)
 
 tabs = html.Div(id='tab-div', children=[
         dbc.Tabs(id="tabs",
@@ -869,9 +869,7 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
 
             
     elif ctx == 'generated-data':
-        print("finished generating data")
         if generated_data != {} and ref_data != {}:
-            print("not empty")
             return {'filename': generated_data['filename'],
                     'encounter_indices': generated_data['encounter_indices'],
                     'ac_ids': generated_data['ac_ids'],
@@ -881,8 +879,6 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
     elif ctx == 'load-model':
         if model_contents is not None:
             encounters_data, encounter_byte_indices, num_ac, num_encounters = convert_json_file(model_contents)
-            print('num_ac: ', num_ac)
-            print('num_encounters: ', num_encounters)
     
             return {'encounters_data': str(encounters_data),
                     'encounter_indices': encounter_byte_indices,
@@ -2001,9 +1997,24 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 generated_waypoints[1] = np.array([kernel_inputs[1]] + generated_waypoints[1].tolist())
 
             elif cov_radio_value == 'cov-radio-exp':  
-                generated_waypoints = np.empty([2,], dtype=object)
+                generated_waypoints = np.empty([len(nom_ac_ids),], dtype=object)
                 for ac_id, ac_kernel_inputs in enumerate(kernel_inputs):
+                    # print("ac_id: ", ac_id)
+
                     mean, cov = exp_kernel_func(ac_kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
+                    
+                    # if ac_id == 0:
+                    #     print("\n --AC_KERNEL_INPUTS--\n")
+                    #     for waypoint in ac_kernel_inputs:
+                    #         print(waypoint)
+
+                    #     print("\n --MEAN--")
+
+                    #     print(mean)
+
+                    #     print("\n --COVARIANCE--\n")
+                        
+                    #     print(cov)
 
                     # generate waypoints
                     generated_waypoints[ac_id] = np.random.multivariate_normal(mean,cov,num_encounters)
@@ -2011,15 +2022,17 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                     
                     # include nominal encounter
                     generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
-            
+
+                    
             print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
             
             start = time.time()
             generated_data_filename = file_path + 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
+            #enc_data_indices = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
             
            
-            print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
+            print('\nfinished streaming generated data in', (time.time()-start)/60,'mins.\n')
 
 
             return {'filename':generated_data_filename,
@@ -2042,36 +2055,36 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
               Input('generated-data', 'data'))
 def on_generation_update_log_histograms(generated_data):
     print('\n--CREATING HISTOGRAMS--\n')
-    # start = time.time()
+    start = time.time()
 
-    # generated_data_filename = generated_data['filename']
-    # enc_indices = generated_data['encounter_indices']
-    # minmax_hist = generated_data['minmax_hist']
-    # ac_ids = generated_data['ac_ids']
-    # num_encounters = generated_data['num_encounters']
+    generated_data_filename = generated_data['filename']
+    enc_indices = generated_data['encounter_indices']
+    minmax_hist = generated_data['minmax_hist']
+    ac_ids = generated_data['ac_ids']
+    num_encounters = generated_data['num_encounters']
 
-    # ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
-    #     ac1_t_edges, ac1_x_edges, ac1_y_edges, ac1_z_edges,\
-    #     ac2_t_edges, ac2_x_edges, ac2_y_edges, ac2_z_edges = stream_count_histograms(generated_data_filename, \
-    #     enc_indices, minmax_hist, num_encounters, ac_ids)
+    ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
+        ac1_t_edges, ac1_x_edges, ac1_y_edges, ac1_z_edges,\
+        ac2_t_edges, ac2_x_edges, ac2_y_edges, ac2_z_edges = stream_count_histograms(generated_data_filename, \
+        enc_indices, minmax_hist, num_encounters, ac_ids)
     
-    # bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
-    # x_labels = ['xEast', 'time','xEast', 'time']
-    # y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
-    # x_axes = [ac1_x_edges, ac1_t_edges, ac2_x_edges, ac2_t_edges]
-    # y_axes = [ac1_y_edges, ac1_z_edges, ac2_y_edges, ac2_z_edges]
+    bin_counts = [ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts]
+    x_labels = ['xEast', 'time','xEast', 'time']
+    y_labels = ['yNorth', 'zUp', 'yNorth', 'zUp']
+    x_axes = [ac1_x_edges, ac1_t_edges, ac2_x_edges, ac2_t_edges]
+    y_axes = [ac1_y_edges, ac1_z_edges, ac2_y_edges, ac2_z_edges]
 
-    # num_processes = mp.cpu_count()
-    # pool = mp.Pool(num_processes)
+    num_processes = mp.cpu_count()
+    pool = mp.Pool(num_processes)
 
-    # histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
-    # print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
+    histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
+    print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
 
-    # pool.close()
-    # pool.join()
+    pool.close()
+    pool.join()
 
-    #return histograms
-    return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    return histograms
+    #return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
