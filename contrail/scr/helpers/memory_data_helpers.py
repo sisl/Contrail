@@ -93,7 +93,7 @@ def convert_created_data(table_data):
     cursor = 2 * INFO_BYTE_SIZE
 
     initial_ac_bytes = []
-    update_ac_bytes = [[],[],[]]
+    update_ac_bytes = [[],[]]
     for ac in ac_ids:
         ac_df = df.loc[df['ac_id'] == ac]
 
