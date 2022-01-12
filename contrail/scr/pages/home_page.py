@@ -2029,8 +2029,6 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
             start = time.time()
             generated_data_filename = file_path + 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
-            #enc_data_indices = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
-            
            
             print('\nfinished streaming generated data in', (time.time()-start)/60,'mins.\n')
 
@@ -2084,7 +2082,6 @@ def on_generation_update_log_histograms(generated_data):
     pool.join()
 
     return histograms
-    #return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
