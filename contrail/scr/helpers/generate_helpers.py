@@ -36,17 +36,17 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
     N = inputs.shape[0]*inputs.shape[1]
 
     K_mean = inputs.reshape((N,))
-    K_cov = np.empty((N, N))  
+    K_cov = np.zeros((N, N)) 
     
     for i, inputs_i in enumerate(inputs):
         for j, inputs_j in enumerate(inputs):
-            #if i == j or i < j:   
+
             if i <= j:        
                 [x_i,y_i,z_i] = inputs_i
                 [x_j,y_j,z_j] = inputs_j
                 
-                dist_xy = [ [(x_i-x_j)**2, (x_i-y_j)**2], 
-                            [(y_i-x_j)**2, (y_i-y_j)**2] ]
+                dist_xy = [ [(x_i-x_j), (x_i-y_j)], 
+                            [(y_i-x_j), (y_i-y_j)] ]
 
                 K_cov[3*i:3*i+2, 3*j:3*j+2] = np.exp(-(param_b * np.power(dist_xy, 2)) / (2 * param_a**2))
                 
@@ -57,7 +57,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
                     K_cov[3*j:3*j+3, 3*i:3*i+3] = np.transpose(K_cov[3*i:3*i+3, 3*j:3*j+3])
 
     return K_mean, K_cov
-
+    
 
 def stream_generated_data(generated_data, ac_times, filename, num_encounters):
     enc_data_indices = [None] * (num_encounters+1)
@@ -111,32 +111,62 @@ def stream_generated_data(generated_data, ac_times, filename, num_encounters):
 
     if INDIV_TZ_SCOPE == True:
         # Individual AC scope for only z values
+
         ac1_minmax_hist = np.array(ac1_minmax_hist)
         ac2_minmax_hist = np.array(ac2_minmax_hist)
-        txy_minmax_hist = np.concatenate((ac1_minmax_hist[:,:3], ac2_minmax_hist[:,:3]))
+
+        print('ac1_minmax_hist', ac1_minmax_hist.shape, ac1_minmax_hist.shape[0])
+        print('ac2_minmax_hist', ac2_minmax_hist.shape, ac2_minmax_hist.shape[0])
+
+        if ac1_minmax_hist.shape[0] == 0:
+            ac1_minmax_hist = np.array([], dtype=np.int64).reshape(0,4)
+        if ac2_minmax_hist.shape[0] == 0:
+            ac2_minmax_hist = np.array([], dtype=np.int64).reshape(0,4)
+
+        print('ac1_minmax_hist', ac1_minmax_hist.shape)
+        print('ac2_minmax_hist', ac2_minmax_hist.shape)
+
+        txy_minmax_hist = np.vstack((ac1_minmax_hist[:,:3], ac2_minmax_hist[:,:3]))
         txy_minmax_hist = [txy_minmax_hist.min(axis=0), txy_minmax_hist.max(axis=0)]
-        ac1_z_minmax_hist = [ac1_minmax_hist[:,3:].min(axis=0), ac1_minmax_hist[:,3:].max(axis=0)]
-        ac2_z_minmax_hist = [ac2_minmax_hist[:,3:].min(axis=0), ac2_minmax_hist[:,3:].max(axis=0)]
+
+        if ac1_minmax_hist.shape[0] == 0:
+            ac1_z_minmax_hist = np.array([[0],[0]])
+        else:
+            ac1_z_minmax_hist = [ac1_minmax_hist[:,3:].min(axis=0), ac1_minmax_hist[:,3:].max(axis=0)]
+
+        if ac2_minmax_hist.shape[0] == 0:
+            ac2_z_minmax_hist = np.array([[0],[0]])
+        else:
+            ac2_z_minmax_hist = [ac2_minmax_hist[:,3:].min(axis=0), ac2_minmax_hist[:,3:].max(axis=0)]
+        
+        # ac1_z_minmax_hist = [ac1_minmax_hist[:,3:].min(axis=0), ac1_minmax_hist[:,3:].max(axis=0)]
+        # ac2_z_minmax_hist = [ac2_minmax_hist[:,3:].min(axis=0), ac2_minmax_hist[:,3:].max(axis=0)]
+        print('ac1_z_minmax_hist', ac1_z_minmax_hist)
+        print('ac2_z_minmax_hist', ac2_z_minmax_hist)
 
         minmax_hist = [np.column_stack((txy_minmax_hist, ac1_z_minmax_hist)),
                        np.column_stack((txy_minmax_hist, ac2_z_minmax_hist))]
     else: 
         ac1_minmax_hist = np.array(ac1_minmax_hist)
         ac2_minmax_hist = np.array(ac2_minmax_hist)
-        minmax_hist = np.concatenate((ac1_minmax_hist, ac2_minmax_hist))
-        minmax_hist = [minmax_hist.min(axis=0), minmax_hist.max(axis=0)]
-        
-        minmax_hist = [minmax_hist, minmax_hist]
+        if ac1_minmax_hist.shape[0] == 0:
+            ac1_minmax_hist = np.array([], dtype=np.int64).reshape(0,4)
+        if ac2_minmax_hist.shape[0] == 0:
+            ac2_minmax_hist = np.array([], dtype=np.int64).reshape(0,4)
+
+        ac_minmax_hist = np.vstack((ac1_minmax_hist, ac2_minmax_hist))
+        minmax_hist = [[ac_minmax_hist.min(axis=0), ac_minmax_hist.max(axis=0)],
+                        [ac_minmax_hist.min(axis=0), ac_minmax_hist.max(axis=0)]]
 
     return enc_data_indices, minmax_hist
-    
+
 
 def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, ac_ids):    
 
-    ac_1_xy_bin_counts = np.empty((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
-    ac_1_tz_bin_counts = np.empty((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
-    ac_2_xy_bin_counts = np.empty((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
-    ac_2_tz_bin_counts = np.empty((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
+    ac_1_xy_bin_counts = np.zeros((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
+    ac_1_tz_bin_counts = np.zeros((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
+    ac_2_xy_bin_counts = np.zeros((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
+    ac_2_tz_bin_counts = np.zeros((NUM_BINS_HISTOGRAM+1, NUM_BINS_HISTOGRAM+1))
 
     [ac1_minmax_hist, ac2_minmax_hist] = minmax_hist
     ac1_minmax_hist = np.array(ac1_minmax_hist)
@@ -167,7 +197,7 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
     with open(filename, 'rb') as file:
         enc_data = file.read(2*INFO_BYTE_SIZE)
         [num_enc_ids,num_ac_ids] = struct.unpack('<II', enc_data[0:2*INFO_BYTE_SIZE])
-        
+
     for enc_id in range(num_encounters):
         enc_start_ind = enc_indices[enc_id]
         cursor = 0
@@ -186,10 +216,10 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
         for ac in ac_ids:
             [x,y,z] = struct.unpack('ddd', enc_data[cursor:cursor+(WAYPOINT_BYTE_SIZE*INITIAL_DIM)])
             x, y = x*FT_TO_NM, y*FT_TO_NM
-            
+
             if ac == 1 :
                 ac1_x_ind = (x - ac1_x_minmax[0]) // ac1_x_bin_width
-                ac1_y_ind = (ac1_y_minmax[1] - y) // ac1_y_bin_width                
+                ac1_y_ind = (y - ac1_y_minmax[0]) // ac1_y_bin_width
                 ac1_t_ind = (0 - ac1_t_minmax[0]) // ac1_t_bin_width
                 ac1_z_ind = (z - ac1_z_minmax[0]) // ac1_z_bin_width 
 
@@ -209,7 +239,6 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
 
         # count update waypoints
         for ac in ac_ids:
-            
             num_updates = int.from_bytes(enc_data[cursor:cursor+NUM_UPDATE_BYTE_SIZE], byteorder='little')
             cursor += NUM_UPDATE_BYTE_SIZE
 
@@ -219,10 +248,10 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
 
                 if ac == 1:
                     ac1_x_ind = (x - ac1_x_minmax[0]) // ac1_x_bin_width
-                    ac1_y_ind = (ac1_y_minmax[1] - y) // ac1_y_bin_width 
+                    ac1_y_ind = (y - ac1_y_minmax[0]) // ac1_y_bin_width 
                     ac1_t_ind = (time - ac1_t_minmax[0]) // ac1_t_bin_width
                     ac1_z_ind = (z - ac1_z_minmax[0]) // ac1_z_bin_width 
-
+                    
                     ac_1_xy_bin_counts[int(ac1_y_ind), int(ac1_x_ind)] += 1
                     ac_1_tz_bin_counts[int(ac1_z_ind), int(ac1_t_ind)] += 1
 
@@ -237,6 +266,11 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
 
                 cursor += UPDATE_DIM * WAYPOINT_BYTE_SIZE
 
+    print('\nac_1_xy_bin_counts\n', ac_1_xy_bin_counts.astype(int), np.sum(ac_1_xy_bin_counts))
+    print('\nac_1_tz_bin_counts\n', ac_1_tz_bin_counts.astype(int), np.sum(ac_1_tz_bin_counts))
+    print('\nac_2_xy_bin_counts\n', ac_2_xy_bin_counts.astype(int), np.sum(ac_2_xy_bin_counts))
+    print('\nac_2_tz_bin_counts\n', ac_2_tz_bin_counts.astype(int), np.sum(ac_2_tz_bin_counts))
+    
     return ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
         ac1_t_edges, ac1_x_edges, ac1_y_edges, ac1_z_edges,\
         ac2_t_edges, ac2_x_edges, ac2_y_edges, ac2_z_edges
