@@ -2023,7 +2023,6 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
 
 
 
-
 ###########################################################################################
 # HISTOGRAM CALLBACKS #
 ###########################################################################################
@@ -2107,7 +2106,6 @@ def disable_switch(gen_data):
         return False
     
     return True
-
 
 
 
