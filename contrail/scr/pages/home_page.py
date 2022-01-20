@@ -1977,9 +1977,6 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
             elif coord_radio_value == 'coord-radio-turn':
                 kernel_inputs = [ [ [waypoint['turn_rate'], waypoint['horizontal_speed'], waypoint['vertical_speed']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
-            
-            for i in range(len(nom_ac_ids)):
-                print('kernel_inputs[ac]', i, len(kernel_inputs[i]))
 
             ac_times = [ [waypoint['time'] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
 
@@ -1997,28 +1994,10 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 generated_waypoints[0] = np.array([kernel_inputs[0]] + generated_waypoints[0].tolist())
                 generated_waypoints[1] = np.array([kernel_inputs[1]] + generated_waypoints[1].tolist())
 
-
             elif cov_radio_value == 'cov-radio-exp':  
-
-                # import matplotlib.pyplot as plt
-                # import seaborn as sn
-
                 generated_waypoints = np.empty([len(kernel_inputs),], dtype=object)
                 for ac_id, ac_kernel_inputs in enumerate(kernel_inputs):
                     mean, cov = exp_kernel_func(ac_kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-
-                    # np.set_printoptions(precision=4, suppress=True)
-                    # print("ac", ac_id, ": mean\n", mean.reshape(-1,3))
-                    # np.set_printoptions(precision=5, suppress=True, threshold=sys.maxsize)
-                    # print("cov\n", cov[:21], '\n', cov[-21:])
-                    # np.set_printoptions(precision=5, suppress=True, threshold=100)
-
-                    np.savetxt(DEFAULT_DATA_FILE_PATH + 'ac%s_mean.csv' % ac_id, mean, delimiter=',', fmt='%.4f')
-                    np.savetxt(DEFAULT_DATA_FILE_PATH + 'ac%s_cov.csv' % ac_id, cov, delimiter=',', fmt='%.4f')
-                    
-                    # sn.heatmap(cov)
-                    # plt.savefig(DEFAULT_DATA_FILE_PATH + 'ac%s_cov.png' % ac_id) 
-
 
                     # generate waypoints
                     generated_waypoints[ac_id] = np.random.multivariate_normal(mean,cov,num_encounters)
@@ -2026,12 +2005,12 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                     
                     # include nominal encounter
                     generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
-            print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
+            print(f'finished generating encounters in {(time.time()-start)/60:.6f} mins.\n')
             
             start = time.time()
             generated_data_filename = file_path + 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
-            print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
+            print(f'finished streaming generated data in {(time.time()-start)/60:.6f} mins.\n')
 
             return {'filename':generated_data_filename,
                     'encounter_indices':enc_data_indices,
@@ -2041,6 +2020,8 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                     'type':'generated'}
 
     return dash.no_update
+
+
 
 
 ###########################################################################################
@@ -2076,7 +2057,7 @@ def on_generation_update_log_histograms(generated_data):
     pool = mp.Pool(num_processes)
 
     histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
-    print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
+    print(f'finished plotting histograms in {(time.time()-start)/60:.6f} mins.\n')
 
     pool.close()
     pool.join()
