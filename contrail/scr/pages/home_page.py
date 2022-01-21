@@ -47,7 +47,7 @@ map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
 map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color='#000000', weight=5, opacity=0.9))), dict(offset='100%', repeat='0%', marker=map_marker)]
 
-np.random.seed(3)
+#np.random.seed(3)
 
 tabs = html.Div(id='tab-div', children=[
         dbc.Tabs(id="tabs",
@@ -67,12 +67,12 @@ load_generate_save_buttons_and_toggle = dbc.Container(
                     ])],
                     width={"size": 'auto', "order": 1}),
 
-            dbc.Col(className='ml-2', children=[
+            dbc.Col(className='ml-25', children=[
                 dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning")
             ],
             width={'size':'auto', 'order':2}),              
 
-            dbc.Col(className="ml-2", children=[
+            dbc.Col(className="ml-25", children=[
                     dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary"),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')
@@ -487,7 +487,7 @@ data_table = html.Div(id='data-table-div', children =[
                             editable = True,
                             row_deletable = True,
                             data=[], 
-                            style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, #'height': '35rem',
+                            style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, 
                             style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
                         )
                     ]),
@@ -647,7 +647,7 @@ generation_modal = html.Div(id='gen-modal-div', children=[
                     dbc.Row(className='', children=[
                         dbc.Col(className='', children=[
                             html.H5('\( l \)', style={"color": "#3273F6", "margin-left": "5px"}),
-                            dbc.Input(id='exp-kernel-input-a', type='number', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=10.0),
+                            dbc.Input(id='exp-kernel-input-a', type='number', placeholder='param_a', debounce=True, pattern=u"^(0?\.?\d+)$", value=100.0),
                         ], width=2),
                         dbc.Col(className='', children=[
                             html.H5('\( w_h \)', style={"color": "#3273F6", "margin-left": "5px"}),
@@ -871,9 +871,9 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
     elif ctx == 'generated-data':
         if generated_data != {} and ref_data != {}:
             return {'filename': generated_data['filename'],
-                    'encounter_indices':generated_data['encounter_indices'],
-                    'ac_ids':generated_data['ac_ids'],
-                    'num_encounters':generated_data['num_encounters'],
+                    'encounter_indices': generated_data['encounter_indices'],
+                    'ac_ids': generated_data['ac_ids'],
+                    'num_encounters': generated_data['num_encounters'],
                     'type':'generated'}
 
     elif ctx == 'load-model':
@@ -1152,7 +1152,6 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
                                                             ell=pm.Ellipsoid('wgs84'), deg=True)
                     data_point['xEast'] = xEast*M_TO_NM
                     data_point['yNorth'] = yNorth*M_TO_NM
-                    data_point['zUp'] = zUp_input
                     data_point['lat'] = pos[0]
                     data_point['long'] = pos[1]
                     df.at[i] = data_point
@@ -1888,7 +1887,7 @@ def render_gen_modal_covarience_popover_content(cov_radio_value):
             \\end{equation*}'
 
         popover_content = [
-            dbc.PopoverHeader("Exponenetial Kernel Covariance", style={"text-align":"center"}),
+            dbc.PopoverHeader("Exponential Kernel Covariance", style={"text-align":"center"}),
             dbc.PopoverBody(content, style={"margin-left":"10px"})]
         return popover_content, on
 
@@ -1949,13 +1948,14 @@ def toggle_gen_modal(gen_n_clicks, close_n_clicks, generate_n_clicks):
                State('memory-data', 'data')])
 def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids, cov_radio_value, sigma_hor, sigma_ver, exp_kernel_a, exp_kernel_b,\
                         exp_kernel_c, num_encounters, ref_data, memory_data): 
-    
+
     ctx = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     if ctx == 'generate-button':
-        if gen_n_clicks > 0:
 
+        if gen_n_clicks > 0:
             print('\n--GENERATING ENCOUNTERS--\n')
+
             start = time.time()
             file_path = DEFAULT_DATA_FILE_PATH
             
@@ -1965,12 +1965,14 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 return {}
 
             nom_enc_data = parse_enc_data(memory_data, [nom_enc_id], nom_ac_ids, ref_data, file_path)
-            df = pd.DataFrame(nom_enc_data)
 
+            df = pd.DataFrame(nom_enc_data)
+            
             data = populate_lat_lng_xEast_yNorth(df.to_dict('records'), ref_data)
             df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
             df_sorted = df.sort_values(by=['ac_id', 'time'])
             df = calculate_turnrate_hor_ver_speeds_df(df_sorted)
+
 
             if coord_radio_value == 'coord-radio-pos':
                 kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
@@ -1979,6 +1981,7 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
 
             ac_times = [ [waypoint['time'] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
 
+
             if cov_radio_value == 'cov-radio-diag':
                 cov = [ [sigma_hor, 0, 0], 
                         [0, sigma_hor, 0], 
@@ -1986,7 +1989,6 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
  
                 # generate waypoints
                 generated_waypoints = np.array([ [np.random.multivariate_normal(mean,cov,num_encounters) for mean in ac] for ac in kernel_inputs])
-
                 generated_waypoints[0] = np.moveaxis(generated_waypoints[0], 0, 1)
                 generated_waypoints[1] = np.moveaxis(generated_waypoints[1], 0, 1)
 
@@ -1995,22 +1997,24 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 generated_waypoints[1] = np.array([kernel_inputs[1]] + generated_waypoints[1].tolist())
 
             elif cov_radio_value == 'cov-radio-exp':  
-                generated_waypoints = np.empty([2,], dtype=object)
+                generated_waypoints = np.empty([len(kernel_inputs),], dtype=object)
                 for ac_id, ac_kernel_inputs in enumerate(kernel_inputs):
+                    # print("ac_id: ", ac_id)
+
                     mean, cov = exp_kernel_func(ac_kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-                    
+
                     # generate waypoints
                     generated_waypoints[ac_id] = np.random.multivariate_normal(mean,cov,num_encounters)
                     generated_waypoints[ac_id] = np.reshape(generated_waypoints[ac_id], (generated_waypoints[ac_id].shape[0], -1, 3))
                     
                     # include nominal encounter
                     generated_waypoints[ac_id] = np.array([kernel_inputs[ac_id]] + generated_waypoints[ac_id].tolist())
-            print('finished generating encounters in', (time.time()-start)/60,'mins.\n')
+            print(f'finished generating encounters in {(time.time()-start)/60:.6f} mins.\n')
             
             start = time.time()
             generated_data_filename = file_path + 'generated_data.dat'
             enc_data_indices, minmax_hist = stream_generated_data(generated_waypoints, ac_times, generated_data_filename, num_encounters)
-            print('finished streaming generated data in', (time.time()-start)/60,'mins.\n')
+            print(f'finished streaming generated data in {(time.time()-start)/60:.6f} mins.\n')
 
             return {'filename':generated_data_filename,
                     'encounter_indices':enc_data_indices,
@@ -2020,6 +2024,7 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                     'type':'generated'}
 
     return dash.no_update
+
 
 
 ###########################################################################################
@@ -2055,17 +2060,14 @@ def on_generation_update_log_histograms(generated_data):
     pool = mp.Pool(num_processes)
 
     histograms = pool.starmap(create_histogram, zip(bin_counts, x_labels, y_labels, x_axes, y_axes))
-    print('finished plotting histograms in', (time.time()-start)/60,'mins.\n')
+    print(f'finished plotting histograms in {(time.time()-start)/60:.6f} mins.\n')
 
     pool.close()
     pool.join()
-
     return histograms
 
 
 def create_histogram(bin_counts, x_label, y_label, x_axes, y_axes):
-    
-
     if x_label == 'xEast' and y_label == 'yNorth':
         return {
             'data': [go.Heatmap(z=bin_counts, x=x_axes, y=y_axes, 
@@ -2108,7 +2110,6 @@ def disable_switch(gen_data):
         return False
     
     return True
-
 
 
 
