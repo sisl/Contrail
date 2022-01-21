@@ -47,7 +47,7 @@ map_iconUrl = "https://dash-leaflet.herokuapp.com/assets/icon_plane.png"
 map_marker = dict(rotate=True, markerOptions=dict(icon=dict(iconUrl=map_iconUrl, iconAnchor=[16, 16])))
 map_patterns = [dict(repeat='15', dash=dict(pixelSize=0, pathOptions=dict(color='#000000', weight=5, opacity=0.9))), dict(offset='100%', repeat='0%', marker=map_marker)]
 
-np.random.seed(3)
+#np.random.seed(3)
 
 tabs = html.Div(id='tab-div', children=[
         dbc.Tabs(id="tabs",
@@ -67,12 +67,12 @@ load_generate_save_buttons_and_toggle = dbc.Container(
                     ])],
                     width={"size": 'auto', "order": 1}),
 
-            dbc.Col(className='ml-2', children=[
+            dbc.Col(className='ml-25', children=[
                 dbc.Button('Generate Encounter Set', id='gen-encounters-button', n_clicks=0, outline=False, color="warning")
             ],
             width={'size':'auto', 'order':2}),              
 
-            dbc.Col(className="ml-2", children=[
+            dbc.Col(className="ml-25", children=[
                     dbc.Button('Save Waypoints (.dat) or Model (.json)', id='save-button', n_clicks=0, outline=False, color="primary"),
                     dcc.Download(id='download-waypoints'),
                     dcc.Download(id='download-model')
@@ -487,7 +487,7 @@ data_table = html.Div(id='data-table-div', children =[
                             editable = True,
                             row_deletable = True,
                             data=[], 
-                            style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, #'height': '35rem',
+                            style_table={'width': '38.5rem', 'display': "block", 'margin-left':'10px', 'overflowY': 'scroll'}, 
                             style_cell={'fontSize':11, 'height':'auto', 'whiteSpace':'normal'})], 
                         )
                     ]),
@@ -871,9 +871,9 @@ def update_memory_data(loaded_filename, create_n_clicks, end_new_n_clicks, gener
     elif ctx == 'generated-data':
         if generated_data != {} and ref_data != {}:
             return {'filename': generated_data['filename'],
-                    'encounter_indices':generated_data['encounter_indices'],
-                    'ac_ids':generated_data['ac_ids'],
-                    'num_encounters':generated_data['num_encounters'],
+                    'encounter_indices': generated_data['encounter_indices'],
+                    'ac_ids': generated_data['ac_ids'],
+                    'num_encounters': generated_data['num_encounters'],
                     'type':'generated'}
 
     elif ctx == 'load-model':
@@ -1152,7 +1152,6 @@ def update_data_table(upload_n_clicks, encounter_id_selected, ac_ids_selected, u
                                                             ell=pm.Ellipsoid('wgs84'), deg=True)
                     data_point['xEast'] = xEast*M_TO_NM
                     data_point['yNorth'] = yNorth*M_TO_NM
-                    data_point['zUp'] = zUp_input
                     data_point['lat'] = pos[0]
                     data_point['long'] = pos[1]
                     df.at[i] = data_point
@@ -1966,12 +1965,14 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 return {}
 
             nom_enc_data = parse_enc_data(memory_data, [nom_enc_id], nom_ac_ids, ref_data, file_path)
-            df = pd.DataFrame(nom_enc_data)
 
+            df = pd.DataFrame(nom_enc_data)
+            
             data = populate_lat_lng_xEast_yNorth(df.to_dict('records'), ref_data)
             df = pd.DataFrame(data).apply(pd.to_numeric, errors='coerce').fillna(0)
             df_sorted = df.sort_values(by=['ac_id', 'time'])
             df = calculate_turnrate_hor_ver_speeds_df(df_sorted)
+
 
             if coord_radio_value == 'coord-radio-pos':
                 kernel_inputs = [ [ [waypoint['xEast'], waypoint['yNorth'], waypoint['zUp']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
@@ -1979,6 +1980,7 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
                 kernel_inputs = [ [ [waypoint['turn_rate'], waypoint['horizontal_speed'], waypoint['vertical_speed']] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
 
             ac_times = [ [waypoint['time'] for waypoint in (df.loc[df['ac_id'] == ac]).to_dict('records')] for ac in nom_ac_ids]
+
 
             if cov_radio_value == 'cov-radio-diag':
                 cov = [ [sigma_hor, 0, 0], 
@@ -1997,6 +1999,8 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
             elif cov_radio_value == 'cov-radio-exp':  
                 generated_waypoints = np.empty([len(kernel_inputs),], dtype=object)
                 for ac_id, ac_kernel_inputs in enumerate(kernel_inputs):
+                    # print("ac_id: ", ac_id)
+
                     mean, cov = exp_kernel_func(ac_kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
 
                     # generate waypoints

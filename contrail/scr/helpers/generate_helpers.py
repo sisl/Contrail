@@ -61,7 +61,7 @@ def exp_kernel_func(inputs, param_a, param_b, param_c):
 
 def stream_generated_data(generated_data, ac_times, filename, num_encounters):
     enc_data_indices = [None] * (num_encounters+1)
-    ac_ids = len(generated_data)
+    ac_ids = len(ac_times)
 
     ac1_minmax_hist = []
     ac2_minmax_hist = []
@@ -231,4 +231,3 @@ def stream_count_histograms(filename, enc_indices, minmax_hist, num_encounters, 
     return ac_1_xy_bin_counts, ac_1_tz_bin_counts, ac_2_xy_bin_counts, ac_2_tz_bin_counts,\
         ac1_t_edges, ac1_x_edges, ac1_y_edges, ac1_z_edges,\
         ac2_t_edges, ac2_x_edges, ac2_y_edges, ac2_z_edges
-        
