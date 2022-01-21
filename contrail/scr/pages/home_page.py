@@ -1999,10 +1999,8 @@ def generate_encounters(gen_n_clicks, coord_radio_value, nom_enc_id, nom_ac_ids,
             elif cov_radio_value == 'cov-radio-exp':  
                 generated_waypoints = np.empty([len(kernel_inputs),], dtype=object)
                 for ac_id, ac_kernel_inputs in enumerate(kernel_inputs):
-                    # print("ac_id: ", ac_id)
-
                     mean, cov = exp_kernel_func(ac_kernel_inputs, exp_kernel_a, exp_kernel_b, exp_kernel_c)
-
+                    
                     # generate waypoints
                     generated_waypoints[ac_id] = np.random.multivariate_normal(mean,cov,num_encounters)
                     generated_waypoints[ac_id] = np.reshape(generated_waypoints[ac_id], (generated_waypoints[ac_id].shape[0], -1, 3))
